@@ -1,0 +1,36 @@
+@page "/resources/users"
+@model UserResourceModel
+@{
+    Layout = null;
+}
+
+<div>
+    <h1>Users</h1>
+    <button hx-get="/resources/users/create" hx-target="#form-container" class="btn btn-primary">Create User</button>
+    <table class="table">
+        <thead>
+            <tr>
+                @foreach (var column in Model.TableColumns)
+                {
+                    <th>@column</th>
+                }
+            </tr>
+        </thead>
+        <tbody id="user-table">
+            @foreach (var user in Model.Users)
+            {
+                <tr>
+                    <td>@user.Name</td>
+                    <td>@user.Email</td>
+                    <td>@user.CreatedAt</td>
+                    <td>
+                        <button hx-get="/resources/users/edit/@user.Id" hx-target="#form-container" class="btn btn-sm btn-warning">Edit</button>
+                        <button hx-delete="/resources/users/delete/@user.Id" hx-target="#user-table" class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div id="form-container"></div>
