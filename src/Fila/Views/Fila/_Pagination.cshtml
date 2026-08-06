@@ -1,0 +1,32 @@
+@model FilaListViewModel
+@{
+    Layout = null;
+    var paged = Model.Paged;
+}
+<div class="fi-ta-pagination" role="navigation" aria-label="Pagination">
+    <span class="fi-ta-pagination-summary">
+        Page @paged.Page of @paged.LastPage (@paged.Total total)
+    </span>
+    <div class="fi-ta-pagination-controls">
+        <button type="button"
+                class="fi-btn fi-btn-outlined"
+                disabled="@(paged.Page <= 1 ? "disabled" : null)"
+                hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                hx-target="#fila-table"
+                hx-include="#fila-table-state"
+                hx-push-url="true"
+                hx-vals='{"page": "@(paged.Page - 1)"}'>
+            Previous
+        </button>
+        <button type="button"
+                class="fi-btn fi-btn-outlined"
+                disabled="@(paged.Page >= paged.LastPage ? "disabled" : null)"
+                hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                hx-target="#fila-table"
+                hx-include="#fila-table-state"
+                hx-push-url="true"
+                hx-vals='{"page": "@(paged.Page + 1)"}'>
+            Next
+        </button>
+    </div>
+</div>

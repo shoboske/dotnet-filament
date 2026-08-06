@@ -1,0 +1,67 @@
+@model FilaListViewModel
+@{
+    Layout = null;
+}
+<div class="fi-ta-table-wrapper">
+    <table class="fi-ta-table">
+        <thead>
+            <tr>
+                @foreach (var column in Model.Table.Columns)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                        @if (column.IsSortable)
+                        {
+                            <button type="button"
+                                    class="fi-ta-sort-btn"
+                                    hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                                    hx-target="#fila-table"
+                                    hx-include="#fila-table-state"
+                                    hx-push-url="true"
+                                    hx-vals='@Model.Query.SortValsFor(column)'>
+                                <span>@column.Label</span>
+                                @if (Model.Query.Sort == column.Path)
+                                {
+                                    <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
+                                }
+                            </button>
+                        }
+                        else
+                        {
+                            @column.Label
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Model.Paged.Rows.Count; i++)
+            {
+                var row = Model.Paged.Rows[i];
+                <tr wire-key="@(Model.Resource.Slug)-@i">
+                    @foreach (var column in Model.Table.Columns)
+                    {
+                        <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                            @if (column.Kind == ColumnKind.Badge)
+                            {
+                                var tone = column.GetBadgeColor(row) ?? "neutral";
+                                <span class="fi-badge fi-badge-@tone">@column.FormatDisplay(row)</span>
+                            }
+                            else
+                            {
+                                @column.FormatDisplay(row)
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+            @if (Model.Paged.Rows.Count == 0)
+            {
+                <tr>
+                    <td class="fi-ta-empty" colspan="@Model.Table.Columns.Count">No records found.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<partial name="Fila/_Pagination" model="Model" />
