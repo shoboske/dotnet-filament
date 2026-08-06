@@ -7,6 +7,8 @@ namespace Demo.Fila.Resources;
 
 public sealed class CustomerResource : Resource<Customer>
 {
+    public override string? NavigationIcon => "users";
+
     protected override Table<Customer> Table(Table<Customer> t) => t
         .Columns(
             t.Text(c => c.Email).Searchable().Sortable(),

@@ -13,10 +13,21 @@
                 <a class="fi-sidebar-link@(isActive ? " fi-sidebar-link-active" : "")"
                    href="/@Model.Panel.Path/@item.Slug"
                    aria-current="@(isActive ? "page" : null)">
-                    @item.Label
+                    @Html.Raw(IconRegistry.Render(item.NavigationIcon))
+                    <span>@item.Label</span>
                 </a>
             }
         </nav>
+
+        @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)
+        {
+            <div class="fi-sidebar-footer">
+                <span class="fi-sidebar-user">@Context.User.Identity!.Name</span>
+                <form method="post" action="@Model.Panel.LogoutPath">
+                    <button type="submit" class="fi-sidebar-logout">Sign out</button>
+                </form>
+            </div>
+        }
     </aside>
 
     <div class="fi-main">

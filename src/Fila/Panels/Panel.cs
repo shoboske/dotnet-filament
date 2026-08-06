@@ -18,6 +18,7 @@ public sealed class Panel
     public string Brand { get; internal set; } = "Admin";
     public Type? DbContextType { get; internal set; }
     public string? AuthorizationPolicy { get; internal set; }
+    public string? LogoutPath { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
 
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
@@ -49,6 +50,15 @@ public sealed class PanelBuilder
     public PanelBuilder RequireAuthorization(string policy)
     {
         _panel.AuthorizationPolicy = policy;
+        return this;
+    }
+
+    /// <summary>Renders a sign-out control in the sidebar for authenticated users, posting to
+    /// this path. Optional — omit it and the sidebar renders no auth UI at all, since Fila
+    /// doesn't assume any particular auth scheme is configured.</summary>
+    public PanelBuilder WithLogoutPath(string path)
+    {
+        _panel.LogoutPath = path;
         return this;
     }
 

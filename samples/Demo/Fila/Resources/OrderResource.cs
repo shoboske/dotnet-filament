@@ -7,6 +7,8 @@ namespace Demo.Fila.Resources;
 
 public sealed class OrderResource : Resource<Order>
 {
+    public override string? NavigationIcon => "shopping-cart";
+
     protected override Table<Order> Table(Table<Order> t) => t
         .Columns(
             t.Date(o => o.CreatedAt).Sortable(),
