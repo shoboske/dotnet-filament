@@ -1,0 +1,15 @@
+using Fila.Resources;
+using Fila.Tables;
+using Microsoft.EntityFrameworkCore;
+using Demo.Data;
+
+namespace Demo.Fila.Resources;
+
+public sealed class CustomerResource : Resource<Customer>
+{
+    protected override Table<Customer> Table(Table<Customer> t) => t
+        .Columns(
+            t.Text(c => c.Email).Searchable().Sortable(),
+            t.Text(c => c.Name).Searchable().Sortable())
+        .PaginateBy(25);
+}

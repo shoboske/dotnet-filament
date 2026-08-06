@@ -12,23 +12,63 @@
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.fi-ta {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
-
-.fi-ta-topbar {
+.fi-shell {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
+  min-height: 100vh;
 }
 
-.fi-ta-brand {
+.fi-sidebar {
+  flex: 0 0 16rem;
+  background: #ffffff;
+  border-right: 1px solid #e4e4e7; /* zinc-200 */
+  padding: 1.25rem 1rem;
+}
+
+.fi-sidebar-brand {
   font-size: 1.125rem;
   font-weight: 600;
   color: #18181b;
+  padding: 0 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.fi-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fi-sidebar-link {
+  display: block;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #3f3f46; /* zinc-700 */
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.fi-sidebar-link:hover {
+  background: #f4f4f5; /* zinc-100 */
+  color: #18181b;
+}
+
+.fi-sidebar-link:focus-visible {
+  outline: 2px solid var(--fi-accent);
+  outline-offset: 1px;
+}
+
+.fi-sidebar-link-active {
+  background: #eef2ff; /* indigo-50 */
+  color: var(--fi-accent);
+}
+
+.fi-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1.5rem;
+  max-width: 80rem;
 }
 
 .fi-ta-card {
@@ -235,6 +275,21 @@
 }
 
 @media (max-width: 768px) {
+  .fi-shell {
+    flex-direction: column;
+  }
+
+  .fi-sidebar {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid #e4e4e7;
+  }
+
+  .fi-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .fi-ta-toolbar {
     flex-direction: column;
     align-items: stretch;

@@ -3,6 +3,7 @@
     <Project Path="samples/Demo/Demo.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Fila.Tools/Fila.Tools.csproj" />
     <Project Path="src/Fila/Fila.csproj" />
   </Folder>
 </Solution>

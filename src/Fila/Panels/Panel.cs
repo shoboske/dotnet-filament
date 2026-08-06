@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Panels;
 
+/// <summary>One entry in the panel's navigation, resolved once at startup alongside route
+/// registration — see FilaExtensions.MapFilaPanel.</summary>
+public sealed record ResourceNavItem(string Slug, string Label, string? NavigationIcon);
+
 public sealed class Panel
 {
     internal Panel()
@@ -15,6 +19,9 @@ public sealed class Panel
     public Type? DbContextType { get; internal set; }
     public string? AuthorizationPolicy { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
+
+    /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
+    public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
 }
 
 public sealed class PanelBuilder

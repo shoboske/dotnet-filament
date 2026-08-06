@@ -2,41 +2,53 @@
 @{
     ViewBag.Title = Model.Panel.Brand;
 }
-<div x-data="filaTable" class="fi-ta" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
+<div x-data="filaTable" class="fi-shell" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
 
-    <header class="fi-ta-topbar">
-        <h1 class="fi-ta-brand">@Model.Panel.Brand</h1>
-        <nav class="fi-ta-nav" aria-label="Resources"></nav>
-    </header>
+    <aside class="fi-sidebar">
+        <div class="fi-sidebar-brand">@Model.Panel.Brand</div>
+        <nav class="fi-sidebar-nav" aria-label="Resources">
+            @foreach (var item in Model.Panel.Navigation)
+            {
+                var isActive = item.Slug == Model.Resource.Slug;
+                <a class="fi-sidebar-link@(isActive ? " fi-sidebar-link-active" : "")"
+                   href="/@Model.Panel.Path/@item.Slug"
+                   aria-current="@(isActive ? "page" : null)">
+                    @item.Label
+                </a>
+            }
+        </nav>
+    </aside>
 
-    <div class="fi-ta-card">
-        <div class="fi-ta-toolbar">
-            <h2 class="fi-ta-heading">@Model.Resource.Slug.Replace('-', ' ')</h2>
+    <div class="fi-main">
+        <div class="fi-ta-card">
+            <div class="fi-ta-toolbar">
+                <h2 class="fi-ta-heading">@Model.Resource.Slug.Replace('-', ' ')</h2>
 
-            <input type="search"
-                   name="search"
-                   value="@Model.Query.Search"
-                   placeholder="Search"
-                   class="fi-input fi-ta-search"
-                   aria-label="Search"
-                   hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
-                   hx-target="#fila-table"
-                   hx-trigger="input changed delay:300ms, search"
-                   hx-include="#fila-table-state"
-                   hx-push-url="true"
-                   hx-indicator="#fila-loading" />
-        </div>
+                <input type="search"
+                       name="search"
+                       value="@Model.Query.Search"
+                       placeholder="Search"
+                       class="fi-input fi-ta-search"
+                       aria-label="Search"
+                       hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                       hx-target="#fila-table"
+                       hx-trigger="input changed delay:300ms, search"
+                       hx-include="#fila-table-state"
+                       hx-push-url="true"
+                       hx-indicator="#fila-loading" />
+            </div>
 
-        <div id="fila-table-state">
-            <input type="hidden" name="sort" value="@Model.Query.Sort" />
-            <input type="hidden" name="dir" value="@Model.Query.Dir" />
-            <input type="hidden" name="page" value="@Model.Query.Page" />
-        </div>
+            <div id="fila-table-state">
+                <input type="hidden" name="sort" value="@Model.Query.Sort" />
+                <input type="hidden" name="dir" value="@Model.Query.Dir" />
+                <input type="hidden" name="page" value="@Model.Query.Page" />
+            </div>
 
-        <div id="fila-loading" class="fi-ta-loading htmx-indicator" aria-live="polite">Loading…</div>
+            <div id="fila-loading" class="fi-ta-loading htmx-indicator" aria-live="polite">Loading…</div>
 
-        <div id="fila-table">
-            <partial name="Fila/_Table" model="Model" />
+            <div id="fila-table">
+                <partial name="Fila/_Table" model="Model" />
+            </div>
         </div>
     </div>
 </div>
