@@ -2,6 +2,7 @@ using Fila.Panels;
 using Fila.Rendering;
 using Fila.Resources;
 using Fila.Tables;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -39,6 +40,16 @@ public static class FilaExtensions
     public static IEndpointRouteBuilder MapFilaPanel(this IEndpointRouteBuilder endpoints)
     {
         var panel = endpoints.ServiceProvider.GetRequiredService<Panel>();
+
+        // Login/logout are mapped directly on `endpoints`, never on the authorized `group`
+        // below — putting them behind the same RequireAuthorization policy would send an
+        // unauthenticated visit to /login straight back into a redirect loop.
+        if (panel.LoginEnabled)
+        {
+            panel.LogoutPath ??= $"/{panel.Path}/logout";
+            MapLoginRoutes(endpoints, panel);
+        }
+
         var group = endpoints.MapGroup($"/{panel.Path}");
 
         if (panel.AuthorizationPolicy is not null)
@@ -62,6 +73,37 @@ public static class FilaExtensions
         }
 
         return endpoints;
+    }
+
+    private static void MapLoginRoutes(IEndpointRouteBuilder endpoints, Panel panel)
+    {
+        endpoints.MapGet($"/{panel.Path}/login", async (HttpContext ctx) =>
+        {
+            var model = new LoginViewModel { Panel = panel, Error = ctx.Request.Query.ContainsKey("error") };
+            var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+            var html = await renderer.RenderAsync(ctx, "~/Views/Fila/Login.cshtml", model);
+            return Results.Content(html, "text/html");
+        });
+
+        endpoints.MapPost($"/{panel.Path}/login", async (HttpContext ctx, CancellationToken ct) =>
+        {
+            var form = await ctx.Request.ReadFormAsync(ct);
+            var username = form["username"].ToString();
+            var password = form["password"].ToString();
+
+            var principal = await panel.Authenticate!(username, password, ct);
+            if (principal is null)
+                return Results.Redirect($"/{panel.Path}/login?error=true");
+
+            await ctx.SignInAsync(principal);
+            return Results.Redirect($"/{panel.Path}");
+        });
+
+        endpoints.MapPost($"/{panel.Path}/logout", async (HttpContext ctx) =>
+        {
+            await ctx.SignOutAsync();
+            return Results.Redirect($"/{panel.Path}/login");
+        });
     }
 
     private static List<(Type ResourceType, string Slug, string Label, string? NavigationIcon)> ResolveNavigationAtStartup(

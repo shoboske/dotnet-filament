@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Claims;
 using Fila.Resources;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,16 @@ public sealed class Panel
     public string? AuthorizationPolicy { get; internal set; }
     public string? LogoutPath { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
+
+    /// <summary>True once .WithLogin(...) has been called — MapFilaPanel then owns the
+    /// {path}/login and {path}/logout routes itself, the way a Filament panel owns its login
+    /// page rather than making the host app build one.</summary>
+    public bool LoginEnabled { get; internal set; }
+
+    /// <summary>Host-supplied credential check. Fila owns the login page and routing; the host
+    /// app only says whether a username/password pair is valid and, if so, who they are.
+    /// Returning null means invalid credentials.</summary>
+    public Func<string, string, CancellationToken, Task<ClaimsPrincipal?>>? Authenticate { get; internal set; }
 
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
     public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
@@ -54,11 +65,23 @@ public sealed class PanelBuilder
     }
 
     /// <summary>Renders a sign-out control in the sidebar for authenticated users, posting to
-    /// this path. Optional — omit it and the sidebar renders no auth UI at all, since Fila
-    /// doesn't assume any particular auth scheme is configured.</summary>
+    /// this path. Only needed for a hand-rolled auth flow the host app builds itself — prefer
+    /// .WithLogin(...) below, which wires this up automatically.</summary>
     public PanelBuilder WithLogoutPath(string path)
     {
         _panel.LogoutPath = path;
+        return this;
+    }
+
+    /// <summary>Enables Fila's own login page at {path}/login, the way a Filament panel owns
+    /// its login page rather than the host app building one. The host still owns what counts
+    /// as valid credentials and who the signed-in principal is — Fila only owns the page, the
+    /// routing, and calling SignInAsync/SignOutAsync against whatever default authentication
+    /// scheme the host has configured (e.g. via .AddAuthentication(...).AddCookie(...)).</summary>
+    public PanelBuilder WithLogin(Func<string, string, CancellationToken, Task<ClaimsPrincipal?>> authenticate)
+    {
+        _panel.LoginEnabled = true;
+        _panel.Authenticate = authenticate;
         return this;
     }
 
