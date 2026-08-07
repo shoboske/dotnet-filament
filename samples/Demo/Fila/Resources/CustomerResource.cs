@@ -1,3 +1,4 @@
+using Fila.Forms;
 using Fila.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
@@ -14,4 +15,9 @@ public sealed class CustomerResource : Resource<Customer>
             t.Text(c => c.Email).Searchable().Sortable(),
             t.Text(c => c.Name).Searchable().Sortable())
         .PaginateBy(25);
+
+    protected override Form<Customer> Form(Form<Customer> f) => f
+        .Fields(
+            f.Text(c => c.Name).Required(),
+            f.Text(c => c.Email).Required());
 }

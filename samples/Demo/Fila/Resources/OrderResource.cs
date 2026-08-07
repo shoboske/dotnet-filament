@@ -1,3 +1,4 @@
+using Fila.Forms;
 using Fila.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
@@ -20,4 +21,17 @@ public sealed class OrderResource : Resource<Order>
         .PaginateBy(25);
 
     protected override IQueryable<Order> Query(IQueryable<Order> q) => q.Include(o => o.Customer);
+
+    protected override Form<Order> Form(Form<Order> f) => f
+        .Fields(
+            f.Text(o => o.Reference).Required(),
+            f.Select(o => o.CustomerId)
+                .Label("Customer")
+                .Required()
+                .Options(db => ((AppDb)db).Customers
+                    .OrderBy(c => c.Name)
+                    .Select(c => new SelectOption(c.Id.ToString(), c.Name))),
+            f.Select(o => o.Status).Required(),
+            f.Number(o => o.Total).Required(),
+            f.Date(o => o.CreatedAt).Required());
 }

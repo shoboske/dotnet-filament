@@ -61,18 +61,31 @@
             <div class="fi-ta-toolbar">
                 <h2 class="fi-ta-heading">@Model.Resource.Slug.Replace('-', ' ')</h2>
 
-                <input type="search"
-                       name="search"
-                       value="@Model.Query.Search"
-                       placeholder="Search"
-                       class="fi-input fi-ta-search"
-                       aria-label="Search"
-                       hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
-                       hx-target="#fila-table"
-                       hx-trigger="input changed delay:300ms, search"
-                       hx-include="#fila-table-state"
-                       hx-push-url="true"
-                       hx-indicator="#fila-loading" />
+                <div class="fi-ta-toolbar-actions">
+                    <input type="search"
+                           name="search"
+                           value="@Model.Query.Search"
+                           placeholder="Search"
+                           class="fi-input fi-ta-search"
+                           aria-label="Search"
+                           hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                           hx-target="#fila-table"
+                           hx-trigger="input changed delay:300ms, search"
+                           hx-include="#fila-table-state"
+                           hx-push-url="true"
+                           hx-indicator="#fila-loading" />
+
+                    @if (Model.Resource.BuildForm() is not null)
+                    {
+                        <button type="button" class="fi-btn fi-btn-primary"
+                                hx-get="/@Model.Panel.Path/@Model.Resource.Slug/create"
+                                hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                hx-include="#fila-table-state">
+                            @Html.Raw(IconRegistry.Render("plus"))
+                            New
+                        </button>
+                    }
+                </div>
             </div>
 
             <div id="fila-table-state">
@@ -85,6 +98,17 @@
 
             <div id="fila-table">
                 <partial name="Fila/_Table" model="Model" />
+            </div>
+        </div>
+    </div>
+
+    <div class="fi-modal" x-show="modalOpen" x-cloak
+         @@fila-modal-open.window="modalOpen = true" @@fila-modal-close.window="modalOpen = false"
+         @@keydown.escape.window="modalOpen = false">
+        <div class="fi-modal-close-overlay" @@click="modalOpen = false"></div>
+        <div class="fi-modal-window-ctn">
+            <div class="fi-modal-window" id="fila-modal-body" @@click.stop>
+                <!-- htmx swaps Fila/_Form content in here -->
             </div>
         </div>
     </div>

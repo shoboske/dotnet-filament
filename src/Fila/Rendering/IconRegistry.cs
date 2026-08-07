@@ -31,6 +31,14 @@ public static class IconRegistry
             """<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>""",
         ["system"] =
             """<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>""",
+        ["x"] =
+            """<path d="M18 6 6 18M6 6l12 12"/>""",
+        ["pencil"] =
+            """<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>""",
+        ["trash"] =
+            """<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/>""",
+        ["plus"] =
+            """<path d="M12 5v14M5 12h14"/>""",
     };
 
     public static string Render(string? name)

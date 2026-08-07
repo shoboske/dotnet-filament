@@ -1,0 +1,85 @@
+@model FilaFormViewModel
+@{
+    Layout = null;
+    var actionUrl = Model.IsCreate
+        ? $"/{Model.Panel.Path}/{Model.Resource.Slug}"
+        : $"/{Model.Panel.Path}/{Model.Resource.Slug}/{Model.Id}";
+}
+<div class="fi-modal-header">
+    <h2 class="fi-modal-heading">@(Model.IsCreate ? "Create" : "Edit") @Model.Resource.Slug.TrimEnd('s').Replace('-', ' ')</h2>
+    <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
+        @Html.Raw(IconRegistry.Render("x"))
+    </button>
+</div>
+
+<form hx-post="@actionUrl" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
+    <div class="fi-modal-content">
+        @foreach (var field in Model.Form.Fields)
+        {
+            var rawValue = FieldBinding.Format(field.GetValue(Model.Entity));
+            var error = Model.ErrorFor(field.Path);
+            var fieldId = $"fila-field-{field.Path}";
+
+            <div class="fi-field">
+                @if (field.Kind != FieldKind.Boolean)
+                {
+                    <label class="fi-login-label" for="@fieldId">
+                        @field.Label
+                        @if (field.IsRequired)
+                        {
+                            <sup class="fi-required-mark">*</sup>
+                        }
+                    </label>
+                }
+
+                @switch (field.Kind)
+                {
+                    case FieldKind.Textarea:
+                        <textarea class="fi-input" id="@fieldId" name="@field.Path" rows="3">@rawValue</textarea>
+                        break;
+
+                    case FieldKind.Select:
+                        var options = field.ResolveOptions(Model.Db) ?? [];
+                        <select class="fi-input" id="@fieldId" name="@field.Path">
+                            @foreach (var option in options)
+                            {
+                                <option value="@option.Value" selected="@(option.Value == rawValue ? "selected" : null)">@option.Label</option>
+                            }
+                        </select>
+                        break;
+
+                    case FieldKind.Boolean:
+                        <label class="fi-toggle-label" for="@fieldId">
+                            <input type="checkbox" class="fi-toggle-input" id="@fieldId" name="@field.Path" value="true" checked="@(rawValue == "true" ? "checked" : null)" />
+                            <span>@field.Label</span>
+                        </label>
+                        break;
+
+                    case FieldKind.Date:
+                        <input type="date" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
+                        break;
+
+                    case FieldKind.Number:
+                        <input type="number" step="any" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
+                        break;
+
+                    default:
+                        <input type="text" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
+                        break;
+                }
+
+                @if (error is not null)
+                {
+                    <p class="fi-login-error">@error</p>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="fi-modal-footer">
+        <div class="fi-modal-footer-actions">
+            <button type="submit" class="fi-btn fi-btn-primary">Save</button>
+            <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
+        </div>
+    </div>
+</form>

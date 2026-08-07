@@ -1,6 +1,8 @@
 @model FilaListViewModel
 @{
     Layout = null;
+    var hasForm = Model.Resource.BuildForm() is not null;
+    var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
 }
 <div class="fi-ta-table-wrapper">
     <table class="fi-ta-table">
@@ -13,7 +15,7 @@
                         {
                             <button type="button"
                                     class="fi-ta-sort-btn"
-                                    hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                                    hx-get="@resourceUrl"
                                     hx-target="#fila-table"
                                     hx-include="#fila-table-state"
                                     hx-push-url="true"
@@ -30,6 +32,10 @@
                             @column.Label
                         }
                     </th>
+                }
+                @if (hasForm)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-end fi-ta-empty-header-cell"></th>
                 }
             </tr>
         </thead>
@@ -52,12 +58,33 @@
                             }
                         </td>
                     }
+                    @if (hasForm)
+                    {
+                        var rowId = Model.Resource.GetId(Model.Db, row);
+                        <td class="fi-ta-cell fi-ta-align-end">
+                            <div class="fi-ta-actions">
+                                <button type="button" class="fi-icon-btn" aria-label="Edit"
+                                        hx-get="@resourceUrl/@rowId/edit"
+                                        hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                        hx-include="#fila-table-state">
+                                    @Html.Raw(IconRegistry.Render("pencil"))
+                                </button>
+                                <button type="button" class="fi-icon-btn fi-icon-btn-danger" aria-label="Delete"
+                                        hx-post="@resourceUrl/@rowId/delete"
+                                        hx-target="#fila-table" hx-swap="innerHTML"
+                                        hx-include="#fila-table-state"
+                                        hx-confirm="Delete this record? This cannot be undone.">
+                                    @Html.Raw(IconRegistry.Render("trash"))
+                                </button>
+                            </div>
+                        </td>
+                    }
                 </tr>
             }
             @if (Model.Paged.Rows.Count == 0)
             {
                 <tr>
-                    <td class="fi-ta-empty" colspan="@Model.Table.Columns.Count">No records found.</td>
+                    <td class="fi-ta-empty" colspan="@(Model.Table.Columns.Count + (hasForm ? 1 : 0))">No records found.</td>
                 </tr>
             }
         </tbody>

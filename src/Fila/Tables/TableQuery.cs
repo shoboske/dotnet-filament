@@ -9,12 +9,19 @@ namespace Fila.Tables;
 /// </summary>
 public sealed record TableQuery(string? Search, string? Sort, string? Dir, int Page)
 {
-    public static TableQuery FromRequest(IQueryCollection query)
+    public static TableQuery FromRequest(IQueryCollection query) => FromValues(key => query[key].ToString());
+
+    /// <summary>Create/Edit/Delete submit as form posts, not query strings, but still carry the
+    /// current search/sort/page along via hidden #fila-table-state inputs (hx-include) so the
+    /// table re-renders in the same state it was in when the modal opened.</summary>
+    public static TableQuery FromForm(IFormCollection form) => FromValues(key => form[key].ToString());
+
+    private static TableQuery FromValues(Func<string, string?> get)
     {
-        var search = query["search"].ToString();
-        var sort = query["sort"].ToString();
-        var dir = query["dir"].ToString();
-        var pageRaw = query["page"].ToString();
+        var search = get("search");
+        var sort = get("sort");
+        var dir = get("dir");
+        var pageRaw = get("page");
 
         var page = int.TryParse(pageRaw, out var parsed) && parsed > 0 ? parsed : 1;
 

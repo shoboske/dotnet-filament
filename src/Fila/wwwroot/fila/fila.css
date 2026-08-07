@@ -23,6 +23,8 @@ body {
    the right of inputs" actually was: the input rendering wider than its card). */
 
 :root {
+  color-scheme: light;
+
   --fi-accent: #4f46e5; /* indigo-600 */
   --fi-accent-hover: #4338ca; /* indigo-700 */
   --fi-accent-contrast: #ffffff;
@@ -60,6 +62,11 @@ body {
 /* System dark preference, only when the visitor hasn't made an explicit choice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    /* Flips native form control chrome (date picker icon, select arrow, scrollbars) to dark
+       too — without this they keep rendering with light-mode chrome regardless of our own
+       colors. */
+    color-scheme: dark;
+
     --fi-accent-soft-bg: #312e81; /* indigo-900 */
 
     --fi-bg: #09090b; /* zinc-950 */
@@ -94,6 +101,8 @@ body {
 
 /* Explicit choice always wins, in both directions. */
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   --fi-accent-soft-bg: #312e81;
 
   --fi-bg: #09090b;
@@ -643,6 +652,168 @@ body {
   cursor: not-allowed;
 }
 
+.fi-ta-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fi-ta-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.fi-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+}
+
+.fi-icon-btn .fi-sidebar-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fi-icon-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-icon-btn-danger:hover {
+  color: var(--fi-error-fg);
+}
+
+/* ---- Modal — calibrated against packages/support/resources/css/components/modal.css.
+   Simplified to the non-slide-over, non-sticky-header/footer case, since Fila's forms
+   are always short. ---- */
+
+.fi-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.fi-modal[x-cloak] {
+  display: none !important;
+}
+
+.fi-modal-close-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.fi-modal-window-ctn {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.fi-modal-window {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 32rem; /* fi-width-lg */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1), 0 0 0 1px var(--fi-border);
+}
+
+.fi-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.5rem 1.5rem 0;
+}
+
+.fi-modal-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  text-transform: capitalize;
+}
+
+.fi-modal-close-btn {
+  flex: none;
+  display: inline-flex;
+  border: none;
+  background: none;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.fi-modal-close-btn .fi-sidebar-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fi-modal-close-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.fi-modal-footer {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.fi-modal-footer-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fi-required-mark {
+  color: var(--fi-error-fg);
+  margin-inline-start: 0.125rem;
+}
+
+/* A native checkbox rather than Filament's custom toggle-switch component — a
+   deliberate simplification, not a calibrated match. */
+.fi-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text);
+  cursor: pointer;
+}
+
+.fi-toggle-input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--fi-accent);
+}
+
 @media (max-width: 768px) {
   .fi-shell {
     flex-direction: column;
@@ -660,6 +831,11 @@ body {
   }
 
   .fi-ta-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fi-ta-toolbar-actions {
     flex-direction: column;
     align-items: stretch;
   }
