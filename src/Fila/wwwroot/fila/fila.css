@@ -890,16 +890,18 @@ body {
 }
 
 /* ---- Notifications — calibrated against packages/notifications/resources/css/
-   {notifications,notification}.css. Simplified to a fixed top-end stack, since Fila only
-   ever fires the one-shot Created/Saved/Deleted toasts (no persistent notification center). ---- */
+   {notifications,notification}.css and Notification::toEmbeddedHtml(). Fixed inset-4 box,
+   bottom-end anchored (Alignment::Right / VerticalAlignment::Start are Filament's defaults),
+   growing upward as new toasts are appended — matches Filament's default toast position. ---- */
 
 .fi-no {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  inset: 1rem;
   z-index: 50;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  align-items: flex-end;
   gap: 0.75rem;
   pointer-events: none;
 }
@@ -907,7 +909,6 @@ body {
 .fi-no-notification {
   pointer-events: auto;
   display: flex;
-  align-items: flex-start;
   gap: 0.75rem;
   width: 100%;
   max-width: 24rem;
@@ -916,8 +917,8 @@ body {
   background: var(--fi-surface);
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 0 1px var(--fi-border);
   opacity: 0;
-  transform: translateX(1rem);
-  transition: opacity 150ms ease, transform 150ms ease;
+  transform: translateX(3rem);
+  transition: opacity 300ms ease, transform 300ms ease;
 }
 
 .fi-no-notification.fi-visible {
@@ -927,23 +928,42 @@ body {
 
 .fi-no-notification-icon {
   flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
   margin-top: 0.125rem;
+  color: var(--fi-text-muted);
 }
 
 .fi-no-notification-success .fi-no-notification-icon {
-  color: var(--fi-success-fg, #059669);
+  color: #4ade80; /* green-400 — Filament's default "success" color */
 }
 
 .fi-no-notification-danger .fi-no-notification-icon {
-  color: var(--fi-error-fg);
+  color: #f87171; /* red-400 — Filament's default "danger" color */
+}
+
+.fi-no-notification-main {
+  margin-top: 0.125rem;
+  display: grid;
+  flex: 1;
+  gap: 0.75rem;
+}
+
+.fi-no-notification-text {
+  display: grid;
+  gap: 0.25rem;
 }
 
 .fi-no-notification-title {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--fi-text);
+  margin: 0;
+}
+
+.fi-no-notification-close-btn {
+  flex: none;
+  align-self: flex-start;
 }
 
 /* A native checkbox rather than Filament's custom toggle-switch component — a

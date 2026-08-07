@@ -43,6 +43,10 @@ public static class IconRegistry
             """<path d="m6 15 6-6 6 6"/>""",
         ["logout"] =
             """<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>""",
+        ["check-circle"] =
+            """<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>""",
+        ["x-circle"] =
+            """<circle cx="12" cy="12" r="9"/><path d="m9.5 9.5 5 5m0-5-5 5"/>""",
     };
 
     public static string Render(string? name)

@@ -19,10 +19,22 @@ if (window.htmx) {
 
 // Success toasts for Create/Update/Delete — server sends `HX-Trigger: {"fila-notify": {...}}`
 // alongside `fila-modal-close`, htmx dispatches it as a bubbling CustomEvent, and this renders
-// it into a fixed top-end stack matching Filament's default notification position.
+// it into a fixed inset-4 stack matching Notification::toEmbeddedHtml()'s markup: icon, title
+// in a `.fi-no-notification-main`/`-text` wrapper, and an always-visible close button. Default
+// icon per status mirrors Filament's HasIcon concern (check-circle for success, x-circle for danger).
 const filaNotifyIcons = {
-  success: '<path d="M20 6 9 17l-5-5"/>',
-  danger: '<path d="M18 6 6 18M6 6l12 12"/>',
+  success: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+  danger: '<circle cx="12" cy="12" r="9"/><path d="m9.5 9.5 5 5m0-5-5 5"/>',
+}
+
+const filaCloseIcon = '<path d="M18 6 6 18M6 6l12 12"/>'
+
+function filaIconSvg(body, extraClass) {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="fi-icon ${extraClass}" ` +
+    `aria-hidden="true">${body}</svg>`
+  )
 }
 
 window.addEventListener('fila-notify', (e) => {
@@ -39,17 +51,23 @@ window.addEventListener('fila-notify', (e) => {
   const card = document.createElement('div')
   card.className = `fi-no-notification fi-no-notification-${color}`
   card.innerHTML =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
-    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fi-icon fi-no-notification-icon" ` +
-    `aria-hidden="true">${filaNotifyIcons[color] ?? filaNotifyIcons.success}</svg>` +
-    `<p class="fi-no-notification-title"></p>`
+    filaIconSvg(filaNotifyIcons[color] ?? filaNotifyIcons.success, 'fi-no-notification-icon') +
+    `<div class="fi-no-notification-main">` +
+    `<div class="fi-no-notification-text"><h3 class="fi-no-notification-title"></h3></div>` +
+    `</div>` +
+    `<button type="button" class="fi-icon-btn fi-no-notification-close-btn" aria-label="Close">` +
+    filaIconSvg(filaCloseIcon, '') +
+    `</button>`
   card.querySelector('.fi-no-notification-title').textContent = title
+  card.querySelector('.fi-no-notification-close-btn').addEventListener('click', () => dismiss())
 
-  container.prepend(card)
+  container.appendChild(card)
   requestAnimationFrame(() => card.classList.add('fi-visible'))
 
-  setTimeout(() => {
+  const dismiss = () => {
     card.classList.remove('fi-visible')
-    setTimeout(() => card.remove(), 200)
-  }, 6000)
+    setTimeout(() => card.remove(), 300)
+  }
+
+  setTimeout(dismiss, 6000)
 })
