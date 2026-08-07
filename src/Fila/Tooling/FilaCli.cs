@@ -92,6 +92,7 @@ public static class FilaCli
         var source = $$"""
             using Fila;
             using Fila.Panels;
+            using System.Security.Claims;
             {{usingDbContextNamespace}}
             namespace {{rootNamespace}}.Fila;
 
@@ -101,6 +102,19 @@ public static class FilaCli
                     .AtPath("{{name.ToLowerInvariant()}}")
                     .Brand("{{name}}")
                     {{dbContextClause}}
+                    // TODO: replace with your own credential check — this is a placeholder so
+                    // the panel is usable immediately. Fila owns the login page and routing,
+                    // and (by default) a dedicated auth scheme just for this panel; you only
+                    // say whether a username/password pair is valid and who they are.
+                    .WithLogin((username, password, ct) =>
+                    {
+                        var principal = username == "admin" && password == "admin"
+                            ? new ClaimsPrincipal(new ClaimsIdentity(
+                                [new Claim(ClaimTypes.Name, username)], "{{name}}"))
+                            : null;
+
+                        return Task.FromResult(principal);
+                    })
                     .DiscoverResources(typeof(Program).Assembly);
             }
 
@@ -110,6 +124,7 @@ public static class FilaCli
 
         Console.WriteLine();
         Console.WriteLine($"  Created  {relativePath}");
+        Console.WriteLine($"           Login enabled at /{name.ToLowerInvariant()}/login (default admin/admin — replace the credential check)");
         Console.WriteLine();
         Console.WriteLine("  Add to Program.cs:");
         Console.WriteLine();
