@@ -82,7 +82,16 @@
             @if (Model.Paged.Rows.Count == 0)
             {
                 <tr>
-                    <td class="fi-ta-empty" colspan="@(Model.Table.Columns.Count + (hasForm ? 1 : 0))">No records found.</td>
+                    <td class="fi-ta-empty-cell" colspan="@(Model.Table.Columns.Count + (hasForm ? 1 : 0))">
+                        <div class="fi-ta-empty-state">
+                            <div class="fi-ta-empty-state-content">
+                                <span class="fi-ta-empty-state-icon-bg">
+                                    @Html.Raw(IconRegistry.Render("inbox"))
+                                </span>
+                                <h3 class="fi-ta-empty-state-heading">No @Model.Resource.Slug.Replace('-', ' ')</h3>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
             }
         </tbody>

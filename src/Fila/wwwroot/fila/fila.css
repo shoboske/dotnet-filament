@@ -57,6 +57,8 @@ body {
 
   --fi-error-bg: #fef2f2;
   --fi-error-fg: #b91c1c;
+
+  --fi-table-header-bg: #fafafa; /* gray-50 */
 }
 
 /* System dark preference, only when the visitor hasn't made an explicit choice. */
@@ -96,6 +98,8 @@ body {
 
     --fi-error-bg: #450a0a;
     --fi-error-fg: #fca5a5;
+
+    --fi-table-header-bg: rgb(255 255 255 / 0.05); /* dark:bg-white/5 */
   }
 }
 
@@ -132,6 +136,8 @@ body {
 
   --fi-error-bg: #450a0a;
   --fi-error-fg: #fca5a5;
+
+  --fi-table-header-bg: rgb(255 255 255 / 0.05);
 }
 
 .fi-body {
@@ -528,17 +534,21 @@ body {
   font-size: 0.875rem;
 }
 
+.fi-ta-table > thead > tr {
+  background: var(--fi-table-header-bg); /* table.css: thead > tr { bg-gray-50 dark:bg-white/5 } */
+}
+
 .fi-ta-header-cell {
   text-align: left;
-  padding: 0.875rem 1rem; /* fi-ta-header-cell: py-3.5 px-3 */
-  font-weight: 600; /* font-semibold, was 500 */
-  color: var(--fi-text-secondary);
+  padding: 0.875rem 0.75rem; /* fi-ta-header-cell: py-3.5 px-3 */
+  font-weight: 600; /* font-semibold */
+  color: var(--fi-text); /* text-gray-950 dark:text-white — headers are full-strength, not muted */
   border-bottom: 1px solid var(--fi-border);
   white-space: nowrap;
 }
 
 .fi-ta-cell {
-  padding: 1rem; /* fi-ta-text: py-4 px-3, bumped to match toolbar's 1rem-1.5rem rhythm */
+  padding: 1rem 0.75rem; /* fi-ta-text: py-4 px-3 */
   border-bottom: 1px solid var(--fi-border-subtle);
   color: var(--fi-text);
   white-space: nowrap;
@@ -599,9 +609,51 @@ body {
   color: var(--fi-accent);
 }
 
-.fi-ta-empty {
-  padding: 2rem 1.25rem;
+/* fi-ta-empty-state — calibrated against packages/tables/resources/css/empty-state.css. */
+.fi-ta-empty-cell {
+  padding: 0;
+  border-bottom: none;
+}
+
+.fi-ta-empty-state {
+  padding: 3rem 1.5rem; /* px-6 py-12 */
+  border-top: 1px solid var(--fi-border);
+}
+
+.fi-ta-empty-state-content {
+  margin: 0 auto;
+  display: grid;
+  max-width: 32rem;
+  justify-items: center;
   text-align: center;
+}
+
+.fi-ta-empty-state-icon-bg {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: var(--fi-hover-bg); /* bg-gray-100 dark:bg-gray-500/20 */
+}
+
+.fi-ta-empty-state-icon-bg .fi-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-ta-empty-state-heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.fi-ta-empty-state-description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
   color: var(--fi-text-secondary);
 }
 
@@ -644,13 +696,20 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem; /* fi-pagination lives inside fi-ta-ctn: px-3 py-3 */
   border-top: 1px solid var(--fi-border);
 }
 
+@media (min-width: 640px) {
+  .fi-ta-pagination {
+    padding: 0.75rem 1.5rem; /* sm:px-6 */
+  }
+}
+
 .fi-ta-pagination-summary {
-  font-size: 0.8125rem;
-  color: var(--fi-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500; /* fi-pagination-overview: text-sm font-medium text-gray-700 */
+  color: var(--fi-text-tertiary);
 }
 
 .fi-ta-pagination-controls {
