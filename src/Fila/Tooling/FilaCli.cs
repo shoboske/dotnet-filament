@@ -84,10 +84,15 @@ public static class FilaCli
             ? $".UseDbContext<{dbContextType.Name}>()"
             : ".UseDbContext<AppDb>() // TODO: replace with your DbContext";
 
+        var dbContextNamespace = dbContextType?.Namespace;
+        var usingDbContextNamespace = dbContextNamespace is null || dbContextNamespace == $"{rootNamespace}.Fila"
+            ? string.Empty
+            : $"using {dbContextNamespace};{Environment.NewLine}";
+
         var source = $$"""
             using Fila;
             using Fila.Panels;
-
+            {{usingDbContextNamespace}}
             namespace {{rootNamespace}}.Fila;
 
             public static class {{name}}Panel
