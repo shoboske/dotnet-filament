@@ -30,14 +30,15 @@
             var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&format=svg&color=FFFFFF&background=030712";
 
             <div class="fi-sidebar-footer">
-                <div class="fi-dropdown fi-user-menu" x-data="{ open: false, theme: filaGetTheme() }" @@keydown.escape.window="open = false">
-                    <button type="button" class="fi-user-menu-trigger" @@click="open = !open" @@click.outside="open = false" :aria-expanded="open">
+                <div class="fi-dropdown fi-user-menu" x-data="{ open: false, theme: filaGetTheme() }"
+                     @@keydown.escape.window="open = false" @@click.outside="open = false">
+                    <button type="button" class="fi-user-menu-trigger" @@click="open = !open" :aria-expanded="open">
                         <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
                         <span class="fi-user-menu-trigger-text">@userName</span>
                         @Html.Raw(IconRegistry.Render("chevron-up"))
                     </button>
 
-                    <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition @@click.outside="open = false">
+                    <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition>
                         <div class="fi-dropdown-list">
                             <div class="fi-theme-switcher" role="group" aria-label="Theme">
                                 <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'light' }"
