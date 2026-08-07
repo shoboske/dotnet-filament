@@ -30,30 +30,42 @@
             var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&format=svg&color=FFFFFF&background=030712";
 
             <div class="fi-sidebar-footer">
-                <div class="fi-sidebar-user-info">
-                    <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
-                    <span class="fi-sidebar-user">@userName</span>
+                <div class="fi-dropdown fi-user-menu" x-data="{ open: false, theme: filaGetTheme() }" @@keydown.escape.window="open = false">
+                    <button type="button" class="fi-user-menu-trigger" @@click="open = !open" @@click.outside="open = false" :aria-expanded="open">
+                        <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
+                        <span class="fi-user-menu-trigger-text">@userName</span>
+                        @Html.Raw(IconRegistry.Render("chevron-up"))
+                    </button>
+
+                    <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition @@click.outside="open = false">
+                        <div class="fi-dropdown-list">
+                            <div class="fi-theme-switcher" role="group" aria-label="Theme">
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'light' }"
+                                        @@click="theme = 'light'; filaSetTheme('light')" aria-label="Light theme" title="Light">
+                                    @Html.Raw(IconRegistry.Render("sun"))
+                                </button>
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'dark' }"
+                                        @@click="theme = 'dark'; filaSetTheme('dark')" aria-label="Dark theme" title="Dark">
+                                    @Html.Raw(IconRegistry.Render("moon"))
+                                </button>
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'system' }"
+                                        @@click="theme = 'system'; filaSetTheme('system')" aria-label="System theme" title="System">
+                                    @Html.Raw(IconRegistry.Render("system"))
+                                </button>
+                            </div>
+                        </div>
+                        <div class="fi-dropdown-list">
+                            <form method="post" action="@Model.Panel.LogoutPath">
+                                <button type="submit" class="fi-dropdown-list-item">
+                                    @Html.Raw(IconRegistry.Render("logout"))
+                                    <span class="fi-dropdown-list-item-label">Sign out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <form method="post" action="@Model.Panel.LogoutPath">
-                    <button type="submit" class="fi-sidebar-logout">Sign out</button>
-                </form>
             </div>
         }
-
-        <div class="fi-theme-toggle" x-data="{ theme: filaGetTheme() }" role="group" aria-label="Theme">
-            <button type="button" class="fi-theme-toggle-btn" :aria-pressed="theme === 'light'"
-                    @@click="theme = 'light'; filaSetTheme('light')" aria-label="Light theme" title="Light">
-                @Html.Raw(IconRegistry.Render("sun"))
-            </button>
-            <button type="button" class="fi-theme-toggle-btn" :aria-pressed="theme === 'dark'"
-                    @@click="theme = 'dark'; filaSetTheme('dark')" aria-label="Dark theme" title="Dark">
-                @Html.Raw(IconRegistry.Render("moon"))
-            </button>
-            <button type="button" class="fi-theme-toggle-btn" :aria-pressed="theme === 'system'"
-                    @@click="theme = 'system'; filaSetTheme('system')" aria-label="System theme" title="System">
-                @Html.Raw(IconRegistry.Render("system"))
-            </button>
-        </div>
     </aside>
 
     <div class="fi-main">

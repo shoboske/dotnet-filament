@@ -12,6 +12,7 @@ builder.Services.AddDbContext<AppDb>(options =>
 builder.Services.AddFilaPanel(panel => panel
     .AtPath("admin")
     .Brand("Demo Admin")
+    .PrimaryColor("#f59e0b") // amber — demonstrates per-panel color customization
     .UseDbContext<AppDb>()
     // Demo-only credential check (admin/admin) — Fila owns the login page, routing, and (by
     // default) the authentication scheme itself; the host app only says whether a
