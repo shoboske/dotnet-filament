@@ -23,11 +23,15 @@
             }
 
             <form method="post" action="/@Model.Panel.Path/login">
-                <label class="fi-login-label" for="username">Username</label>
-                <input class="fi-input fi-login-input" id="username" name="username" autocomplete="username" required autofocus />
+                <div class="fi-field">
+                    <label class="fi-login-label" for="username">Username</label>
+                    <input class="fi-input fi-login-input" id="username" name="username" autocomplete="username" required autofocus />
+                </div>
 
-                <label class="fi-login-label" for="password">Password</label>
-                <input class="fi-input fi-login-input" id="password" name="password" type="password" autocomplete="current-password" required />
+                <div class="fi-field">
+                    <label class="fi-login-label" for="password">Password</label>
+                    <input class="fi-input fi-login-input" id="password" name="password" type="password" autocomplete="current-password" required />
+                </div>
 
                 <button class="fi-btn fi-btn-primary fi-login-submit" type="submit">Sign in</button>
             </form>

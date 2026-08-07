@@ -22,8 +22,14 @@
 
         @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)
         {
+            var userName = Context.User.Identity!.Name ?? "?";
+            var initial = userName.Length > 0 ? char.ToUpperInvariant(userName[0]).ToString() : "?";
+
             <div class="fi-sidebar-footer">
-                <span class="fi-sidebar-user">@Context.User.Identity!.Name</span>
+                <div class="fi-sidebar-user-info">
+                    <span class="fi-avatar" aria-hidden="true">@initial</span>
+                    <span class="fi-sidebar-user">@userName</span>
+                </div>
                 <form method="post" action="@Model.Panel.LogoutPath">
                     <button type="submit" class="fi-sidebar-logout">Sign out</button>
                 </form>
