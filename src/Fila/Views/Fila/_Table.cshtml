@@ -70,10 +70,8 @@
                                     @Html.Raw(IconRegistry.Render("pencil"))
                                 </button>
                                 <button type="button" class="fi-icon-btn fi-icon-btn-danger" aria-label="Delete"
-                                        hx-post="@resourceUrl/@rowId/delete"
-                                        hx-target="#fila-table" hx-swap="innerHTML"
-                                        hx-include="#fila-table-state"
-                                        hx-confirm="Delete this record? This cannot be undone.">
+                                        hx-get="@resourceUrl/@rowId/confirm-delete"
+                                        hx-target="#fila-modal-body" hx-swap="innerHTML">
                                     @Html.Raw(IconRegistry.Render("trash"))
                                 </button>
                             </div>

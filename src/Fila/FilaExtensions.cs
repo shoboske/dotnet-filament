@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 namespace Fila;
 
@@ -135,6 +136,9 @@ public static class FilaExtensions
 
             group.MapPost($"/{entry.Slug}/{{id}}", (HttpContext ctx, string id, CancellationToken ct) =>
                 HandleSaveAsync(ctx, panel, entry.ResourceType, id, ct));
+
+            group.MapGet($"/{entry.Slug}/{{id}}/confirm-delete", (HttpContext ctx, string id, CancellationToken ct) =>
+                HandleDeleteConfirmAsync(ctx, panel, entry.ResourceType, id, ct));
 
             group.MapPost($"/{entry.Slug}/{{id}}/delete", (HttpContext ctx, string id, CancellationToken ct) =>
                 HandleDeleteAsync(ctx, panel, entry.ResourceType, id, ct));
@@ -319,9 +323,34 @@ public static class FilaExtensions
         }
 
         await resource.SaveAsync(db, entity, isNew, ct);
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+        // Matches Filament's own copy exactly: packages/actions/resources/lang/en/{create,edit}.php
+        // — CreateAction's notification title is "Created", EditAction's is "Saved".
+        SetCloseAndNotifyTrigger(ctx, isNew ? "Created" : "Saved", "success");
 
         return await RenderTableAsync(ctx, panel, resource, db, ct);
+    }
+
+    private static async Task<IResult> HandleDeleteConfirmAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var entity = await resource.FindAsync(db, id, ct);
+        if (entity is null) return Results.NotFound();
+
+        var model = new FilaDeleteConfirmViewModel
+        {
+            Panel = panel,
+            Resource = resource,
+            Id = id,
+            Label = Singularize(Humanize(resource.Slug)),
+        };
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_DeleteConfirm.cshtml", model);
+
+        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+        return Results.Content(html, "text/html");
     }
 
     private static async Task<IResult> HandleDeleteAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
@@ -333,8 +362,27 @@ public static class FilaExtensions
         if (entity is not null)
             await resource.DeleteAsync(db, entity, ct);
 
+        // Matches Filament's DeleteAction: packages/actions/resources/lang/en/delete.php,
+        // notifications.deleted.title = "Deleted".
+        SetCloseAndNotifyTrigger(ctx, "Deleted", "danger");
+
         return await RenderTableAsync(ctx, panel, resource, db, ct);
     }
+
+    /// <summary>Tells the client to close the CRUD modal and pop a toast, in one response —
+    /// htmx parses a JSON-object HX-Trigger header as {eventName: detail} and dispatches a
+    /// CustomEvent per key, so both signals ride the same header instead of needing two.</summary>
+    private static void SetCloseAndNotifyTrigger(HttpContext ctx, string title, string color)
+    {
+        ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["fila-modal-close"] = true,
+            ["fila-notify"] = new { title, color },
+        });
+    }
+
+    private static string Singularize(string label) =>
+        label.EndsWith('s') && !label.EndsWith("ss") ? label[..^1] : label;
 
     private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, CancellationToken ct)
     {
