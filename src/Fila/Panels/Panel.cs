@@ -22,6 +22,10 @@ public sealed class Panel
     public string? LogoutPath { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
 
+    /// <summary>Overrides the default indigo accent for this panel — set via .PrimaryColor(...).
+    /// A 7-character hex string ("#rrggbb"), or null to use Fila's default.</summary>
+    public string? PrimaryColorHex { get; internal set; }
+
     /// <summary>True once .WithLogin(...) has been called — MapFilaPanel then owns the
     /// {path}/login and {path}/logout routes itself, the way a Filament panel owns its login
     /// page rather than making the host app build one.</summary>
@@ -72,6 +76,20 @@ public sealed class PanelBuilder
     public PanelBuilder RequireAuthorization(string policy)
     {
         _panel.AuthorizationPolicy = policy;
+        return this;
+    }
+
+    /// <summary>Overrides the default indigo accent with a per-panel color, the way a Filament
+    /// panel's ->colors(['primary' => ...]) works. Accepts a 7-character hex string
+    /// ("#4f46e5") — the hover shade and light/dark tint behind the active sidebar link are
+    /// derived from it automatically.</summary>
+    public PanelBuilder PrimaryColor(string hex)
+    {
+        if (!Rendering.ColorMath.IsValidHex(hex))
+            throw new ArgumentException(
+                $"PrimaryColor expects a 7-character hex string like \"#4f46e5\", got \"{hex}\".", nameof(hex));
+
+        _panel.PrimaryColorHex = hex;
         return this;
     }
 

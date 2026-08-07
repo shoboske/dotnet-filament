@@ -4,9 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@(ViewBag.Title ?? "Admin") · Fila</title>
+    <partial name="Fila/_ThemeScript" />
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/_content/Fila/fila/fila.css" />
+    @if (ViewBag.PanelForLayout is Fila.Panels.Panel panelForLayout)
+    {
+        <partial name="Fila/_PrimaryColorOverride" model="panelForLayout" />
+    }
 </head>
 <body class="fi-body">
     @RenderBody()

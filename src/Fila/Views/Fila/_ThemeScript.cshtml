@@ -1,0 +1,24 @@
+@{
+    Layout = null;
+}
+<script>
+    (function () {
+        var stored = localStorage.getItem('fila-theme');
+        if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+        window.filaSetTheme = function (next) {
+            if (next === 'light' || next === 'dark') {
+                localStorage.setItem('fila-theme', next);
+                document.documentElement.setAttribute('data-theme', next);
+            } else {
+                localStorage.removeItem('fila-theme');
+                document.documentElement.removeAttribute('data-theme');
+            }
+            document.dispatchEvent(new CustomEvent('fila-theme-changed', { detail: next }));
+        };
+        window.filaGetTheme = function () {
+            return stored === 'light' || stored === 'dark' ? stored : 'system';
+        };
+    })();
+</script>
