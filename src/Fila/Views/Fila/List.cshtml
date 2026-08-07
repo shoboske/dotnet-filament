@@ -23,11 +23,15 @@
         @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)
         {
             var userName = Context.User.Identity!.Name ?? "?";
-            var initial = userName.Length > 0 ? char.ToUpperInvariant(userName[0]).ToString() : "?";
+            // Matches Filament's default UiAvatarsProvider exactly: initials per
+            // space-separated name segment, gray-950 background, white text, SVG.
+            var initials = string.Join(' ', userName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(segment => segment[..1]));
+            var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&format=svg&color=FFFFFF&background=030712";
 
             <div class="fi-sidebar-footer">
                 <div class="fi-sidebar-user-info">
-                    <span class="fi-avatar" aria-hidden="true">@initial</span>
+                    <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
                     <span class="fi-sidebar-user">@userName</span>
                 </div>
                 <form method="post" action="@Model.Panel.LogoutPath">

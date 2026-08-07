@@ -223,18 +223,20 @@ body {
   flex: 1 1 auto;
 }
 
+/* Matches Filament's fi-avatar/fi-circular exactly: an <img>, not a CSS-drawn
+   circle — see packages/support/resources/{css/components/avatar.css,
+   views/components/avatar.blade.php}. */
 .fi-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
-  width: 2rem; /* fi-avatar: size-8 */
+  width: 2rem; /* fi-size-md: size-8 */
   height: 2rem;
+  border-radius: 0.375rem; /* rounded-md */
+  object-fit: cover;
+  object-position: center;
+}
+
+.fi-avatar.fi-circular {
   border-radius: 9999px;
-  background: var(--fi-accent-soft-bg);
-  color: var(--fi-accent);
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 .fi-sidebar-user {
@@ -399,8 +401,8 @@ body {
 
 .fi-ta-card {
   background: var(--fi-surface);
-  border: 1px solid var(--fi-border);
-  border-radius: 0.75rem;
+  border-radius: 0.75rem; /* fi-ta-ctn: rounded-xl */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border); /* shadow-sm + ring-1 ring-gray-950/5 */
   overflow: hidden;
 }
 
@@ -409,15 +411,21 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem; /* fi-ta-header-toolbar: py-3 px-4 */
   border-bottom: 1px solid var(--fi-border);
 }
 
 .fi-ta-heading {
-  font-size: 1rem;
+  font-size: 1rem; /* fi-ta-header-heading: text-base */
   font-weight: 600;
   text-transform: capitalize;
   color: var(--fi-text);
+}
+
+@media (min-width: 640px) {
+  .fi-ta-toolbar {
+    padding: 0.75rem 1.5rem; /* sm:px-6 */
+  }
 }
 
 .fi-input,
@@ -469,18 +477,40 @@ body {
 
 .fi-ta-header-cell {
   text-align: left;
-  padding: 0.625rem 1.25rem;
-  font-weight: 500;
+  padding: 0.875rem 1rem; /* fi-ta-header-cell: py-3.5 px-3 */
+  font-weight: 600; /* font-semibold, was 500 */
   color: var(--fi-text-secondary);
   border-bottom: 1px solid var(--fi-border);
   white-space: nowrap;
 }
 
 .fi-ta-cell {
-  padding: 0.75rem 1.25rem;
+  padding: 1rem; /* fi-ta-text: py-4 px-3, bumped to match toolbar's 1rem-1.5rem rhythm */
   border-bottom: 1px solid var(--fi-border-subtle);
   color: var(--fi-text);
   white-space: nowrap;
+}
+
+.fi-ta-header-cell:first-child,
+.fi-ta-cell:first-child {
+  padding-inline-start: 1rem;
+}
+
+.fi-ta-header-cell:last-child,
+.fi-ta-cell:last-child {
+  padding-inline-end: 1rem;
+}
+
+@media (min-width: 640px) {
+  .fi-ta-header-cell:first-child,
+  .fi-ta-cell:first-child {
+    padding-inline-start: 1.5rem; /* sm:first-of-type:ps-6 */
+  }
+
+  .fi-ta-header-cell:last-child,
+  .fi-ta-cell:last-child {
+    padding-inline-end: 1.5rem; /* sm:last-of-type:pe-6 */
+  }
 }
 
 .fi-ta-align-start {
