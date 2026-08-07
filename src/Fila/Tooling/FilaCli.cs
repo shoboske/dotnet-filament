@@ -169,8 +169,9 @@ public static class FilaCli
             return;
         }
 
-        var panel = scope.ServiceProvider.GetService<Panel>();
-        var panelPath = panel?.Path ?? "admin";
+        var owningPanel = scope.ServiceProvider.GetServices<Panel>()
+            .FirstOrDefault(p => p.DbContextType == contextType);
+        var panelPath = owningPanel?.Path ?? "admin";
 
         var result = Scaffolder.Scaffold(entityType, rootNamespace, panelPath);
 
@@ -236,8 +237,18 @@ public static class FilaCli
         Assembly.GetEntryAssembly()?.GetTypes()
             .FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
 
-    private static Type? GetPanelDbContextType(IServiceScope scope) =>
-        scope.ServiceProvider.GetService<Panel>()?.DbContextType;
+    /// <summary>Only useful when every registered panel agrees on one DbContext — with
+    /// multiple panels on different DbContexts this is ambiguous without --context, so it
+    /// returns null and callers fall back to scanning the assembly instead of guessing wrong.</summary>
+    private static Type? GetPanelDbContextType(IServiceScope scope)
+    {
+        var distinctContextTypes = scope.ServiceProvider.GetServices<Panel>()
+            .Select(p => p.DbContextType)
+            .Distinct()
+            .ToList();
+
+        return distinctContextTypes.Count == 1 ? distinctContextTypes[0] : null;
+    }
 
     private static void Fail(string message)
     {

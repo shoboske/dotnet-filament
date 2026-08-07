@@ -32,6 +32,17 @@ public sealed class Panel
     /// Returning null means invalid credentials.</summary>
     public Func<string, string, CancellationToken, Task<ClaimsPrincipal?>>? Authenticate { get; internal set; }
 
+    /// <summary>The auth scheme SignInAsync/SignOutAsync/RequireAuthorization target for this
+    /// panel. Defaults to an auto-registered per-panel scheme ("Fila.{path}") so multiple
+    /// panels never share a session — override with .WithAuthenticationScheme(...) to point a
+    /// panel at a scheme the host already owns (ASP.NET Core Identity, JWT, SSO, ...).</summary>
+    public string? AuthenticationScheme { get; internal set; }
+
+    /// <summary>False once .WithAuthenticationScheme(...) overrides AuthenticationScheme —
+    /// Fila then assumes the host has already registered that scheme itself and skips its own
+    /// AddCookie(...) registration for this panel.</summary>
+    internal bool ManagesOwnAuthenticationScheme { get; set; } = true;
+
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
     public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
 }
@@ -74,14 +85,28 @@ public sealed class PanelBuilder
     }
 
     /// <summary>Enables Fila's own login page at {path}/login, the way a Filament panel owns
-    /// its login page rather than the host app building one. The host still owns what counts
-    /// as valid credentials and who the signed-in principal is — Fila only owns the page, the
-    /// routing, and calling SignInAsync/SignOutAsync against whatever default authentication
-    /// scheme the host has configured (e.g. via .AddAuthentication(...).AddCookie(...)).</summary>
+    /// its login page rather than the host app building one. Fila auto-registers a cookie
+    /// authentication scheme just for this panel — no .AddAuthentication(...).AddCookie(...)
+    /// boilerplate needed in Program.cs, and no risk of two panels sharing one session. The
+    /// host still owns what counts as valid credentials and who the signed-in principal is.
+    /// Override the scheme with .WithAuthenticationScheme(...) if this panel should reuse
+    /// auth the host already has configured instead.</summary>
     public PanelBuilder WithLogin(Func<string, string, CancellationToken, Task<ClaimsPrincipal?>> authenticate)
     {
         _panel.LoginEnabled = true;
         _panel.Authenticate = authenticate;
+        return this;
+    }
+
+    /// <summary>Points this panel at an authentication scheme the host has already registered
+    /// (ASP.NET Core Identity, JWT, SSO, an app-wide cookie scheme, ...) instead of Fila's
+    /// auto-registered per-panel cookie scheme. Fila still owns the login page/routing if
+    /// combined with .WithLogin(...); it just signs in/out against this scheme by name rather
+    /// than registering its own.</summary>
+    public PanelBuilder WithAuthenticationScheme(string schemeName)
+    {
+        _panel.AuthenticationScheme = schemeName;
+        _panel.ManagesOwnAuthenticationScheme = false;
         return this;
     }
 
@@ -100,6 +125,9 @@ public sealed class PanelBuilder
         if (_panel.DbContextType is null)
             throw new InvalidOperationException(
                 "Panel is missing a DbContext. Call .UseDbContext<TContext>() in your AddFilaPanel configuration.");
+
+        if (_panel.LoginEnabled && _panel.AuthenticationScheme is null)
+            _panel.AuthenticationScheme = $"Fila.{_panel.Path}";
 
         return _panel;
     }

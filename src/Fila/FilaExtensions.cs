@@ -3,6 +3,8 @@ using Fila.Rendering;
 using Fila.Resources;
 using Fila.Tables;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -26,6 +28,26 @@ public static class FilaExtensions
         // never registers MVC itself.
         services.AddControllersWithViews();
 
+        if (panel.LoginEnabled)
+        {
+            // AddAuthentication()/AddAuthorization() register core services via TryAdd, so
+            // calling them again here is safe even if the host app (or another panel) already
+            // did. Only the cookie scheme itself is skipped when the host owns it via
+            // .WithAuthenticationScheme(...) — Fila never touches a scheme it doesn't manage.
+            services.AddAuthorization();
+
+            var authBuilder = services.AddAuthentication();
+            if (panel.ManagesOwnAuthenticationScheme)
+            {
+                authBuilder.AddCookie(panel.AuthenticationScheme!, options =>
+                {
+                    options.LoginPath = $"/{panel.Path}/login";
+                    options.AccessDeniedPath = $"/{panel.Path}/login";
+                    options.Cookie.Name = $".Fila.{panel.Path}";
+                });
+            }
+        }
+
         foreach (var resourceType in panel.ResourceTypes)
         {
             // Registered under both its concrete type (routing resolves resources by exact
@@ -37,10 +59,35 @@ public static class FilaExtensions
         return services;
     }
 
+    /// <summary>Maps every panel registered via AddFilaPanel — call this once regardless of how
+    /// many panels you registered. (Panel is deliberately NOT resolved with
+    /// GetRequiredService&lt;Panel&gt;() here: with more than one AddFilaPanel call, that always
+    /// returns just the last-registered one, silently dropping every earlier panel's routes.)</summary>
     public static IEndpointRouteBuilder MapFilaPanel(this IEndpointRouteBuilder endpoints)
     {
-        var panel = endpoints.ServiceProvider.GetRequiredService<Panel>();
+        var panels = endpoints.ServiceProvider.GetServices<Panel>().ToList();
 
+        var pathCollisions = panels
+            .GroupBy(p => p.Path)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (pathCollisions.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Multiple panels registered at the same path: {string.Join(", ", pathCollisions)}. " +
+                "Give each AddFilaPanel(...) call a distinct .AtPath(...).");
+        }
+
+        foreach (var panel in panels)
+            MapPanelRoutes(endpoints, panel);
+
+        return endpoints;
+    }
+
+    private static void MapPanelRoutes(IEndpointRouteBuilder endpoints, Panel panel)
+    {
         // Login/logout are mapped directly on `endpoints`, never on the authorized `group`
         // below — putting them behind the same RequireAuthorization policy would send an
         // unauthenticated visit to /login straight back into a redirect loop.
@@ -54,6 +101,8 @@ public static class FilaExtensions
 
         if (panel.AuthorizationPolicy is not null)
             group.RequireAuthorization(panel.AuthorizationPolicy);
+        else if (panel.LoginEnabled)
+            group.RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = panel.AuthenticationScheme });
 
         var entries = ResolveNavigationAtStartup(endpoints.ServiceProvider, panel);
         panel.Navigation = entries.Select(e => new ResourceNavItem(e.Slug, e.Label, e.NavigationIcon)).ToList();
@@ -71,8 +120,6 @@ public static class FilaExtensions
             group.MapGet($"/{entry.Slug}", (HttpContext ctx, CancellationToken ct) =>
                 HandleListAsync(ctx, panel, entry.ResourceType, ct));
         }
-
-        return endpoints;
     }
 
     private static void MapLoginRoutes(IEndpointRouteBuilder endpoints, Panel panel)
@@ -95,13 +142,13 @@ public static class FilaExtensions
             if (principal is null)
                 return Results.Redirect($"/{panel.Path}/login?error=true");
 
-            await ctx.SignInAsync(principal);
+            await ctx.SignInAsync(panel.AuthenticationScheme!, principal);
             return Results.Redirect($"/{panel.Path}");
         });
 
         endpoints.MapPost($"/{panel.Path}/logout", async (HttpContext ctx) =>
         {
-            await ctx.SignOutAsync();
+            await ctx.SignOutAsync(panel.AuthenticationScheme!);
             return Results.Redirect($"/{panel.Path}/login");
         });
     }
