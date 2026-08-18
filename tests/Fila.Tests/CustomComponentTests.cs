@@ -14,11 +14,11 @@ namespace Fila.Tests;
 /// make possible. It picks up the badge markup by naming that view, and formats its own value,
 /// neither of which needs an edit to Fila.Tables or to Fila's views.</summary>
 public sealed class InitialsColumn<TEntity>(Expression<Func<TEntity, object?>> selector)
-    : TableColumn<TEntity>(selector)
+    : TableColumn<TEntity, InitialsColumn<TEntity>>(selector)
 {
     public override string View => "badge";
 
-    public override string FormatDisplay(object? value) => value is string text
+    public override string FormatState(object? value) => value is string text
         ? string.Concat(text
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(word => char.ToUpperInvariant(word[0])))
@@ -28,7 +28,7 @@ public sealed class InitialsColumn<TEntity>(Expression<Func<TEntity, object?>> s
 /// <summary>The same idea on the forms side: a field type Fila has never heard of, rendering as
 /// the input type it asks for.</summary>
 public sealed class EmailInput<TEntity>(Expression<Func<TEntity, object?>> selector)
-    : FormField<TEntity>(selector)
+    : FormField<TEntity, EmailInput<TEntity>>(selector)
 {
     public override string InputType => "email";
 }
@@ -84,6 +84,24 @@ public sealed class CustomComponentTests(CustomComponentAppFactory factory)
             .Select(span => span.TextContent)
             .ToList();
         Assert.Equal(["AC", "G", "I"], badges);
+    }
+
+    [Fact]
+    public void SharedSettersChainInEitherOrder()
+    {
+        // A compile-time guarantee more than a runtime one: the self type on the fluent base is
+        // what keeps a type-specific setter reachable after a shared one. Returning the base
+        // from Sortable() would make the second line here fail to compile while the first still
+        // succeeded — the "compiles for the demo, breaks for other call shapes" trap.
+        var table = new Table<Customer>();
+
+        var formatThenSort = table.Text(c => c.Name).Money().Sortable();
+        var sortThenFormat = table.Text(c => c.Name).Sortable().Money();
+
+        Assert.Equal("$12.50", formatThenSort.FormatState(12.5m));
+        Assert.Equal("$12.50", sortThenFormat.FormatState(12.5m));
+        Assert.True(formatThenSort.IsSortable);
+        Assert.True(sortThenFormat.IsSortable);
     }
 
     [Fact]

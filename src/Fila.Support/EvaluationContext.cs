@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fila.Schemas;
+namespace Fila.Support;
 
 /// <summary>Everything a component's configuration closure is allowed to look at: the record
 /// being rendered, the request's DbContext, the signed-in user, and the values already entered
@@ -10,7 +10,14 @@ namespace Fila.Schemas;
 /// This is the generalisation of the <c>db =&gt; ...</c> closure that used to be the only
 /// supported closure shape (on Select's option list). Any setting can now be computed instead
 /// of hardcoded, and they all read from the same context object rather than each setting
-/// inventing its own parameter list.</summary>
+/// inventing its own parameter list.
+///
+/// It lives in the support package for the same reason Filament's EvaluatesClosures does
+/// (packages/support/src/Concerns/EvaluatesClosures.php): schema components and table columns
+/// both evaluate closures, and neither is built on the other. Filament passes the same set of
+/// dependencies by reflecting on the closure's parameter names — see
+/// Column::resolveDefaultClosureDependencyForEvaluationByName, which offers record, state,
+/// livewire, rowLoop and table. One typed context object is the C# equivalent.</summary>
 public sealed class EvaluationContext
 {
     private static readonly IReadOnlyDictionary<string, string?> NoState =

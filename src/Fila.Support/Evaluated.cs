@@ -1,9 +1,12 @@
-namespace Fila.Schemas;
+namespace Fila.Support;
 
 /// <summary>A component setting that is either a constant or computed from the
 /// <see cref="EvaluationContext"/> at the moment it is needed. Components store their settings
 /// as these rather than as plain values, so making any one of them dynamic is a matter of
-/// passing a closure instead of a value — no per-setting plumbing.</summary>
+/// passing a closure instead of a value — no per-setting plumbing.
+///
+/// Stands in for Filament's <c>T | Closure</c> union property plus <c>evaluate()</c>, which C#
+/// has no direct equivalent for.</summary>
 public readonly struct Evaluated<TValue>
 {
     private readonly TValue? _constant;

@@ -27,7 +27,7 @@ public sealed class Form<T> : IForm
 
     public Textarea<T> Textarea(Expression<Func<T, object?>> selector) => new(selector);
 
-    public NumberInput<T> Number(Expression<Func<T, object?>> selector) => new(selector);
+    public TextInput<T> Number(Expression<Func<T, object?>> selector) => new TextInput<T>(selector).Numeric();
 
     public Select<T> Select(Expression<Func<T, object?>> selector) => new(selector);
 

@@ -5,12 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- EvaluationContext hands a component's closures the request's DbContext, so the
-         schemas package has to know the type. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
   </ItemGroup>
 

@@ -2,7 +2,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Fila.Schemas;
 using Fila.Support;
-using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Forms;
 
@@ -17,14 +16,21 @@ public interface IFormField : IComponent
     /// talks in paths.</summary>
     string Path { get; }
 
-    /// <summary>Names the markup this field renders as. A value the renderer doesn't recognise
-    /// falls back to an <c>&lt;input&gt;</c> of type <see cref="InputType"/>, which is what
-    /// makes a consumer-authored field type renderable without touching Fila. Phase 3 (#5)
-    /// turns this into a lookup in a real partial registry.</summary>
+    /// <summary>Names the markup this field renders as — Filament's ViewComponent::$view. A
+    /// value the renderer doesn't recognise falls back to an <c>&lt;input&gt;</c> of type
+    /// <see cref="InputType"/>, which is what makes a consumer-authored field type renderable
+    /// without touching Fila. Phase 3 (#5) turns this into a real partial registry.</summary>
     string View { get; }
 
-    /// <summary>The <c>type</c> attribute for fields rendered as a plain input.</summary>
+    /// <summary>The <c>type</c> attribute for fields rendered as a plain input — Filament's
+    /// TextInput::getType(), which likewise reports "number" for a numeric input rather than
+    /// there being a separate class for one.</summary>
     string InputType { get; }
+
+    /// <summary>The <c>step</c> attribute, or null to omit it. Filament's HasStep concern;
+    /// ->numeric() sets it to "any" there for the same reason it does here — without it a
+    /// browser rejects decimals on an integer-stepped input.</summary>
+    string? Step { get; }
 
     Type ValueType { get; }
 
@@ -32,30 +38,29 @@ public interface IFormField : IComponent
 
     object? GetValue(object entity);
     void SetValue(object entity, object? value);
+}
 
-    /// <summary>Only meaningful on <see cref="Select{TEntity}"/> fields. Enum-backed selects
-    /// auto-populate from the enum's members; anything else (e.g. a foreign key) needs an
-    /// explicit .Options(...).</summary>
+/// <summary>A field that offers a fixed set of choices. Kept off <see cref="IFormField"/> so
+/// the option machinery lives only on the field type that has options, the way Filament keeps
+/// its per-type capabilities in Forms\Components\Contracts.</summary>
+public interface ISelectField
+{
     IReadOnlyList<SelectOption>? ResolveOptions(EvaluationContext context);
 }
 
-/// <summary>Base class for every form field. Subclass it — in Fila or in a consuming app — to
-/// add a field type; there is no enum to extend and no switch to edit.
-///
-/// Every fluent setter returns <c>FormField&lt;TEntity&gt;</c> rather than the subclass, so the
-/// shared settings can be applied in any order without each subclass re-declaring them.</summary>
+/// <summary>Base class for every form field, and the type a field collection is declared in
+/// terms of. Subclass <see cref="FormField{TEntity, TSelf}"/> rather than this one — the self
+/// type is what keeps the fluent setters chainable in any order.</summary>
 public abstract class FormField<TEntity> : Component, IFormField
 {
     private readonly PropertyInfo _property;
-    private Evaluated<bool> _required;
-    private Evaluated<IEnumerable<SelectOption>?> _options;
 
-    protected FormField(Expression<Func<TEntity, object?>> selector)
+    private protected FormField(Expression<Func<TEntity, object?>> selector)
         : this(ResolveProperty(selector))
     {
     }
 
-    protected FormField(PropertyInfo property)
+    private protected FormField(PropertyInfo property)
         : base(property.Name)
     {
         _property = property;
@@ -67,87 +72,21 @@ public abstract class FormField<TEntity> : Component, IFormField
 
     public virtual string InputType => "text";
 
+    public virtual string? Step => null;
+
     public Type ValueType => _property.PropertyType;
 
     /// <summary>The property this field is bound to — subclasses read it to configure
     /// themselves from the CLR type (Select auto-populates enum options this way).</summary>
     protected PropertyInfo Property => _property;
 
-    public FormField<TEntity> Label(string label)
-    {
-        LabelValue = label;
-        return this;
-    }
+    private protected Evaluated<bool> RequiredValue { get; set; }
 
-    public FormField<TEntity> Label(Func<EvaluationContext, string> label)
-    {
-        LabelValue = Evaluated<string>.From(label);
-        return this;
-    }
-
-    public FormField<TEntity> Required(bool value = true)
-    {
-        _required = value;
-        return this;
-    }
-
-    public FormField<TEntity> Required(Func<EvaluationContext, bool> value)
-    {
-        _required = Evaluated<bool>.From(value);
-        return this;
-    }
-
-    public FormField<TEntity> Visible(bool value = true)
-    {
-        VisibleValue = value;
-        return this;
-    }
-
-    public FormField<TEntity> Visible(Func<EvaluationContext, bool> value)
-    {
-        VisibleValue = Evaluated<bool>.From(value);
-        return this;
-    }
-
-    public FormField<TEntity> Hidden(bool value = true) => Visible(!value);
-
-    public FormField<TEntity> Hidden(Func<EvaluationContext, bool> value) =>
-        Visible(context => !value(context));
-
-    /// <summary>Supplies the option list for a Select field — required for anything that isn't
-    /// enum-backed (e.g. a foreign key select), since Fila has no way to guess what a raw int
-    /// column should display.</summary>
-    public FormField<TEntity> Options(Func<DbContext, IEnumerable<SelectOption>> factory)
-    {
-        _options = Evaluated<IEnumerable<SelectOption>?>.From(context => factory(context.RequireDb()));
-        return this;
-    }
-
-    /// <summary>Options computed from the full evaluation context rather than the DbContext
-    /// alone — for an option list that depends on the record being edited, the signed-in user,
-    /// or another field's value.
-    ///
-    /// Deliberately not an overload of Options: two overloads differing only in the delegate's
-    /// parameter type make every implicitly typed `db => ...` call site ambiguous (CS0121),
-    /// which would break the existing DSL.</summary>
-    public FormField<TEntity> OptionsFrom(Func<EvaluationContext, IEnumerable<SelectOption>> factory)
-    {
-        _options = Evaluated<IEnumerable<SelectOption>?>.From(context => factory(context));
-        return this;
-    }
-
-    /// <summary>For subclasses that supply their own options, like Select's enum defaulting.</summary>
-    protected void SetOptions(Func<EvaluationContext, IEnumerable<SelectOption>?> factory) =>
-        _options = Evaluated<IEnumerable<SelectOption>?>.From(factory);
-
-    public bool ResolveRequired(EvaluationContext context) => _required.Resolve(context);
+    public bool ResolveRequired(EvaluationContext context) => RequiredValue.Resolve(context);
 
     object? IFormField.GetValue(object entity) => _property.GetValue(entity);
 
     void IFormField.SetValue(object entity, object? value) => _property.SetValue(entity, value);
-
-    IReadOnlyList<SelectOption>? IFormField.ResolveOptions(EvaluationContext context) =>
-        _options.Resolve(context)?.ToList();
 
     private static PropertyInfo ResolveProperty(Expression<Func<TEntity, object?>> selector)
     {
@@ -156,4 +95,67 @@ public abstract class FormField<TEntity> : Component, IFormField
             ?? throw new NotSupportedException(
                 $"Form fields must be direct properties of {typeof(TEntity).Name}; '{path}' was not found.");
     }
+}
+
+/// <summary>The fluent surface every field shares, typed so each setter hands back the
+/// subclass — the C# stand-in for PHP's <c>static</c> return type. It is what lets
+/// <c>.Required().Options(...)</c> compile: without it, .Required() would hand back the base
+/// and lose the Select the caller was chaining on.
+///
+/// A field type declared outside Fila extends this:
+/// <c>class ColorPicker&lt;T&gt; : FormField&lt;T, ColorPicker&lt;T&gt;&gt;</c>.</summary>
+public abstract class FormField<TEntity, TSelf> : FormField<TEntity>
+    where TSelf : FormField<TEntity, TSelf>
+{
+    protected FormField(Expression<Func<TEntity, object?>> selector)
+        : base(selector)
+    {
+    }
+
+    protected FormField(PropertyInfo property)
+        : base(property)
+    {
+    }
+
+    private TSelf Self => (TSelf)this;
+
+    public TSelf Label(string label)
+    {
+        LabelValue = label;
+        return Self;
+    }
+
+    public TSelf Label(Func<EvaluationContext, string> label)
+    {
+        LabelValue = Evaluated<string>.From(label);
+        return Self;
+    }
+
+    public TSelf Required(bool value = true)
+    {
+        RequiredValue = value;
+        return Self;
+    }
+
+    public TSelf Required(Func<EvaluationContext, bool> value)
+    {
+        RequiredValue = Evaluated<bool>.From(value);
+        return Self;
+    }
+
+    public TSelf Visible(bool value = true)
+    {
+        VisibleValue = value;
+        return Self;
+    }
+
+    public TSelf Visible(Func<EvaluationContext, bool> value)
+    {
+        VisibleValue = Evaluated<bool>.From(value);
+        return Self;
+    }
+
+    public TSelf Hidden(bool value = true) => Visible(!value);
+
+    public TSelf Hidden(Func<EvaluationContext, bool> value) => Visible(context => !value(context));
 }

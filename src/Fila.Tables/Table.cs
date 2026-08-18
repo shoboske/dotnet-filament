@@ -52,11 +52,11 @@ public sealed class Table<T> : ITable
 
     public TextColumn<T> Text(Expression<Func<T, object?>> selector) => new(selector);
 
-    public MoneyColumn<T> Money(Expression<Func<T, object?>> selector) => new(selector);
+    public TextColumn<T> Money(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Money();
 
-    public BadgeColumn<T> Badge(Expression<Func<T, object?>> selector) => new(selector);
+    public TextColumn<T> Badge(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Badge();
 
-    public DateColumn<T> Date(Expression<Func<T, object?>> selector) => new(selector);
+    public TextColumn<T> Date(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Date();
 
-    public BooleanColumn<T> Bool(Expression<Func<T, object?>> selector) => new(selector);
+    public TextColumn<T> Bool(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Boolean();
 }
