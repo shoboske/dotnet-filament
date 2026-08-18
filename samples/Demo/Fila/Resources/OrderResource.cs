@@ -1,5 +1,4 @@
 using Fila.Forms;
-using Fila.Panels.Actions;
 using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
@@ -40,12 +39,12 @@ public sealed class OrderResource : Resource<Order>
         .DefaultSort(o => o.CreatedAt, descending: true)
         .PaginateBy(25)
         .Actions(
-            ViewAction.Make(this),
-            EditAction.Make(this),
+            ViewAction(),
+            EditAction(),
             MarkShippedAction,
-            ReplicateAction.Make(this),
-            DeleteAction.Make(this))
-        .BulkActions(DeleteBulkAction.Make(this));
+            ReplicateAction(),
+            DeleteAction())
+        .BulkActions(DeleteBulkAction());
 
     protected override IQueryable<Order> Query(IQueryable<Order> q) => q.Include(o => o.Customer);
 

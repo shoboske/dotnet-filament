@@ -1,5 +1,4 @@
 using Fila.Forms;
-using Fila.Panels.Actions;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -30,6 +29,12 @@ public interface IResource
     Task<object> ReplicateAsync(DbContext db, object entity, CancellationToken ct);
 
     string GetId(DbContext db, object entity);
+
+    /// <summary>This resource's header action — the "New" button — or null when it has no
+    /// form. The one thing panel routing needs from just an IResource (it never sees the
+    /// concrete Resource&lt;TEntity&gt;) to mount/execute Create the same generic way it
+    /// mounts/executes every row action.</summary>
+    Fila.Actions.Action? CreateAction();
 }
 
 public abstract class Resource<TEntity> : IResource
@@ -63,12 +68,49 @@ public abstract class Resource<TEntity> : IResource
         var built = (ITable)table;
 
         if (built.RowActions.Count == 0 && BuildForm() is not null)
-            table.Actions(EditAction.Make(this), DeleteAction.Make(this));
+            table.Actions(EditAction(), DeleteAction());
 
         return table;
     }
 
     public IForm? BuildForm() => Form(new Form<TEntity>());
+
+    /// <summary>Wires Fila.Actions.CreateAction to this resource — the schema and Handle
+    /// delegates it needs, supplied here the way Filament's CreateRecord page supplies
+    /// handleRecordCreation() to the generic CreateAction it hosts. Null when this resource has
+    /// no form.</summary>
+    public Fila.Actions.Action? CreateAction() => BuildForm() is null
+        ? null
+        : Fila.Actions.CreateAction.Make(
+            $"Create {Slug.TrimEnd('s').Replace('-', ' ')}",
+            () => BuildForm()!,
+            ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: true, ctx.Ct));
+
+    /// <summary>Wires Fila.Actions.EditAction to this resource. Exposed as protected so a
+    /// resource that calls .Actions(...) itself (see samples/Demo's OrderResource) can still
+    /// include the built-in behavior alongside its own custom actions.</summary>
+    protected Fila.Actions.Action EditAction() => Fila.Actions.EditAction.Make(
+        $"Edit {Slug.TrimEnd('s').Replace('-', ' ')}",
+        () => BuildForm() ?? throw new InvalidOperationException("EditAction requires this resource to define a form."),
+        ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: false, ctx.Ct));
+
+    protected Fila.Actions.Action DeleteAction() => Fila.Actions.DeleteAction.Make(
+        $"Delete {ResourceNaming.SingularLabel(Slug)}",
+        ctx => DeleteAsync(ctx.Db, ctx.Record!, ctx.Ct));
+
+    protected Fila.Actions.Action ReplicateAction() => Fila.Actions.ReplicateAction.Make(
+        $"Replicate {ResourceNaming.SingularLabel(Slug)}",
+        ctx => ReplicateAsync(ctx.Db, ctx.Record!, ctx.Ct));
+
+    protected Fila.Actions.Action ViewAction() => Fila.Actions.ViewAction.Make(
+        $"View {ResourceNaming.SingularLabel(Slug)}",
+        () => BuildForm() ?? throw new InvalidOperationException("ViewAction requires this resource to define a form."));
+
+    protected Fila.Actions.BulkAction DeleteBulkAction() => Fila.Actions.DeleteBulkAction.Make(async ctx =>
+    {
+        foreach (var record in ctx.Records)
+            await DeleteAsync(ctx.Db, record, ctx.Ct);
+    });
 
     public async Task<PagedRows> ListAsync(DbContext db, ITable table, TableQuery query, CancellationToken ct)
     {

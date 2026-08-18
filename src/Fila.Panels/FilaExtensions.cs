@@ -437,7 +437,7 @@ public static class FilaExtensions
     }
 
     private static IEnumerable<Fila.Actions.Action> HeaderActionsFor(IResource resource) =>
-        resource.BuildForm() is null ? [] : [Fila.Panels.Actions.CreateAction.Make(resource)];
+        resource.CreateAction() is { } action ? [action] : [];
 
     private static Task<object?> ResolveRecordAsync(IResource resource, DbContext db, Fila.Actions.Action action, string? id, CancellationToken ct) =>
         action.RecordSource == ActionRecordSource.New
