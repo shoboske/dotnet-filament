@@ -5,6 +5,12 @@ document.addEventListener('alpine:init', () => {
     // the same way with `fila-modal-close`. See List.cshtml's @fila-modal-open.window listener.
     modalOpen: false,
   }))
+
+  // Selection count lives in a store rather than local x-data: the "N selected" indicator and
+  // row checkboxes are inside #fila-table (rebuilt on every htmx swap), but the "Bulk actions"
+  // dropdown trigger sits in the toolbar outside that swapped region — both need one shared,
+  // swap-surviving source of truth.
+  Alpine.store('bulkSelection', { count: 0 })
 })
 
 // Alpine must survive htmx swaps: any x-data scope lives outside the element
@@ -14,6 +20,12 @@ document.addEventListener('alpine:init', () => {
 if (window.htmx) {
   htmx.onLoad((el) => {
     if (window.Alpine) Alpine.initTree(el)
+  })
+
+  // A fresh #fila-table swap always renders its checkboxes unchecked, so any stale count
+  // held by the toolbar's dropdown (outside the swapped region) must reset with it.
+  htmx.on('#fila-table', 'htmx:afterSwap', () => {
+    if (window.Alpine) Alpine.store('bulkSelection').count = 0
   })
 }
 
