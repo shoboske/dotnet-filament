@@ -168,18 +168,22 @@ public abstract class Resource<TEntity> : IResource
             throw new InvalidOperationException(
                 $"RestoreBulkAction requires {typeof(TEntity).Name} to implement Fila.Support.ISoftDeletable.");
 
-        return RestoreBulkAction.Make(async ctx =>
-        {
-            foreach (var record in ctx.Records)
-                await RestoreAsync(ctx.Db, record, ctx.Ct);
-        });
+        return RestoreBulkAction.Make(
+            $"Restore selected {ResourceNaming.Humanize(Slug)}",
+            async ctx =>
+            {
+                foreach (var record in ctx.Records)
+                    await RestoreAsync(ctx.Db, record, ctx.Ct);
+            });
     }
 
-    protected BulkAction BuildForceDeleteBulkAction() => ForceDeleteBulkAction.Make(async ctx =>
-    {
-        foreach (var record in ctx.Records)
-            await ForceDeleteAsync(ctx.Db, record, ctx.Ct);
-    });
+    protected BulkAction BuildForceDeleteBulkAction() => ForceDeleteBulkAction.Make(
+        $"Permanently delete selected {ResourceNaming.Humanize(Slug)}",
+        async ctx =>
+        {
+            foreach (var record in ctx.Records)
+                await ForceDeleteAsync(ctx.Db, record, ctx.Ct);
+        });
 
     protected Action BuildReplicateAction() => ReplicateAction.Make(
         $"Replicate {ResourceNaming.SingularLabel(Slug)}",
@@ -189,11 +193,13 @@ public abstract class Resource<TEntity> : IResource
         $"View {ResourceNaming.SingularLabel(Slug)}",
         () => BuildForm() ?? throw new InvalidOperationException("ViewAction requires this resource to define a form."));
 
-    protected BulkAction BuildDeleteBulkAction() => DeleteBulkAction.Make(async ctx =>
-    {
-        foreach (var record in ctx.Records)
-            await DeleteAsync(ctx.Db, record, ctx.Ct);
-    });
+    protected BulkAction BuildDeleteBulkAction() => DeleteBulkAction.Make(
+        $"Delete selected {ResourceNaming.Humanize(Slug)}",
+        async ctx =>
+        {
+            foreach (var record in ctx.Records)
+                await DeleteAsync(ctx.Db, record, ctx.Ct);
+        });
 
     public async Task<PagedRows> ListAsync(DbContext db, ITable table, TableQuery query, CancellationToken ct)
     {
