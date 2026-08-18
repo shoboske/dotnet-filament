@@ -1,13 +1,9 @@
-namespace Fila.Tables;
+using System.Globalization;
+using System.Linq.Expressions;
+using Fila.Schemas;
+using Fila.Support;
 
-public enum ColumnKind
-{
-    Text,
-    Badge,
-    Money,
-    Date,
-    Bool,
-}
+namespace Fila.Tables;
 
 public enum ColumnAlign
 {
@@ -16,14 +12,21 @@ public enum ColumnAlign
     End,
 }
 
-/// <summary>
-/// Non-generic view of a column, used by rendering and query code that doesn't know TEntity.
-/// </summary>
-public interface ITableColumn
+/// <summary>Non-generic view of a column, used by rendering and query code that doesn't know
+/// TEntity.</summary>
+public interface ITableColumn : IComponent
 {
+    /// <summary>The property path this column reads. Same value as
+    /// <see cref="IComponent.Name"/>; kept under the older name because query and sort code
+    /// talks in paths.</summary>
     string Path { get; }
-    string Label { get; }
-    ColumnKind Kind { get; }
+
+    /// <summary>Names the markup this column's cells render as. A value the renderer doesn't
+    /// recognise renders as plain text, which is what lets a consumer-authored column type work
+    /// without touching Fila. Phase 3 (#5) turns this into a lookup in a real partial
+    /// registry.</summary>
+    string View { get; }
+
     ColumnAlign Alignment { get; }
     bool IsSearchable { get; }
     bool IsSortable { get; }
@@ -33,112 +36,107 @@ public interface ITableColumn
     string? GetBadgeColor(object entity);
 }
 
-public sealed class TableColumn<T> : ITableColumn
+/// <summary>Base class for every table column. Subclass it — in Fila or in a consuming app — to
+/// add a column type; there is no enum to extend and no switch to edit. Overriding
+/// <see cref="FormatDisplay(object?)"/> is enough for a column that only formats differently.
+///
+/// Every fluent setter returns <c>TableColumn&lt;TEntity&gt;</c> rather than the subclass, so
+/// the shared settings can be applied in any order without each subclass re-declaring
+/// them.</summary>
+public abstract class TableColumn<TEntity> : Component, ITableColumn
 {
-    private readonly Func<T, object?> _accessor;
-    private string _label;
+    private readonly Func<TEntity, object?> _accessor;
     private ColumnAlign _alignment = ColumnAlign.Start;
     private Func<object?, string>? _colorSelector;
 
-    internal TableColumn(ColumnKind kind, string path, Func<T, object?> accessor)
+    protected TableColumn(Expression<Func<TEntity, object?>> selector)
+        : this(ExpressionPath.ToPath(selector), selector.Compile())
     {
-        Kind = kind;
-        Path = path;
-        _accessor = accessor;
-        _label = Humanize(path);
     }
 
-    public string Path { get; }
-    public ColumnKind Kind { get; }
+    protected TableColumn(string path, Func<TEntity, object?> accessor)
+        : base(path)
+    {
+        _accessor = accessor;
+    }
+
+    public string Path => Name;
+
+    public virtual string View => "text";
+
     public bool IsSearchable { get; private set; }
+
     public bool IsSortable { get; private set; }
 
-    string ITableColumn.Label => _label;
     ColumnAlign ITableColumn.Alignment => _alignment;
 
-    public TableColumn<T> Label(string label)
+    public TableColumn<TEntity> Label(string label)
     {
-        _label = label;
+        LabelValue = label;
         return this;
     }
 
-    public TableColumn<T> Searchable(bool value = true)
+    public TableColumn<TEntity> Label(Func<EvaluationContext, string> label)
+    {
+        LabelValue = Evaluated<string>.From(label);
+        return this;
+    }
+
+    public TableColumn<TEntity> Visible(bool value = true)
+    {
+        VisibleValue = value;
+        return this;
+    }
+
+    public TableColumn<TEntity> Visible(Func<EvaluationContext, bool> value)
+    {
+        VisibleValue = Evaluated<bool>.From(value);
+        return this;
+    }
+
+    public TableColumn<TEntity> Hidden(bool value = true) => Visible(!value);
+
+    public TableColumn<TEntity> Hidden(Func<EvaluationContext, bool> value) =>
+        Visible(context => !value(context));
+
+    public TableColumn<TEntity> Searchable(bool value = true)
     {
         IsSearchable = value;
         return this;
     }
 
-    public TableColumn<T> Sortable(bool value = true)
+    public TableColumn<TEntity> Sortable(bool value = true)
     {
         IsSortable = value;
         return this;
     }
 
-    public TableColumn<T> Alignment(ColumnAlign alignment)
+    public TableColumn<TEntity> Alignment(ColumnAlign alignment)
     {
         _alignment = alignment;
         return this;
     }
 
-    /// <summary>Only meaningful on Badge columns: maps the raw value to a tone name
+    /// <summary>Only meaningful on badge columns: maps the raw value to a tone name
     /// (neutral | info | success | warning | danger).</summary>
-    public TableColumn<T> Colors<TValue>(Func<TValue, string> selector)
+    public TableColumn<TEntity> Colors<TValue>(Func<TValue, string> selector)
     {
         _colorSelector = raw => raw is TValue typed ? selector(typed) : "neutral";
         return this;
     }
 
-    object? ITableColumn.GetValue(object entity) => _accessor((T)entity);
+    /// <summary>Turns this column's raw value into the text a cell shows. The one method a
+    /// column type usually needs to override.</summary>
+    public virtual string FormatDisplay(object? value) => value?.ToString() ?? string.Empty;
 
-    string ITableColumn.FormatDisplay(object entity)
-    {
-        var value = _accessor((T)entity);
-        return Kind switch
-        {
-            ColumnKind.Money => value is null ? string.Empty : FormatMoney(value),
-            ColumnKind.Date => FormatDate(value),
-            ColumnKind.Bool => value is true ? "Yes" : "No",
-            _ => value?.ToString() ?? string.Empty,
-        };
-    }
+    object? ITableColumn.GetValue(object entity) => _accessor((TEntity)entity);
 
-    string? ITableColumn.GetBadgeColor(object entity)
-    {
-        if (_colorSelector is null) return null;
-        return _colorSelector(_accessor((T)entity));
-    }
+    string ITableColumn.FormatDisplay(object entity) => FormatDisplay(_accessor((TEntity)entity));
 
-    // Fixed to en-US rather than the server's current culture — money columns should look
-    // the same regardless of what locale the container happens to boot with.
-    private static readonly System.Globalization.CultureInfo DisplayCulture =
-        System.Globalization.CultureInfo.GetCultureInfo("en-US");
+    string? ITableColumn.GetBadgeColor(object entity) =>
+        _colorSelector?.Invoke(_accessor((TEntity)entity));
 
-    private static string FormatMoney(object value) => value switch
-    {
-        decimal d => d.ToString("C", DisplayCulture),
-        double d => d.ToString("C", DisplayCulture),
-        float f => f.ToString("C", DisplayCulture),
-        _ => Convert.ToDecimal(value).ToString("C", DisplayCulture),
-    };
-
-    private static string FormatDate(object? value) => value switch
-    {
-        DateTime dt => dt.ToString("MMM d, yyyy", DisplayCulture),
-        DateTimeOffset dto => dto.ToString("MMM d, yyyy", DisplayCulture),
-        null => string.Empty,
-        _ => value.ToString() ?? string.Empty,
-    };
-
-    private static string Humanize(string path)
-    {
-        var name = path.Contains('.') ? path[(path.LastIndexOf('.') + 1)..] : path;
-        var chars = new List<char>();
-        for (var i = 0; i < name.Length; i++)
-        {
-            if (i > 0 && char.IsUpper(name[i]) && !char.IsUpper(name[i - 1]))
-                chars.Add(' ');
-            chars.Add(name[i]);
-        }
-        return new string(chars.ToArray());
-    }
+    // Fixed to en-US rather than the server's current culture — money and date columns should
+    // look the same regardless of what locale the container happens to boot with.
+    protected static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("en-US");
 }
