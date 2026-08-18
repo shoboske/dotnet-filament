@@ -1,4 +1,5 @@
 using AngleSharp.Html.Parser;
+using Fila.Testing;
 using Xunit;
 
 namespace Fila.Tests;
@@ -17,6 +18,8 @@ public sealed class CustomersCreateTests(DemoAppFactory factory) : IClassFixture
             new("Email", "tony@stark.test"),
         ]));
         createResponse.EnsureSuccessStatusCode();
+        createResponse.AssertNotificationTriggered(title: "Created", color: "success");
+        createResponse.AssertModalClosed();
 
         var html = await client.GetStringAsync("/admin/customers");
         var document = await new HtmlParser().ParseDocumentAsync(html);
