@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fila.Schemas\Fila.Schemas.csproj" />
+    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -3,7 +3,21 @@
     <Project Path="samples/Demo/Demo.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Fila.Tools/Fila.Tools.csproj" />
     <Project Path="src/Fila/Fila.csproj" />
+    <Project Path="src/Fila.Actions/Fila.Actions.csproj" />
+    <Project Path="src/Fila.Forms/Fila.Forms.csproj" />
+    <Project Path="src/Fila.Infolists/Fila.Infolists.csproj" />
+    <Project Path="src/Fila.Notifications/Fila.Notifications.csproj" />
+    <Project Path="src/Fila.Panels/Fila.Panels.csproj" />
+    <Project Path="src/Fila.Schemas/Fila.Schemas.csproj" />
+    <Project Path="src/Fila.Support/Fila.Support.csproj" />
+    <Project Path="src/Fila.Tables/Fila.Tables.csproj" />
+    <Project Path="src/Fila.Testing/Fila.Testing.csproj" />
+    <Project Path="src/Fila.Tooling/Fila.Tooling.csproj" />
+    <Project Path="src/Fila.Tools/Fila.Tools.csproj" />
+    <Project Path="src/Fila.Widgets/Fila.Widgets.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fila.Tests/Fila.Tests.csproj" />
   </Folder>
 </Solution>

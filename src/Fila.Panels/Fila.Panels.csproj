@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <IsPackable>false</IsPackable>
+    <!-- The served asset URL is derived from the assembly name, so without this the split
+         would silently move /_content/Fila/fila/fila.css to /_content/Fila.Panels/... and
+         break every stylesheet and script link in the views. -->
+    <StaticWebAssetBasePath>Fila</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fila.Actions\Fila.Actions.csproj" />
+    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
+    <ProjectReference Include="..\Fila.Infolists\Fila.Infolists.csproj" />
+    <ProjectReference Include="..\Fila.Notifications\Fila.Notifications.csproj" />
+    <ProjectReference Include="..\Fila.Schemas\Fila.Schemas.csproj" />
+    <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
+    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
+    <ProjectReference Include="..\Fila.Widgets\Fila.Widgets.csproj" />
+  </ItemGroup>
+
+</Project>
