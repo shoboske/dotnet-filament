@@ -3,7 +3,6 @@ using Fila.Panels.Resources;
 using Fila.Tables;
 using Fila.Forms;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;

@@ -58,7 +58,7 @@ public static class Scaffolder
             : string.Empty;
 
         var entityNamespace = clrType.Namespace;
-        var usingEntityNamespace = entityNamespace is null || entityNamespace == $"{rootNamespace}.Fila.Panels.Resources"
+        var usingEntityNamespace = entityNamespace is null || entityNamespace == $"{rootNamespace}.Fila.Resources"
             ? string.Empty
             : $"using {entityNamespace};{Environment.NewLine}";
 
@@ -69,7 +69,7 @@ public static class Scaffolder
             using Fila.Tables;
             using Microsoft.EntityFrameworkCore;
             {{usingEntityNamespace}}
-            namespace {{rootNamespace}}.Fila.Panels.Resources;
+            namespace {{rootNamespace}}.Fila.Resources;
 
             public sealed class {{entityName}}Resource : Resource<{{entityName}}>
             {

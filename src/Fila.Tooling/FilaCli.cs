@@ -90,7 +90,6 @@ public static class FilaCli
             : $"using {dbContextNamespace};{Environment.NewLine}";
 
         var source = $$"""
-            using Fila;
             using Fila.Panels;
             using System.Security.Claims;
             {{usingDbContextNamespace}}
