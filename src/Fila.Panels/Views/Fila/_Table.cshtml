@@ -1,6 +1,8 @@
 @model FilaListViewModel
 @{
     Layout = null;
+    var evaluation = Model.Evaluation;
+    var columns = Model.Table.Columns.Where(c => c.ResolveVisible(evaluation)).ToList();
     var hasForm = Model.Resource.BuildForm() is not null;
     var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
 }
@@ -8,7 +10,7 @@
     <table class="fi-ta-table">
         <thead>
             <tr>
-                @foreach (var column in Model.Table.Columns)
+                @foreach (var column in columns)
                 {
                     <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
                         @if (column.IsSortable)
@@ -20,7 +22,7 @@
                                     hx-include="#fila-table-state"
                                     hx-push-url="true"
                                     hx-vals='@Model.Query.SortValsFor(column)'>
-                                <span>@column.Label</span>
+                                <span>@column.ResolveLabel(evaluation)</span>
                                 @if (Model.Query.Sort == column.Path)
                                 {
                                     <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
@@ -29,7 +31,7 @@
                         }
                         else
                         {
-                            @column.Label
+                            @column.ResolveLabel(evaluation)
                         }
                     </th>
                 }
@@ -44,10 +46,10 @@
             {
                 var row = Model.Paged.Rows[i];
                 <tr wire-key="@(Model.Resource.Slug)-@i">
-                    @foreach (var column in Model.Table.Columns)
+                    @foreach (var column in columns)
                     {
                         <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
-                            @if (column.Kind == ColumnKind.Badge)
+                            @if (column.View == "badge")
                             {
                                 var tone = column.GetBadgeColor(row) ?? "neutral";
                                 <span class="fi-badge fi-badge-@tone">@column.FormatDisplay(row)</span>
@@ -82,7 +84,7 @@
             @if (Model.Paged.Rows.Count == 0)
             {
                 <tr>
-                    <td class="fi-ta-empty-cell" colspan="@(Model.Table.Columns.Count + (hasForm ? 1 : 0))">
+                    <td class="fi-ta-empty-cell" colspan="@(columns.Count + (hasForm ? 1 : 0))">
                         <div class="fi-ta-empty-state">
                             <div class="fi-ta-empty-state-content">
                                 <span class="fi-ta-empty-state-icon-bg">

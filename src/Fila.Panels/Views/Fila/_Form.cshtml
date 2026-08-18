@@ -1,6 +1,7 @@
 @model FilaFormViewModel
 @{
     Layout = null;
+    var evaluation = Model.Evaluation;
     var actionUrl = Model.IsCreate
         ? $"/{Model.Panel.Path}/{Model.Resource.Slug}"
         : $"/{Model.Panel.Path}/{Model.Resource.Slug}/{Model.Id}";
@@ -14,32 +15,33 @@
 
 <form hx-post="@actionUrl" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
     <div class="fi-modal-content">
-        @foreach (var field in Model.Form.Fields)
+        @foreach (var field in Model.Form.Fields.Where(f => f.ResolveVisible(evaluation)))
         {
+            var label = field.ResolveLabel(evaluation);
             var rawValue = FieldBinding.Format(field.GetValue(Model.Entity));
             var error = Model.ErrorFor(field.Path);
             var fieldId = $"fila-field-{field.Path}";
 
             <div class="fi-field">
-                @if (field.Kind != FieldKind.Boolean)
+                @if (field.View != "checkbox")
                 {
                     <label class="fi-login-label" for="@fieldId">
-                        @field.Label
-                        @if (field.IsRequired)
+                        @label
+                        @if (field.ResolveRequired(evaluation))
                         {
                             <sup class="fi-required-mark">*</sup>
                         }
                     </label>
                 }
 
-                @switch (field.Kind)
+                @switch (field.View)
                 {
-                    case FieldKind.Textarea:
+                    case "textarea":
                         <textarea class="fi-input" id="@fieldId" name="@field.Path" rows="3">@rawValue</textarea>
                         break;
 
-                    case FieldKind.Select:
-                        var options = field.ResolveOptions(Model.Db) ?? [];
+                    case "select":
+                        var options = field.ResolveOptions(evaluation) ?? [];
                         <select class="fi-input" id="@fieldId" name="@field.Path">
                             @foreach (var option in options)
                             {
@@ -48,23 +50,19 @@
                         </select>
                         break;
 
-                    case FieldKind.Boolean:
+                    case "checkbox":
                         <label class="fi-toggle-label" for="@fieldId">
                             <input type="checkbox" class="fi-toggle-input" id="@fieldId" name="@field.Path" value="true" checked="@(rawValue == "true" ? "checked" : null)" />
-                            <span>@field.Label</span>
+                            <span>@label</span>
                         </label>
                         break;
 
-                    case FieldKind.Date:
-                        <input type="date" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
-                        break;
-
-                    case FieldKind.Number:
+                    case "number":
                         <input type="number" step="any" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
                         break;
 
                     default:
-                        <input type="text" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
+                        <input type="@field.InputType" class="fi-input" id="@fieldId" name="@field.Path" value="@rawValue" />
                         break;
                 }
 
