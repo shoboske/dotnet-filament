@@ -26,10 +26,14 @@
   generated code is wrong. Run the generator and compile its output.
 - Razor views compile into their own assembly, so `internal` types they use break when
   views move projects. Prefer `InternalsVisibleTo` over widening to public.
+- Two DSL overloads differing only in a lambda's parameter type (`Func<DbContext,_>` vs
+  `Func<EvaluationContext,_>`) make every `x => ...` call site CS0121. Use a second name.
 
 ## Verifying "no behavior change"
 - `git worktree add <dir> main`, run both revisions on different ports, drive both through
   the same requests, diff byte for byte. Reset both databases first; ignore `Date`,
   `ETag`, `Last-Modified`.
+- `dotnet run` ignores `ASPNETCORE_URLS` — `launchSettings.json` pins port 5177, so the
+  second app fails to bind. Pass `--no-launch-profile`.
 - CI is Azure Pipelines: it reports as a GitHub *check run*. `get_status` shows an empty
   pending result and looks like no CI exists — use `get_check_runs`.
