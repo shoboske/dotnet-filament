@@ -45,3 +45,7 @@ using (var scope = app.Services.CreateScope())
 app.MapFilaPanel();
 
 app.Run();
+
+// Makes this top-level-statement Program reachable as a generic type argument so
+// WebApplicationFactory<Program> (tests/Fila.Tests) can boot this app in-process.
+public partial class Program;
