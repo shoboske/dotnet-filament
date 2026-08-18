@@ -1,19 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- The umbrella package, mirroring filament/filament: it carries no code of its own and
+       exists so an app takes one reference and gets the whole framework. Every package the
+       v2 split produced is listed here, including the ones later phases fill in, so an app
+       picks those up without touching its .csproj again. -->
+
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\Fila.Actions\Fila.Actions.csproj" />
+    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
+    <ProjectReference Include="..\Fila.Infolists\Fila.Infolists.csproj" />
+    <ProjectReference Include="..\Fila.Notifications\Fila.Notifications.csproj" />
     <ProjectReference Include="..\Fila.Panels\Fila.Panels.csproj" />
+    <ProjectReference Include="..\Fila.Schemas\Fila.Schemas.csproj" />
+    <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
+    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
+    <ProjectReference Include="..\Fila.Tooling\Fila.Tooling.csproj" />
+    <ProjectReference Include="..\Fila.Widgets\Fila.Widgets.csproj" />
   </ItemGroup>
 
 </Project>

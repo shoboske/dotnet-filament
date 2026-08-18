@@ -19,9 +19,8 @@
   <ItemGroup>
     <!-- ResourceNaming is internal — it is a scaffolding detail, not public API. The in-app
          CLI is its only consumer and is a separate assembly after the split, so it gets
-         explicit access rather than the type being widened to public. This target follows
-         the CLI into Fila.Tooling in the next commit. -->
-    <InternalsVisibleTo Include="Fila" />
+         explicit access rather than the type being widened to public. -->
+    <InternalsVisibleTo Include="Fila.Tooling" />
   </ItemGroup>
 
   <ItemGroup>
