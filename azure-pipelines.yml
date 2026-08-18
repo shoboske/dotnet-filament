@@ -18,8 +18,16 @@ steps:
       packageType: 'sdk'
       version: '10.0.x'
 
-  - script: dotnet test tests/Fila.Tests/Fila.Tests.csproj --configuration Release --logger trx
+  - script: dotnet test tests/Fila.Tests/Fila.Tests.csproj --configuration Release --logger trx -p:RestoreIgnoreFailedSources=true
     displayName: 'dotnet test'
+    # nuget.config lists artifacts/nuget-local (gitignored, normally populated by
+    # `dotnet pack src/Fila.Tools -o artifacts/nuget-local`) as a package source. Without
+    # RestoreIgnoreFailedSources, NuGet fails every restore with NU1301 if a configured
+    # local source doesn't exist at all — even for projects that never need a package from
+    # it — which a fresh CI checkout hits since it never ran that pack step. This property
+    # is NuGet's own documented answer for "a source may be unreachable, don't fail restore
+    # over it": it downgrades the failure to warning NU1801 and restore proceeds using
+    # whatever sources actually respond (nuget.org, here).
 
   - task: PublishTestResults@2
     displayName: 'Publish test results'
