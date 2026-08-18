@@ -1,7 +1,6 @@
-using Fila.Panels;
-using Fila.Resources;
+using Fila.Panels.Resources;
 
-namespace Fila.Rendering;
+namespace Fila.Panels.Rendering;
 
 public sealed class FilaDeleteConfirmViewModel
 {

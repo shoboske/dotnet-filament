@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Fila.Resources;
+namespace Fila.Panels.Resources;
 
 /// <summary>Shared by Resource&lt;T&gt;'s default Slug and the CLI scaffolder's printed route,
 /// so both agree on the naive pluralisation rule (handles -y/-s/-ch/-sh, nothing fancier).</summary>

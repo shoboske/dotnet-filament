@@ -1,6 +1,5 @@
-using Fila.Panels;
-using Fila.Rendering;
-using Fila.Resources;
+using Fila.Panels.Rendering;
+using Fila.Panels.Resources;
 using Fila.Tables;
 using Fila.Forms;
 using Microsoft.AspNetCore.Authentication;
@@ -13,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
-namespace Fila;
+namespace Fila.Panels;
 
 public static class FilaExtensions
 {

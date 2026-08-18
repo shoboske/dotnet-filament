@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Security.Claims;
-using Fila.Resources;
+using Fila.Panels.Resources;
 using Fila.Support;
 using Microsoft.EntityFrameworkCore;
 

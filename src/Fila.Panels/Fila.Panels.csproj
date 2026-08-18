@@ -6,12 +6,22 @@
     <IsPackable>false</IsPackable>
     <!-- The served asset URL is derived from the assembly name, so without this the split
          would silently move /_content/Fila/fila/fila.css to /_content/Fila.Panels/... and
-         break every stylesheet and script link in the views. -->
-    <StaticWebAssetBasePath>Fila</StaticWebAssetBasePath>
+         break every stylesheet and script link in the views. Note this overrides the whole
+         base path, `_content/` prefix included — setting it to a bare `Fila` serves the
+         files from /Fila/... instead. -->
+    <StaticWebAssetBasePath>_content/Fila</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ResourceNaming is internal — it is a scaffolding detail, not public API. The in-app
+         CLI is its only consumer and is a separate assembly after the split, so it gets
+         explicit access rather than the type being widened to public. This target follows
+         the CLI into Fila.Tooling in the next commit. -->
+    <InternalsVisibleTo Include="Fila" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,5 @@
 using Fila.Forms;
-using Fila.Resources;
+using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Demo.Data;

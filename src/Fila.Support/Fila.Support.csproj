@@ -8,7 +8,7 @@
     <!-- ColorMath is deliberately internal — it backs .PrimaryColor(...) and is not public
          API. The panel package is the only consumer, and after the split it is a separate
          assembly, so it needs explicit access rather than ColorMath being widened to public. -->
-    <InternalsVisibleTo Include="Fila" />
+    <InternalsVisibleTo Include="Fila.Panels" />
   </ItemGroup>
 
 </Project>

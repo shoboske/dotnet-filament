@@ -1,6 +1,5 @@
-using Fila.Panels;
 
-namespace Fila.Rendering;
+namespace Fila.Panels.Rendering;
 
 public sealed class LoginViewModel
 {

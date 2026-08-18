@@ -1,8 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <RazorCompileOnBuild>true</RazorCompileOnBuild>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -15,9 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
-    <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
-    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
+    <ProjectReference Include="..\Fila.Panels\Fila.Panels.csproj" />
   </ItemGroup>
 
 </Project>

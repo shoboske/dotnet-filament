@@ -3,7 +3,7 @@ using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Fila.Resources;
+namespace Fila.Panels.Resources;
 
 /// <summary>Non-generic view of a resource, used by panel routing and the CLI.</summary>
 public interface IResource

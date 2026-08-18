@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Routing;
 
-namespace Fila.Rendering;
+namespace Fila.Panels.Rendering;
 
 /// <summary>Minimal APIs have no ViewResult, so this resolves ICompositeViewEngine +
 /// ITempDataProvider and executes the view to a StringWriter by hand.</summary>

@@ -1,9 +1,8 @@
 using Fila.Forms;
-using Fila.Panels;
-using Fila.Resources;
+using Fila.Panels.Resources;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fila.Rendering;
+namespace Fila.Panels.Rendering;
 
 public sealed class FilaFormViewModel
 {

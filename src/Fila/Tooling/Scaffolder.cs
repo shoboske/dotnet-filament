@@ -1,4 +1,4 @@
-using Fila.Resources;
+using Fila.Panels.Resources;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Fila.Tooling;
@@ -58,18 +58,18 @@ public static class Scaffolder
             : string.Empty;
 
         var entityNamespace = clrType.Namespace;
-        var usingEntityNamespace = entityNamespace is null || entityNamespace == $"{rootNamespace}.Fila.Resources"
+        var usingEntityNamespace = entityNamespace is null || entityNamespace == $"{rootNamespace}.Fila.Panels.Resources"
             ? string.Empty
             : $"using {entityNamespace};{Environment.NewLine}";
 
         var columnsBlock = string.Join(",\n            ", columns);
 
         var source = $$"""
-            using Fila.Resources;
+            using Fila.Panels.Resources;
             using Fila.Tables;
             using Microsoft.EntityFrameworkCore;
             {{usingEntityNamespace}}
-            namespace {{rootNamespace}}.Fila.Resources;
+            namespace {{rootNamespace}}.Fila.Panels.Resources;
 
             public sealed class {{entityName}}Resource : Resource<{{entityName}}>
             {

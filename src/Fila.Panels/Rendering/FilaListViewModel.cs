@@ -1,9 +1,8 @@
-using Fila.Panels;
-using Fila.Resources;
+using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fila.Rendering;
+namespace Fila.Panels.Rendering;
 
 public sealed class FilaListViewModel
 {
