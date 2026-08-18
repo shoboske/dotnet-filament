@@ -2,6 +2,7 @@ using Fila.Panels.Rendering;
 using Fila.Panels.Resources;
 using Fila.Tables;
 using Fila.Forms;
+using Fila.Support;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -222,6 +223,7 @@ public static class FilaExtensions
             Query = query,
             Paged = paged,
             Db = db,
+            Evaluation = new EvaluationContext { Db = db, User = ctx.User },
         };
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
@@ -251,6 +253,7 @@ public static class FilaExtensions
             Form = form,
             Entity = entity,
             Db = db,
+            Evaluation = EvaluationContextFor(ctx, db, entity, StateOf(form, entity)),
             Id = id,
             Errors = [],
         };
@@ -274,15 +277,19 @@ public static class FilaExtensions
         if (entity is null) return Results.NotFound();
 
         var submitted = await ctx.Request.ReadFormAsync(ct);
+        var state = form.Fields.ToDictionary(f => f.Path, f => (string?)submitted[f.Path].ToString());
+        var evaluation = EvaluationContextFor(ctx, db, entity, state);
         var errors = new List<(string Path, string Message)>();
 
-        foreach (var field in form.Fields)
+        // A hidden field was never rendered, so nothing was submitted for it — validating it
+        // would fail the form on a control the user cannot see.
+        foreach (var field in form.Fields.Where(f => f.ResolveVisible(evaluation)))
         {
             var raw = submitted[field.Path].ToString();
 
-            if (field.IsRequired && string.IsNullOrWhiteSpace(raw))
+            if (field.ResolveRequired(evaluation) && string.IsNullOrWhiteSpace(raw))
             {
-                errors.Add((field.Path, $"{field.Label} is required."));
+                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is required."));
                 continue;
             }
 
@@ -292,7 +299,7 @@ public static class FilaExtensions
             }
             catch
             {
-                errors.Add((field.Path, $"{field.Label} is invalid."));
+                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is invalid."));
             }
         }
 
@@ -305,6 +312,7 @@ public static class FilaExtensions
                 Form = form,
                 Entity = entity,
                 Db = db,
+                Evaluation = evaluation,
                 Id = id,
                 Errors = errors,
             };
@@ -379,6 +387,22 @@ public static class FilaExtensions
         });
     }
 
+    /// <summary>The context a form's evaluated settings resolve against: the entity being
+    /// edited plus whatever the other fields currently hold, so one field's configuration can
+    /// depend on another's value.</summary>
+    private static EvaluationContext EvaluationContextFor(
+        HttpContext ctx, DbContext db, object entity, IReadOnlyDictionary<string, string?> state) =>
+        new()
+        {
+            Db = db,
+            Record = entity,
+            User = ctx.User,
+            State = state,
+        };
+
+    private static Dictionary<string, string?> StateOf(IForm form, object entity) =>
+        form.Fields.ToDictionary(f => f.Path, f => (string?)FieldBinding.Format(f.GetValue(entity)));
+
     private static string Singularize(string label) =>
         label.EndsWith('s') && !label.EndsWith("ss") ? label[..^1] : label;
 
@@ -401,6 +425,7 @@ public static class FilaExtensions
             Query = query,
             Paged = paged,
             Db = db,
+            Evaluation = new EvaluationContext { Db = db, User = ctx.User },
         };
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();

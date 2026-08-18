@@ -29,6 +29,8 @@ public sealed class Table<T> : ITable
     bool ITable.DefaultSortDescending => _defaultSortDescending;
     int ITable.PerPage => _perPage;
 
+    /// <summary>Takes the base type, so a column type declared outside Fila drops into the
+    /// same call: .Columns(new RatingColumn&lt;Product&gt;(p =&gt; p.Stars).Sortable()).</summary>
     public Table<T> Columns(params TableColumn<T>[] columns)
     {
         _columns = columns;
@@ -48,16 +50,13 @@ public sealed class Table<T> : ITable
         return this;
     }
 
-    public TableColumn<T> Text(Expression<Func<T, object?>> selector) => Column(ColumnKind.Text, selector);
+    public TextColumn<T> Text(Expression<Func<T, object?>> selector) => new(selector);
 
-    public TableColumn<T> Money(Expression<Func<T, object?>> selector) => Column(ColumnKind.Money, selector);
+    public TextColumn<T> Money(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Money();
 
-    public TableColumn<T> Badge(Expression<Func<T, object?>> selector) => Column(ColumnKind.Badge, selector);
+    public TextColumn<T> Badge(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Badge();
 
-    public TableColumn<T> Date(Expression<Func<T, object?>> selector) => Column(ColumnKind.Date, selector);
+    public TextColumn<T> Date(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Date();
 
-    public TableColumn<T> Bool(Expression<Func<T, object?>> selector) => Column(ColumnKind.Bool, selector);
-
-    private static TableColumn<T> Column(ColumnKind kind, Expression<Func<T, object?>> selector) =>
-        new(kind, ExpressionPath.ToPath(selector), selector.Compile());
+    public TextColumn<T> Bool(Expression<Func<T, object?>> selector) => new TextColumn<T>(selector).Boolean();
 }

@@ -13,7 +13,7 @@ namespace Fila.Tests;
 /// developer's real demo.db, so tests never touch (or depend on) local dev state. One instance
 /// is shared per test class via IClassFixture&lt;DemoAppFactory&gt; — different test classes get
 /// fully separate databases, tests within a class share one seeded database.</summary>
-public sealed class DemoAppFactory : WebApplicationFactory<Program>
+public class DemoAppFactory : WebApplicationFactory<Program>
 {
     private DbConnection? _connection;
 
@@ -29,7 +29,16 @@ public sealed class DemoAppFactory : WebApplicationFactory<Program>
             _connection.Open();
 
             services.AddDbContext<AppDb>(options => options.UseSqlite(_connection));
+
+            ConfigureTestServices(services);
         });
+    }
+
+    /// <summary>Hook for a test that needs extra services in the demo app — a second panel
+    /// carrying test-only resources, for instance. Runs after the database is swapped, so a
+    /// panel registered here still gets mapped by the app's own MapFilaPanel call.</summary>
+    protected virtual void ConfigureTestServices(IServiceCollection services)
+    {
     }
 
     protected override void Dispose(bool disposing)

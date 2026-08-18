@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Fila.Support;
 
 namespace Fila.Forms;
 
@@ -16,31 +15,23 @@ public sealed class Form<T> : IForm
 
     IReadOnlyList<IFormField> IForm.Fields => _fields;
 
+    /// <summary>Takes the base type, so a field type declared outside Fila drops into the same
+    /// call: .Fields(new ColorPicker&lt;Product&gt;(p =&gt; p.Hex).Required()).</summary>
     public Form<T> Fields(params FormField<T>[] fields)
     {
         _fields = fields;
         return this;
     }
 
-    public FormField<T> Text(Expression<Func<T, object?>> selector) => Field(FieldKind.Text, selector);
+    public TextInput<T> Text(Expression<Func<T, object?>> selector) => new(selector);
 
-    public FormField<T> Textarea(Expression<Func<T, object?>> selector) => Field(FieldKind.Textarea, selector);
+    public Textarea<T> Textarea(Expression<Func<T, object?>> selector) => new(selector);
 
-    public FormField<T> Number(Expression<Func<T, object?>> selector) => Field(FieldKind.Number, selector);
+    public TextInput<T> Number(Expression<Func<T, object?>> selector) => new TextInput<T>(selector).Numeric();
 
-    public FormField<T> Select(Expression<Func<T, object?>> selector) => Field(FieldKind.Select, selector);
+    public Select<T> Select(Expression<Func<T, object?>> selector) => new(selector);
 
-    public FormField<T> Date(Expression<Func<T, object?>> selector) => Field(FieldKind.Date, selector);
+    public DatePicker<T> Date(Expression<Func<T, object?>> selector) => new(selector);
 
-    public FormField<T> Boolean(Expression<Func<T, object?>> selector) => Field(FieldKind.Boolean, selector);
-
-    private static FormField<T> Field(FieldKind kind, Expression<Func<T, object?>> selector)
-    {
-        var path = ExpressionPath.ToPath(selector);
-        var property = typeof(T).GetProperty(path)
-            ?? throw new NotSupportedException(
-                $"Form fields must be direct properties of {typeof(T).Name}; '{path}' was not found.");
-
-        return new FormField<T>(kind, property);
-    }
+    public Checkbox<T> Boolean(Expression<Func<T, object?>> selector) => new(selector);
 }

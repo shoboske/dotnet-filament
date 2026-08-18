@@ -5,6 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- EvaluationContext hands a component's closures the request's DbContext, so the
+         support package has to know the type — as Filament's does, its support package
+         sitting on Eloquent. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- ColorMath is deliberately internal — it backs .PrimaryColor(...) and is not public
          API. The panel package is the only consumer, and after the split it is a separate
          assembly, so it needs explicit access rather than ColorMath being widened to public. -->
