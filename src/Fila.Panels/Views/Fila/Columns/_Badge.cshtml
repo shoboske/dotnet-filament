@@ -1,0 +1,5 @@
+@model ColumnRenderModel
+@{
+    var tone = Model.Column.GetBadgeColor(Model.Row) ?? "neutral";
+}
+<span class="fi-badge fi-badge-@tone">@Model.Column.FormatDisplay(Model.Row)</span>
