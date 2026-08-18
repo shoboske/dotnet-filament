@@ -144,6 +144,9 @@ public static class FilaExtensions
             group.MapPost($"/{entry.Slug}/{{id}}/actions/{{name}}", (HttpContext ctx, string id, string name, CancellationToken ct) =>
                 HandleActionExecuteAsync(ctx, panel, entry.ResourceType, id, name, ct));
 
+            group.MapGet($"/{entry.Slug}/bulk-actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
+                HandleBulkActionMountAsync(ctx, panel, entry.ResourceType, name, ct));
+
             group.MapPost($"/{entry.Slug}/bulk-actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
                 HandleBulkActionExecuteAsync(ctx, panel, entry.ResourceType, name, ct));
         }
@@ -393,6 +396,34 @@ public static class FilaExtensions
         return await RenderTableAsync(ctx, panel, resource, db, ct);
     }
 
+    /// <summary>The GET side of a bulk action: only meaningful when it requires confirmation
+    /// (an unconfirmed bulk action has nothing to mount and posts directly, same as a
+    /// confirmation-less row action) — renders that confirmation step into the shared modal.
+    /// Unlike a row action's mount, this never resolves a record: the selected ids are only
+    /// known once the confirm step's own button posts, via hx-include reading the checkboxes.</summary>
+    private static async Task<IResult> HandleBulkActionMountAsync(
+        HttpContext ctx, Panel panel, Type resourceType, string actionName, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var action = resource.BuildTable().BulkActions.FirstOrDefault(a => a.Name == actionName);
+        if (action is null || !action.RequiresConfirmationFlag) return Results.NotFound();
+
+        var model = new FilaBulkActionConfirmViewModel
+        {
+            Panel = panel,
+            Resource = resource,
+            Action = action,
+            Evaluation = new EvaluationContext { Db = db, User = ctx.User },
+        };
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_BulkActionConfirm.cshtml", model);
+        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+        return Results.Content(html, "text/html");
+    }
+
     private static async Task<IResult> HandleBulkActionExecuteAsync(
         HttpContext ctx, Panel panel, Type resourceType, string actionName, CancellationToken ct)
     {
@@ -419,7 +450,9 @@ public static class FilaExtensions
         }
 
         if (action.Notification is { } notification)
-            SetNotifyTrigger(ctx, notification.Title, notification.Color);
+            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
+        else
+            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
 
         return await RenderTableAsync(ctx, panel, resource, db, ct);
     }
@@ -453,16 +486,6 @@ public static class FilaExtensions
         ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
         {
             ["fila-modal-close"] = true,
-            ["fila-notify"] = new { title, color },
-        });
-    }
-
-    /// <summary>Same as above without the modal-close signal — a bulk action never opens Fila's
-    /// modal (see BulkAction's doc comment), so there's nothing to tell the client to close.</summary>
-    private static void SetNotifyTrigger(HttpContext ctx, string title, string color)
-    {
-        ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
-        {
             ["fila-notify"] = new { title, color },
         });
     }
