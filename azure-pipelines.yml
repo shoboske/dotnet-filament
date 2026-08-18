@@ -15,16 +15,40 @@ steps:
       packageType: 'sdk'
       version: '10.0.x'
 
-  - script: dotnet test tests/Fila.Tests/Fila.Tests.csproj --configuration Release --logger trx -p:RestoreIgnoreFailedSources=true
+  - script: mkdir -p artifacts/nuget-local
+    displayName: 'Create the local package source'
+    # nuget.config lists artifacts/nuget-local (gitignored) as a package source. NuGet fails
+    # every restore with NU1301 if a configured source does not exist at all — even for
+    # projects that never pull a package from it — which a fresh checkout hits because the
+    # directory is only created by the pack step below. Creating it up front fixes that at the
+    # source, so no step needs RestoreIgnoreFailedSources to talk its way past a warning about
+    # a directory this build is about to fill in anyway.
+
+  - script: dotnet pack src/Fila.Tools --configuration Release --output artifacts/nuget-local
+    displayName: 'Pack the fila CLI tool'
+    # Has to run before `dotnet tool restore` below: the manifest in samples/Demo installs
+    # fila.tools from this local source, and nothing else publishes it.
+
+  - script: dotnet build Fila.slnx --configuration Release
+    displayName: 'Build the solution'
+    # The whole solution, not just what the tests happen to reference — the v2 split left
+    # several packages that no consumer references yet (Actions, Infolists, Notifications,
+    # Widgets), and a solution-wide build is what keeps them compiling until the phases that
+    # fill them in land.
+
+  - script: dotnet test tests/Fila.Tests/Fila.Tests.csproj --configuration Release --no-build --logger trx
     displayName: 'dotnet test'
-    # nuget.config lists artifacts/nuget-local (gitignored, normally populated by
-    # `dotnet pack src/Fila.Tools -o artifacts/nuget-local`) as a package source. Without
-    # RestoreIgnoreFailedSources, NuGet fails every restore with NU1301 if a configured
-    # local source doesn't exist at all — even for projects that never need a package from
-    # it — which a fresh CI checkout hits since it never ran that pack step. This property
-    # is NuGet's own documented answer for "a source may be unreachable, don't fail restore
-    # over it": it downgrades the failure to warning NU1801 and restore proceeds using
-    # whatever sources actually respond (nuget.org, here).
+
+  - script: |
+      set -e
+      dotnet tool restore
+      dotnet fila --version
+      dotnet fila --help
+    workingDirectory: samples/Demo
+    displayName: 'Smoke the dotnet fila tool'
+    # Proves the packed tool actually installs and runs. `--help` and `--version` are answered
+    # by the dispatcher itself, so this stays a few seconds rather than building samples/Demo a
+    # second time to reach the in-app commands.
 
   - task: PublishTestResults@2
     displayName: 'Publish test results'

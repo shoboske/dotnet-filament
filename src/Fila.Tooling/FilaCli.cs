@@ -33,6 +33,14 @@ public static class FilaCli
                 await MakeResourceAsync(app, rest[1..]);
                 break;
 
+            case "--help" or "-h" or "help":
+                PrintUsage();
+                break;
+
+            case "--version":
+                Console.WriteLine(Version);
+                break;
+
             default:
                 Fail($"Unknown fila command: '{rest[0]}'.");
                 PrintUsage();
@@ -42,13 +50,27 @@ public static class FilaCli
         return true;
     }
 
+    /// <summary>How the user actually reached this code, for the usage text to echo back.
+    /// Running in-app it really is `dotnet run -- fila`, but the `dotnet fila` tool reaches the
+    /// same switch by shelling out to exactly that, and printing the inner form there would tell
+    /// the user to type a command they did not use — the same reason `dotnet ef` prints
+    /// "dotnet ef" rather than the ef.dll invocation it expands to. The dispatcher sets this
+    /// variable; anything else falls back to the in-app form.</summary>
+    private static string Invocation =>
+        Environment.GetEnvironmentVariable("FILA_CLI_INVOCATION") is { Length: > 0 } invocation
+            ? invocation
+            : "dotnet run -- fila";
+
+    private static string Version =>
+        typeof(FilaCli).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
     private static void PrintUsage()
     {
-        Console.WriteLine("""
+        Console.WriteLine($"""
 
             Usage:
-              dotnet run -- fila make:panel <Name>
-              dotnet run -- fila make:resource <Entity> [--context <Name>] [--force]
+              {Invocation} make:panel <Name>
+              {Invocation} make:resource <Entity> [--context <Name>] [--force]
 
             """);
     }
@@ -60,7 +82,7 @@ public static class FilaCli
         var (positional, flags) = ParseArgs(args);
         if (positional.Count == 0)
         {
-            Fail("Usage: dotnet run -- fila make:panel <Name>");
+            Fail($"Usage: {Invocation} make:panel <Name>");
             return;
         }
 
@@ -139,7 +161,7 @@ public static class FilaCli
         var (positional, flags) = ParseArgs(args);
         if (positional.Count == 0)
         {
-            Fail("Usage: dotnet run -- fila make:resource <Entity> [--context <Name>] [--force]");
+            Fail($"Usage: {Invocation} make:resource <Entity> [--context <Name>] [--force]");
             return;
         }
 
