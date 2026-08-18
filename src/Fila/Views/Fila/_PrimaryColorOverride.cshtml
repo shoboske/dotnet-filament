@@ -1,0 +1,25 @@
+@model Fila.Panels.Panel
+@{
+    Layout = null;
+}
+@if (Model.PrimaryColorHex is { } accent)
+{
+    var hover = ColorMath.Darken(accent, 0.15);
+    var softLight = ColorMath.Mix(accent, "#ffffff", 0.9);
+    var softDark = ColorMath.Mix(accent, "#18181b", 0.7);
+    <style>
+        :root {
+            --fi-accent: @accent;
+            --fi-accent-hover: @hover;
+            --fi-accent-soft-bg: @softLight;
+        }
+        :root[data-theme="dark"] {
+            --fi-accent-soft-bg: @softDark;
+        }
+        @@media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --fi-accent-soft-bg: @softDark;
+            }
+        }
+    </style>
+}

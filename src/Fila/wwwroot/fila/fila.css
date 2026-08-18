@@ -1,0 +1,1076 @@
+/* Fila — quiet neutral admin chrome. White cards on zinc-50, zinc-200 hairline
+   borders, zinc-500 secondary text, a single indigo accent. The data is the subject.
+   Colors are tokenized as CSS custom properties so panels can override the accent
+   (see List.cshtml's inline --fi-accent override) and so dark mode is a values swap,
+   not a second stylesheet. Spacing/sizing is calibrated against Filament's own
+   compiled CSS source (fi-input, fi-btn, fi-simple-main, fi-sidebar-nav, etc. in
+   filamentphp/filament) rather than guessed. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* Tailwind's CDN build normally supplies this via Preflight, but a page can't
+   depend on a third-party script for something this foundational — if the CDN is
+   blocked, slow, or ad-blocked, every width:100% element with padding/border
+   overflows its container instead of fitting inside it (this is what "spacing on
+   the right of inputs" actually was: the input rendering wider than its card). */
+
+:root {
+  color-scheme: light;
+
+  --fi-accent: #4f46e5; /* indigo-600 */
+  --fi-accent-hover: #4338ca; /* indigo-700 */
+  --fi-accent-contrast: #ffffff;
+  --fi-accent-soft-bg: #eef2ff; /* indigo-50 */
+
+  --fi-bg: #fafafa; /* zinc-50 */
+  --fi-surface: #ffffff;
+  --fi-border: #e4e4e7; /* zinc-200 */
+  --fi-border-subtle: #f4f4f5; /* zinc-100 */
+  --fi-hover-bg: #f4f4f5; /* zinc-100 */
+
+  --fi-text: #18181b; /* zinc-900 */
+  --fi-text-secondary: #71717a; /* zinc-500 */
+  --fi-text-tertiary: #52525b; /* zinc-600 */
+  --fi-text-muted: #a1a1aa; /* zinc-400 */
+
+  --fi-input-bg: #ffffff;
+  --fi-input-border: #d4d4d8; /* zinc-300 */
+
+  --fi-badge-neutral-bg: #f4f4f5;
+  --fi-badge-neutral-fg: #3f3f46;
+  --fi-badge-info-bg: #eff6ff;
+  --fi-badge-info-fg: #1d4ed8;
+  --fi-badge-success-bg: #f0fdf4;
+  --fi-badge-success-fg: #15803d;
+  --fi-badge-warning-bg: #fffbeb;
+  --fi-badge-warning-fg: #b45309;
+  --fi-badge-danger-bg: #fef2f2;
+  --fi-badge-danger-fg: #b91c1c;
+
+  --fi-error-bg: #fef2f2;
+  --fi-error-fg: #b91c1c;
+
+  --fi-table-header-bg: #fafafa; /* gray-50 */
+}
+
+/* System dark preference, only when the visitor hasn't made an explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Flips native form control chrome (date picker icon, select arrow, scrollbars) to dark
+       too — without this they keep rendering with light-mode chrome regardless of our own
+       colors. */
+    color-scheme: dark;
+
+    --fi-accent-soft-bg: #312e81; /* indigo-900 */
+
+    --fi-bg: #09090b; /* zinc-950 */
+    --fi-surface: #18181b; /* zinc-900 */
+    --fi-border: #27272a; /* zinc-800 */
+    --fi-border-subtle: #27272a;
+    --fi-hover-bg: #27272a;
+
+    --fi-text: #fafafa; /* zinc-50 */
+    --fi-text-secondary: #a1a1aa; /* zinc-400 */
+    --fi-text-tertiary: #d4d4d8; /* zinc-300 */
+    --fi-text-muted: #71717a; /* zinc-500 */
+
+    --fi-input-bg: #18181b;
+    --fi-input-border: #3f3f46; /* zinc-700 */
+
+    --fi-badge-neutral-bg: #27272a;
+    --fi-badge-neutral-fg: #d4d4d8;
+    --fi-badge-info-bg: #172554;
+    --fi-badge-info-fg: #93c5fd;
+    --fi-badge-success-bg: #052e16;
+    --fi-badge-success-fg: #86efac;
+    --fi-badge-warning-bg: #451a03;
+    --fi-badge-warning-fg: #fcd34d;
+    --fi-badge-danger-bg: #450a0a;
+    --fi-badge-danger-fg: #fca5a5;
+
+    --fi-error-bg: #450a0a;
+    --fi-error-fg: #fca5a5;
+
+    --fi-table-header-bg: rgb(255 255 255 / 0.05); /* dark:bg-white/5 */
+  }
+}
+
+/* Explicit choice always wins, in both directions. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --fi-accent-soft-bg: #312e81;
+
+  --fi-bg: #09090b;
+  --fi-surface: #18181b;
+  --fi-border: #27272a;
+  --fi-border-subtle: #27272a;
+  --fi-hover-bg: #27272a;
+
+  --fi-text: #fafafa;
+  --fi-text-secondary: #a1a1aa;
+  --fi-text-tertiary: #d4d4d8;
+  --fi-text-muted: #71717a;
+
+  --fi-input-bg: #18181b;
+  --fi-input-border: #3f3f46;
+
+  --fi-badge-neutral-bg: #27272a;
+  --fi-badge-neutral-fg: #d4d4d8;
+  --fi-badge-info-bg: #172554;
+  --fi-badge-info-fg: #93c5fd;
+  --fi-badge-success-bg: #052e16;
+  --fi-badge-success-fg: #86efac;
+  --fi-badge-warning-bg: #451a03;
+  --fi-badge-warning-fg: #fcd34d;
+  --fi-badge-danger-bg: #450a0a;
+  --fi-badge-danger-fg: #fca5a5;
+
+  --fi-error-bg: #450a0a;
+  --fi-error-fg: #fca5a5;
+
+  --fi-table-header-bg: rgb(255 255 255 / 0.05);
+}
+
+.fi-body {
+  background-color: var(--fi-bg);
+  color: var(--fi-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.fi-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.fi-sidebar {
+  flex: 0 0 16rem;
+  background: var(--fi-surface);
+  border-right: 1px solid var(--fi-border);
+  display: flex;
+  flex-direction: column;
+  /* Pinned to the viewport instead of flowing with page height — without this, a table
+     taller than the viewport made the whole page (sidebar included) scroll together, so the
+     sidebar scrolled out of view instead of staying put. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.fi-sidebar-brand {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  height: 4rem; /* fi-sidebar-header: h-16 */
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem; /* fi-sidebar-nav: px-6 — matches nav's own horizontal padding */
+}
+
+.fi-sidebar-nav {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem; /* fi-sidebar-group-items: gap-y-1 */
+  padding: 0 1.5rem 2rem; /* fi-sidebar-nav: px-6 py-8 (top already covered by brand's own height) */
+}
+
+.fi-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* fi-sidebar-item-btn: gap-x-3 */
+  padding: 0.5rem; /* fi-sidebar-item-btn: p-2 */
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text-tertiary);
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.fi-icon {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  /* No color here on purpose — an icon's stroke is `currentColor`, so it should inherit
+     from whatever context it's in (muted in a nav link, white on a primary button, etc).
+     Forcing a color here was the bug: it made every icon a fixed gray regardless of its
+     container, including the "+" in the primary New button, which should be white. */
+}
+
+.fi-sidebar-link .fi-icon {
+  color: var(--fi-text-muted);
+}
+
+.fi-sidebar-link-active .fi-icon {
+  color: var(--fi-accent);
+}
+
+.fi-sidebar-link:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-sidebar-link:focus-visible {
+  outline: 2px solid var(--fi-accent);
+  outline-offset: 1px;
+}
+
+.fi-sidebar-link-active {
+  background: var(--fi-accent-soft-bg);
+  color: var(--fi-accent);
+}
+
+.fi-sidebar-footer {
+  /* Pushes itself down to the bottom of the sidebar's flex column. */
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--fi-border);
+}
+
+/* Matches Filament's fi-avatar/fi-circular exactly: an <img>, not a CSS-drawn
+   circle — see packages/support/resources/{css/components/avatar.css,
+   views/components/avatar.blade.php}. */
+.fi-avatar {
+  flex: none;
+  width: 2rem; /* fi-size-md: size-8 */
+  height: 2rem;
+  border-radius: 0.375rem; /* rounded-md */
+  object-fit: cover;
+  object-position: center;
+}
+
+.fi-avatar.fi-circular {
+  border-radius: 9999px;
+}
+
+/* fi-user-menu-trigger: packages/panels/resources/css/components/user-menu.css —
+   full-width row inside the sidebar footer: avatar, name, chevron pinned to the end. */
+.fi-user-menu-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: none;
+  background: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text);
+  cursor: pointer;
+  text-align: start;
+}
+
+.fi-user-menu-trigger:hover {
+  background: var(--fi-hover-bg);
+}
+
+.fi-user-menu-trigger-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fi-user-menu-trigger .fi-icon {
+  color: var(--fi-text-muted);
+}
+
+/* fi-dropdown / fi-dropdown-panel — packages/support/resources/css/components/dropdown/*.css */
+.fi-dropdown {
+  position: relative;
+}
+
+.fi-user-menu .fi-dropdown-panel {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 0.5rem);
+  left: 0;
+  width: max(14rem, 100%);
+  border-radius: 0.5rem;
+  background: var(--fi-surface);
+  border: 1px solid var(--fi-border);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-dropdown-list {
+  display: grid;
+  gap: 1px;
+  padding: 0.25rem;
+}
+
+.fi-dropdown-list + .fi-dropdown-list {
+  border-top: 1px solid var(--fi-border);
+}
+
+.fi-dropdown-list-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  background: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--fi-text-secondary);
+  cursor: pointer;
+}
+
+.fi-dropdown-list-item:hover {
+  background: var(--fi-hover-bg);
+}
+
+.fi-dropdown-list-item .fi-icon {
+  color: var(--fi-text-muted);
+}
+
+.fi-dropdown-list-item-label {
+  flex: 1 1 auto;
+  text-align: start;
+  color: var(--fi-text-secondary);
+}
+
+/* fi-theme-switcher — packages/panels/resources/css/components/theme-switcher.css */
+.fi-theme-switcher {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 0.25rem;
+}
+
+.fi-theme-switcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+}
+
+.fi-theme-switcher-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text-secondary);
+}
+
+.fi-theme-switcher-btn.fi-active {
+  background: var(--fi-hover-bg);
+  color: var(--fi-accent);
+}
+
+.fi-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1.5rem;
+  max-width: 80rem;
+}
+
+.fi-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--fi-bg);
+}
+
+.fi-login-card {
+  width: 100%;
+  max-width: 32rem; /* Filament's fi-simple-main: default simple-page width is "lg" */
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  padding: 3rem 1.5rem; /* fi-simple-main: py-12 px-6 */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border); /* shadow-xs + ring-1 ring-gray-950/5 */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* fi-simple-page-content: gap-y-6 */
+}
+
+.fi-login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* fi-sc-form: gap-6 */
+}
+
+/* Groups a label with its input so the pair reads tighter than the gap between
+   distinct fields — was previously faked with a negative margin that only worked
+   because of a flex-gap accident; the <form> wasn't even a flex container, so the
+   real spacing between fields was collapsing to near zero. */
+.fi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* fi-fo-field: gap-y-2 */
+}
+
+.fi-login-heading {
+  font-size: 1.5rem; /* fi-simple-header-heading: text-2xl */
+  font-weight: 700; /* font-bold */
+  color: var(--fi-text);
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .fi-login-card {
+    padding: 3rem; /* fi-simple-main: sm:px-12 */
+  }
+}
+
+.fi-login-error {
+  font-size: 0.8125rem;
+  color: var(--fi-error-fg);
+  background: var(--fi-error-bg);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.fi-login-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fi-text-tertiary);
+}
+
+.fi-login-input {
+  width: 100%;
+}
+
+.fi-login-submit {
+  justify-content: center;
+}
+
+.fi-login-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--fi-text-muted);
+}
+
+.fi-ta-card {
+  background: var(--fi-surface);
+  border-radius: 0.75rem; /* fi-ta-ctn: rounded-xl */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border); /* shadow-sm + ring-1 ring-gray-950/5 */
+  overflow: hidden;
+}
+
+.fi-ta-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem; /* fi-ta-header-toolbar: py-3 px-4 */
+  border-bottom: 1px solid var(--fi-border);
+}
+
+.fi-ta-heading {
+  font-size: 1rem; /* fi-ta-header-heading: text-base */
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--fi-text);
+}
+
+@media (min-width: 640px) {
+  .fi-ta-toolbar {
+    padding: 0.75rem 1.5rem; /* sm:px-6 */
+  }
+}
+
+.fi-input,
+.fi-ta-search {
+  border: 1px solid var(--fi-input-border);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--fi-text);
+  background: var(--fi-input-bg);
+  min-width: 16rem;
+}
+
+.fi-input:focus,
+.fi-ta-search:focus,
+.fi-ta-sort-btn:focus-visible,
+.fi-btn:focus-visible {
+  outline: 2px solid var(--fi-accent);
+  outline-offset: 1px;
+}
+
+.fi-ta-loading {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--fi-text-secondary);
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+}
+
+.fi-ta-loading.htmx-request {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fi-ta-loading {
+    transition: none;
+  }
+}
+
+.fi-ta-table-wrapper {
+  overflow-x: auto;
+}
+
+.fi-ta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.fi-ta-table > thead > tr {
+  background: var(--fi-table-header-bg); /* table.css: thead > tr { bg-gray-50 dark:bg-white/5 } */
+}
+
+.fi-ta-header-cell {
+  text-align: left;
+  padding: 0.875rem 0.75rem; /* fi-ta-header-cell: py-3.5 px-3 */
+  font-weight: 600; /* font-semibold */
+  color: var(--fi-text); /* text-gray-950 dark:text-white — headers are full-strength, not muted */
+  border-bottom: 1px solid var(--fi-border);
+  white-space: nowrap;
+}
+
+.fi-ta-cell {
+  padding: 1rem 0.75rem; /* fi-ta-text: py-4 px-3 */
+  border-bottom: 1px solid var(--fi-border-subtle);
+  color: var(--fi-text);
+  white-space: nowrap;
+}
+
+.fi-ta-header-cell:first-child,
+.fi-ta-cell:first-child {
+  padding-inline-start: 1rem;
+}
+
+.fi-ta-header-cell:last-child,
+.fi-ta-cell:last-child {
+  padding-inline-end: 1rem;
+}
+
+@media (min-width: 640px) {
+  .fi-ta-header-cell:first-child,
+  .fi-ta-cell:first-child {
+    padding-inline-start: 1.5rem; /* sm:first-of-type:ps-6 */
+  }
+
+  .fi-ta-header-cell:last-child,
+  .fi-ta-cell:last-child {
+    padding-inline-end: 1.5rem; /* sm:last-of-type:pe-6 */
+  }
+}
+
+.fi-ta-align-start {
+  text-align: left;
+}
+
+.fi-ta-align-center {
+  text-align: center;
+}
+
+.fi-ta-align-end {
+  text-align: right;
+}
+
+.fi-ta-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+}
+
+.fi-ta-sort-btn:hover {
+  color: var(--fi-text);
+}
+
+.fi-ta-sort-icon {
+  color: var(--fi-accent);
+}
+
+/* fi-ta-empty-state — calibrated against packages/tables/resources/css/empty-state.css. */
+.fi-ta-empty-cell {
+  padding: 0;
+  border-bottom: none;
+}
+
+.fi-ta-empty-state {
+  padding: 3rem 1.5rem; /* px-6 py-12 */
+  border-top: 1px solid var(--fi-border);
+}
+
+.fi-ta-empty-state-content {
+  margin: 0 auto;
+  display: grid;
+  max-width: 32rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.fi-ta-empty-state-icon-bg {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: var(--fi-hover-bg); /* bg-gray-100 dark:bg-gray-500/20 */
+}
+
+.fi-ta-empty-state-icon-bg .fi-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-ta-empty-state-heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.fi-ta-empty-state-description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.fi-badge-neutral {
+  background: var(--fi-badge-neutral-bg);
+  color: var(--fi-badge-neutral-fg);
+}
+
+.fi-badge-info {
+  background: var(--fi-badge-info-bg);
+  color: var(--fi-badge-info-fg);
+}
+
+.fi-badge-success {
+  background: var(--fi-badge-success-bg);
+  color: var(--fi-badge-success-fg);
+}
+
+.fi-badge-warning {
+  background: var(--fi-badge-warning-bg);
+  color: var(--fi-badge-warning-fg);
+}
+
+.fi-badge-danger {
+  background: var(--fi-badge-danger-bg);
+  color: var(--fi-badge-danger-fg);
+}
+
+.fi-ta-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem; /* fi-pagination lives inside fi-ta-ctn: px-3 py-3 */
+  border-top: 1px solid var(--fi-border);
+}
+
+@media (min-width: 640px) {
+  .fi-ta-pagination {
+    padding: 0.75rem 1.5rem; /* sm:px-6 */
+  }
+}
+
+.fi-ta-pagination-summary {
+  font-size: 0.875rem;
+  font-weight: 500; /* fi-pagination-overview: text-sm font-medium text-gray-700 */
+  color: var(--fi-text-tertiary);
+}
+
+.fi-ta-pagination-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fi-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem; /* fi-btn: text-sm */
+  font-weight: 500;
+  padding: 0.5rem 0.75rem; /* fi-btn: px-3 py-2 */
+  cursor: pointer;
+}
+
+.fi-btn-outlined {
+  border: 1px solid var(--fi-input-border);
+  background: var(--fi-surface);
+  color: var(--fi-text);
+}
+
+.fi-btn-outlined:hover:not(:disabled) {
+  background: var(--fi-hover-bg);
+}
+
+.fi-btn-primary {
+  border: 1px solid var(--fi-accent);
+  background: var(--fi-accent);
+  color: var(--fi-accent-contrast);
+}
+
+.fi-btn-primary:hover:not(:disabled) {
+  background: var(--fi-accent-hover);
+  border-color: var(--fi-accent-hover);
+}
+
+.fi-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fi-ta-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fi-ta-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.fi-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+}
+
+.fi-icon-btn .fi-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fi-icon-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-icon-btn-danger:hover {
+  color: var(--fi-error-fg);
+}
+
+/* ---- Modal — calibrated against packages/support/resources/css/components/modal.css.
+   Simplified to the non-slide-over, non-sticky-header/footer case, since Fila's forms
+   are always short. ---- */
+
+.fi-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.fi-modal-close-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.fi-modal-window-ctn {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.fi-modal-window {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 32rem; /* fi-width-lg */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1), 0 0 0 1px var(--fi-border);
+}
+
+.fi-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.5rem 1.5rem 0;
+}
+
+.fi-modal-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  text-transform: capitalize;
+}
+
+.fi-modal-close-btn {
+  flex: none;
+  display: inline-flex;
+  border: none;
+  background: none;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.fi-modal-close-btn .fi-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fi-modal-close-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.fi-modal-footer {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.fi-modal-footer-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fi-required-mark {
+  color: var(--fi-error-fg);
+  margin-inline-start: 0.125rem;
+}
+
+/* fi-align-center confirmation modal (used by DeleteAction) — icon centered above a
+   centered heading/description, per modal.css's `&.fi-align-center` variant. */
+.fi-modal-header.fi-align-center {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.fi-modal-footer-actions.fi-align-center {
+  justify-content: center;
+}
+
+.fi-modal-icon-ctn {
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fi-modal-icon-bg {
+  display: inline-flex;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: var(--fi-error-bg);
+}
+
+.fi-modal-icon-bg .fi-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--fi-error-fg);
+}
+
+.fi-modal-description {
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.fi-btn-danger {
+  border: 1px solid var(--fi-danger, #dc2626);
+  background: var(--fi-danger, #dc2626);
+  color: #fff;
+}
+
+.fi-btn-danger:hover:not(:disabled) {
+  background: var(--fi-danger-hover, #b91c1c);
+  border-color: var(--fi-danger-hover, #b91c1c);
+}
+
+/* ---- Notifications — calibrated against packages/notifications/resources/css/
+   {notifications,notification}.css and Notification::toEmbeddedHtml(). Fixed inset-4 box,
+   bottom-end anchored (Alignment::Right / VerticalAlignment::Start are Filament's defaults),
+   growing upward as new toasts are appended — matches Filament's default toast position. ---- */
+
+.fi-no {
+  position: fixed;
+  inset: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.fi-no-notification {
+  pointer-events: auto;
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 24rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--fi-surface);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 0 1px var(--fi-border);
+  opacity: 0;
+  transform: translateX(3rem);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.fi-no-notification.fi-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.fi-no-notification-icon {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+  color: var(--fi-text-muted);
+}
+
+.fi-no-notification-success .fi-no-notification-icon {
+  color: #4ade80; /* green-400 — Filament's default "success" color */
+}
+
+.fi-no-notification-danger .fi-no-notification-icon {
+  color: #f87171; /* red-400 — Filament's default "danger" color */
+}
+
+.fi-no-notification-main {
+  margin-top: 0.125rem;
+  display: grid;
+  flex: 1;
+  gap: 0.75rem;
+}
+
+.fi-no-notification-text {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.fi-no-notification-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text);
+  margin: 0;
+}
+
+.fi-no-notification-close-btn {
+  flex: none;
+  align-self: flex-start;
+}
+
+/* A native checkbox rather than Filament's custom toggle-switch component — a
+   deliberate simplification, not a calibrated match. */
+.fi-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text);
+  cursor: pointer;
+}
+
+.fi-toggle-input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--fi-accent);
+}
+
+@media (max-width: 768px) {
+  .fi-shell {
+    flex-direction: column;
+  }
+
+  .fi-sidebar {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--fi-border);
+  }
+
+  .fi-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .fi-ta-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fi-ta-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fi-ta-search {
+    min-width: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,101 @@
+@model FilaListViewModel
+@{
+    Layout = null;
+    var hasForm = Model.Resource.BuildForm() is not null;
+    var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
+}
+<div class="fi-ta-table-wrapper">
+    <table class="fi-ta-table">
+        <thead>
+            <tr>
+                @foreach (var column in Model.Table.Columns)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                        @if (column.IsSortable)
+                        {
+                            <button type="button"
+                                    class="fi-ta-sort-btn"
+                                    hx-get="@resourceUrl"
+                                    hx-target="#fila-table"
+                                    hx-include="#fila-table-state"
+                                    hx-push-url="true"
+                                    hx-vals='@Model.Query.SortValsFor(column)'>
+                                <span>@column.Label</span>
+                                @if (Model.Query.Sort == column.Path)
+                                {
+                                    <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
+                                }
+                            </button>
+                        }
+                        else
+                        {
+                            @column.Label
+                        }
+                    </th>
+                }
+                @if (hasForm)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-end fi-ta-empty-header-cell"></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Model.Paged.Rows.Count; i++)
+            {
+                var row = Model.Paged.Rows[i];
+                <tr wire-key="@(Model.Resource.Slug)-@i">
+                    @foreach (var column in Model.Table.Columns)
+                    {
+                        <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                            @if (column.Kind == ColumnKind.Badge)
+                            {
+                                var tone = column.GetBadgeColor(row) ?? "neutral";
+                                <span class="fi-badge fi-badge-@tone">@column.FormatDisplay(row)</span>
+                            }
+                            else
+                            {
+                                @column.FormatDisplay(row)
+                            }
+                        </td>
+                    }
+                    @if (hasForm)
+                    {
+                        var rowId = Model.Resource.GetId(Model.Db, row);
+                        <td class="fi-ta-cell fi-ta-align-end">
+                            <div class="fi-ta-actions">
+                                <button type="button" class="fi-icon-btn" aria-label="Edit"
+                                        hx-get="@resourceUrl/@rowId/edit"
+                                        hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                        hx-include="#fila-table-state">
+                                    @Html.Raw(IconRegistry.Render("pencil"))
+                                </button>
+                                <button type="button" class="fi-icon-btn fi-icon-btn-danger" aria-label="Delete"
+                                        hx-get="@resourceUrl/@rowId/confirm-delete"
+                                        hx-target="#fila-modal-body" hx-swap="innerHTML">
+                                    @Html.Raw(IconRegistry.Render("trash"))
+                                </button>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+            @if (Model.Paged.Rows.Count == 0)
+            {
+                <tr>
+                    <td class="fi-ta-empty-cell" colspan="@(Model.Table.Columns.Count + (hasForm ? 1 : 0))">
+                        <div class="fi-ta-empty-state">
+                            <div class="fi-ta-empty-state-content">
+                                <span class="fi-ta-empty-state-icon-bg">
+                                    @Html.Raw(IconRegistry.Render("inbox"))
+                                </span>
+                                <h3 class="fi-ta-empty-state-heading">No @Model.Resource.Slug.Replace('-', ' ')</h3>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<partial name="Fila/_Pagination" model="Model" />

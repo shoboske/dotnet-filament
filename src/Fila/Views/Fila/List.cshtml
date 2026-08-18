@@ -1,0 +1,128 @@
+@model FilaListViewModel
+@{
+    ViewBag.Title = Model.Panel.Brand;
+    ViewBag.PanelForLayout = Model.Panel;
+}
+<div x-data="filaTable" class="fi-shell" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
+
+    <aside class="fi-sidebar">
+        <div class="fi-sidebar-brand">@Model.Panel.Brand</div>
+        <nav class="fi-sidebar-nav" aria-label="Resources">
+            @foreach (var item in Model.Panel.Navigation)
+            {
+                var isActive = item.Slug == Model.Resource.Slug;
+                <a class="fi-sidebar-link@(isActive ? " fi-sidebar-link-active" : "")"
+                   href="/@Model.Panel.Path/@item.Slug"
+                   aria-current="@(isActive ? "page" : null)">
+                    @Html.Raw(IconRegistry.Render(item.NavigationIcon))
+                    <span>@item.Label</span>
+                </a>
+            }
+        </nav>
+
+        @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)
+        {
+            var userName = Context.User.Identity!.Name ?? "?";
+            // Matches Filament's default UiAvatarsProvider exactly: initials per
+            // space-separated name segment, gray-950 background, white text, SVG.
+            var initials = string.Join(' ', userName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(segment => segment[..1]));
+            var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&format=svg&color=FFFFFF&background=030712";
+
+            <div class="fi-sidebar-footer">
+                <div class="fi-dropdown fi-user-menu" x-data="{ open: false, theme: filaGetTheme() }"
+                     @@keydown.escape.window="open = false" @@click.outside="open = false">
+                    <button type="button" class="fi-user-menu-trigger" @@click="open = !open" :aria-expanded="open">
+                        <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
+                        <span class="fi-user-menu-trigger-text">@userName</span>
+                        @Html.Raw(IconRegistry.Render("chevron-up"))
+                    </button>
+
+                    <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition>
+                        <div class="fi-dropdown-list">
+                            <div class="fi-theme-switcher" role="group" aria-label="Theme">
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'light' }"
+                                        @@click="theme = 'light'; filaSetTheme('light')" aria-label="Light theme" title="Light">
+                                    @Html.Raw(IconRegistry.Render("sun"))
+                                </button>
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'dark' }"
+                                        @@click="theme = 'dark'; filaSetTheme('dark')" aria-label="Dark theme" title="Dark">
+                                    @Html.Raw(IconRegistry.Render("moon"))
+                                </button>
+                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'system' }"
+                                        @@click="theme = 'system'; filaSetTheme('system')" aria-label="System theme" title="System">
+                                    @Html.Raw(IconRegistry.Render("system"))
+                                </button>
+                            </div>
+                        </div>
+                        <div class="fi-dropdown-list">
+                            <form method="post" action="@Model.Panel.LogoutPath">
+                                <button type="submit" class="fi-dropdown-list-item">
+                                    @Html.Raw(IconRegistry.Render("logout"))
+                                    <span class="fi-dropdown-list-item-label">Sign out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </aside>
+
+    <div class="fi-main">
+        <div class="fi-ta-card">
+            <div class="fi-ta-toolbar">
+                <h2 class="fi-ta-heading">@Model.Resource.Slug.Replace('-', ' ')</h2>
+
+                <div class="fi-ta-toolbar-actions">
+                    <input type="search"
+                           name="search"
+                           value="@Model.Query.Search"
+                           placeholder="Search"
+                           class="fi-input fi-ta-search"
+                           aria-label="Search"
+                           hx-get="/@Model.Panel.Path/@Model.Resource.Slug"
+                           hx-target="#fila-table"
+                           hx-trigger="input changed delay:300ms, search"
+                           hx-include="#fila-table-state"
+                           hx-push-url="true"
+                           hx-indicator="#fila-loading" />
+
+                    @if (Model.Resource.BuildForm() is not null)
+                    {
+                        <button type="button" class="fi-btn fi-btn-primary"
+                                hx-get="/@Model.Panel.Path/@Model.Resource.Slug/create"
+                                hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                hx-include="#fila-table-state">
+                            @Html.Raw(IconRegistry.Render("plus"))
+                            New
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div id="fila-table-state">
+                <input type="hidden" name="sort" value="@Model.Query.Sort" />
+                <input type="hidden" name="dir" value="@Model.Query.Dir" />
+                <input type="hidden" name="page" value="@Model.Query.Page" />
+            </div>
+
+            <div id="fila-loading" class="fi-ta-loading htmx-indicator" aria-live="polite">Loading…</div>
+
+            <div id="fila-table">
+                <partial name="Fila/_Table" model="Model" />
+            </div>
+        </div>
+    </div>
+
+    <div class="fi-modal" x-show="modalOpen" x-cloak
+         @@fila-modal-open.window="modalOpen = true" @@fila-modal-close.window="modalOpen = false"
+         @@keydown.escape.window="modalOpen = false">
+        <div class="fi-modal-close-overlay" @@click="modalOpen = false"></div>
+        <div class="fi-modal-window-ctn">
+            <div class="fi-modal-window" id="fila-modal-body" @@click.stop>
+                <!-- htmx swaps Fila/_Form content in here -->
+            </div>
+        </div>
+    </div>
+</div>

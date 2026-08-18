@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Fila.Tools</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>fila</ToolCommandName>
+    <PackageId>Fila.Tools</PackageId>
+    <Version>0.1.0</Version>
+    <Description>dotnet fila — dispatches to the fila CLI commands (make:panel, make:resource) inside a target ASP.NET Core project, the way `dotnet ef` dispatches into a project's EF Core tooling.</Description>
+  </PropertyGroup>
+
+</Project>
