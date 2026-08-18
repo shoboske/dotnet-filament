@@ -1,2 +1,2 @@
 @model FieldRenderModel
-<input type="@Model.Field.InputType" step="@Model.Field.Step" class="fi-input" id="@Model.FieldId" name="@Model.Field.Path" value="@Model.RawValue" />
+<input type="@Model.Field.InputType" step="@Model.Field.Step" class="fi-input" id="@Model.FieldId" name="@Model.Field.Path" value="@Model.RawValue" disabled="@(Model.Disabled ? "disabled" : null)" />

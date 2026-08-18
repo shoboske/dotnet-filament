@@ -11,8 +11,10 @@ public static class ReplicateAction
 {
     public static Fila.Actions.Action Make(IResource resource) =>
         new Fila.Actions.Action("replicate")
+            .Label("Replicate")
             .Icon("copy")
             .RequiresConfirmation()
+            .ModalHeading($"Replicate {ResourceNaming.SingularLabel(resource.Slug)}")
             .ModalDescription("A copy of this record will be created.")
             .Handle(ctx => resource.ReplicateAsync(ctx.Db, ctx.Record!, ctx.Ct))
             .Notifies("Replicated", "success");

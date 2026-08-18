@@ -13,6 +13,7 @@ public static class CreateAction
         new Fila.Actions.Action("create")
             .Label("New")
             .Icon("plus")
+            .ModalHeading($"Create {resource.Slug.TrimEnd('s').Replace('-', ' ')}")
             .NewRecord()
             .Schema(() => resource.BuildForm()
                 ?? throw new InvalidOperationException("CreateAction requires the resource to define a form."))

@@ -1,3 +1,4 @@
+using Fila.Actions;
 using Fila.Panels.Rendering;
 using Fila.Panels.Resources;
 using Fila.Tables;
@@ -16,6 +17,8 @@ namespace Fila.Panels;
 
 public static class FilaExtensions
 {
+    private static readonly IReadOnlyDictionary<string, string?> EmptyState = new Dictionary<string, string?>();
+
     public static IServiceCollection AddFilaPanel(this IServiceCollection services, Action<PanelBuilder> configure)
     {
         var builder = new PanelBuilder();
@@ -122,26 +125,26 @@ public static class FilaExtensions
             group.MapGet($"/{entry.Slug}", (HttpContext ctx, CancellationToken ct) =>
                 HandleListAsync(ctx, panel, entry.ResourceType, ct));
 
-            // Mapped unconditionally even for list-only resources (BuildForm() is null) —
-            // the handlers 404 in that case. Checking per-resource here would mean resolving
-            // every resource from a scope just to decide route shape, for no real benefit.
-            group.MapGet($"/{entry.Slug}/create", (HttpContext ctx, CancellationToken ct) =>
-                HandleFormAsync(ctx, panel, entry.ResourceType, null, ct));
+            // One generic mount/submit route pair per action instead of one MapGet/MapPost pair
+            // per CRUD verb — Create/Edit/Delete are Action instances now (see
+            // Fila.Panels.Actions), and a resource author's own custom action rides the exact
+            // same two routes. The header-action pair (no {id}) is what a record-less action
+            // like Create mounts at; the row-action pair is what every other built-in and any
+            // per-record custom action mounts at.
+            group.MapGet($"/{entry.Slug}/actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
+                HandleActionMountAsync(ctx, panel, entry.ResourceType, null, name, ct));
 
-            group.MapPost($"/{entry.Slug}", (HttpContext ctx, CancellationToken ct) =>
-                HandleSaveAsync(ctx, panel, entry.ResourceType, null, ct));
+            group.MapPost($"/{entry.Slug}/actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
+                HandleActionExecuteAsync(ctx, panel, entry.ResourceType, null, name, ct));
 
-            group.MapGet($"/{entry.Slug}/{{id}}/edit", (HttpContext ctx, string id, CancellationToken ct) =>
-                HandleFormAsync(ctx, panel, entry.ResourceType, id, ct));
+            group.MapGet($"/{entry.Slug}/{{id}}/actions/{{name}}", (HttpContext ctx, string id, string name, CancellationToken ct) =>
+                HandleActionMountAsync(ctx, panel, entry.ResourceType, id, name, ct));
 
-            group.MapPost($"/{entry.Slug}/{{id}}", (HttpContext ctx, string id, CancellationToken ct) =>
-                HandleSaveAsync(ctx, panel, entry.ResourceType, id, ct));
+            group.MapPost($"/{entry.Slug}/{{id}}/actions/{{name}}", (HttpContext ctx, string id, string name, CancellationToken ct) =>
+                HandleActionExecuteAsync(ctx, panel, entry.ResourceType, id, name, ct));
 
-            group.MapGet($"/{entry.Slug}/{{id}}/confirm-delete", (HttpContext ctx, string id, CancellationToken ct) =>
-                HandleDeleteConfirmAsync(ctx, panel, entry.ResourceType, id, ct));
-
-            group.MapPost($"/{entry.Slug}/{{id}}/delete", (HttpContext ctx, string id, CancellationToken ct) =>
-                HandleDeleteAsync(ctx, panel, entry.ResourceType, id, ct));
+            group.MapPost($"/{entry.Slug}/bulk-actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
+                HandleBulkActionExecuteAsync(ctx, panel, entry.ResourceType, name, ct));
         }
     }
 
@@ -185,7 +188,7 @@ public static class FilaExtensions
         foreach (var resourceType in panel.ResourceTypes)
         {
             var resource = (IResource)scope.ServiceProvider.GetRequiredService(resourceType);
-            entries.Add((resourceType, resource.Slug, Humanize(resource.Slug), resource.NavigationIcon));
+            entries.Add((resourceType, resource.Slug, ResourceNaming.Humanize(resource.Slug), resource.NavigationIcon));
         }
 
         var collisions = entries
@@ -203,9 +206,6 @@ public static class FilaExtensions
 
         return entries;
     }
-
-    private static string Humanize(string slug) =>
-        string.Join(' ', slug.Split('-').Select(w => w.Length == 0 ? w : char.ToUpperInvariant(w[0]) + w[1..]));
 
     private static async Task<IResult> HandleListAsync(HttpContext ctx, Panel panel, Type resourceType, CancellationToken ct)
     {
@@ -235,148 +235,216 @@ public static class FilaExtensions
         return Results.Content(html, "text/html");
     }
 
-    // ---- create/edit/delete ----------------------------------------------------
+    // ---- actions (header actions like Create, and per-record row actions) -----------------
 
-    private static async Task<IResult> HandleFormAsync(HttpContext ctx, Panel panel, Type resourceType, string? id, CancellationToken ct)
+    /// <summary>The generic GET side of one action: resolves the action and its record, then
+    /// renders whichever mount UI the action declares — its form (Create/Edit/View/a custom
+    /// schema-carrying action) or a confirmation step (Delete/Replicate/a custom
+    /// confirmation-only action). An action with neither has nothing to mount and 404s here;
+    /// it only ever runs via a direct POST.</summary>
+    private static async Task<IResult> HandleActionMountAsync(
+        HttpContext ctx, Panel panel, Type resourceType, string? id, string actionName, CancellationToken ct)
     {
         var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
-        var form = resource.BuildForm();
-        if (form is null) return Results.NotFound();
-
         var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
-        var entity = id is null ? resource.CreateBlank() : await resource.FindAsync(db, id, ct);
-        if (entity is null) return Results.NotFound();
 
-        var model = new FilaFormViewModel
-        {
-            Panel = panel,
-            Resource = resource,
-            Form = form,
-            Entity = entity,
-            Db = db,
-            Evaluation = EvaluationContextFor(ctx, db, entity, StateOf(form, entity)),
-            Id = id,
-            Errors = [],
-        };
+        var action = ResolveAction(resource, id, actionName);
+        if (action is null) return Results.NotFound();
+
+        var entity = await ResolveRecordAsync(resource, db, action, id, ct);
+        if (entity is null) return Results.NotFound();
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
-        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_Form.cshtml", model);
 
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
-        return Results.Content(html, "text/html");
-    }
-
-    private static async Task<IResult> HandleSaveAsync(HttpContext ctx, Panel panel, Type resourceType, string? id, CancellationToken ct)
-    {
-        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
-        var form = resource.BuildForm();
-        if (form is null) return Results.NotFound();
-
-        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
-        var isNew = id is null;
-        var entity = isNew ? resource.CreateBlank() : await resource.FindAsync(db, id!, ct);
-        if (entity is null) return Results.NotFound();
-
-        var submitted = await ctx.Request.ReadFormAsync(ct);
-        var state = form.Fields.ToDictionary(f => f.Path, f => (string?)submitted[f.Path].ToString());
-        var evaluation = EvaluationContextFor(ctx, db, entity, state);
-        var errors = new List<(string Path, string Message)>();
-
-        // A hidden field was never rendered, so nothing was submitted for it — validating it
-        // would fail the form on a control the user cannot see.
-        foreach (var field in form.Fields.Where(f => f.ResolveVisible(evaluation)))
+        if (action.SchemaFactory is not null)
         {
-            var raw = submitted[field.Path].ToString();
+            var form = action.SchemaFactory();
+            var evaluation = EvaluationContextFor(ctx, db, entity, StateOf(form, entity));
 
-            if (field.ResolveRequired(evaluation) && string.IsNullOrWhiteSpace(raw))
-            {
-                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is required."));
-                continue;
-            }
-
-            try
-            {
-                field.SetValue(entity, FieldBinding.Parse(field.ValueType, raw));
-            }
-            catch
-            {
-                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is invalid."));
-            }
-        }
-
-        if (errors.Count > 0)
-        {
-            var formModel = new FilaFormViewModel
+            var model = new FilaActionFormViewModel
             {
                 Panel = panel,
                 Resource = resource,
+                Action = action,
                 Form = form,
                 Entity = entity,
                 Db = db,
                 Evaluation = evaluation,
                 Id = id,
-                Errors = errors,
+                Errors = [],
             };
 
-            var formRenderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
-            var formHtml = await formRenderer.RenderAsync(ctx, "~/Views/Fila/_Form.cshtml", formModel);
-
-            // Redirect this response into the modal instead of the table — the form's own
-            // hx-target/hx-swap point at #fila-table for the success path, so a validation
-            // failure has to override that per-response rather than change the form's markup.
-            ctx.Response.Headers["HX-Retarget"] = "#fila-modal-body";
-            ctx.Response.Headers["HX-Reswap"] = "innerHTML";
-            return Results.Content(formHtml, "text/html");
+            var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionForm.cshtml", model);
+            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            return Results.Content(html, "text/html");
         }
 
-        await resource.SaveAsync(db, entity, isNew, ct);
-        // Matches Filament's own copy exactly: packages/actions/resources/lang/en/{create,edit}.php
-        // — CreateAction's notification title is "Created", EditAction's is "Saved".
-        SetCloseAndNotifyTrigger(ctx, isNew ? "Created" : "Saved", "success");
+        if (action.RequiresConfirmationFlag)
+        {
+            var evaluation = EvaluationContextFor(ctx, db, entity, EmptyState);
 
-        return await RenderTableAsync(ctx, panel, resource, db, ct);
+            var model = new FilaActionConfirmViewModel
+            {
+                Panel = panel,
+                Resource = resource,
+                Action = action,
+                Evaluation = evaluation,
+                Id = id,
+            };
+
+            var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionConfirm.cshtml", model);
+            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            return Results.Content(html, "text/html");
+        }
+
+        // No schema, no confirmation — nothing to mount; the row/header button posts directly.
+        return Results.NotFound();
     }
 
-    private static async Task<IResult> HandleDeleteConfirmAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
+    /// <summary>The generic POST side: resolves the action and its record, validates and binds
+    /// a schema's submitted values onto the record (re-rendering the form with errors on
+    /// failure, exactly like the old HandleSaveAsync), runs the action's Handle callback, then
+    /// applies its notification and re-renders the table.</summary>
+    private static async Task<IResult> HandleActionExecuteAsync(
+        HttpContext ctx, Panel panel, Type resourceType, string? id, string actionName, CancellationToken ct)
     {
         var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
         var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
 
-        var entity = await resource.FindAsync(db, id, ct);
+        var action = ResolveAction(resource, id, actionName);
+        if (action is null) return Results.NotFound();
+
+        var entity = await ResolveRecordAsync(resource, db, action, id, ct);
         if (entity is null) return Results.NotFound();
 
-        var model = new FilaDeleteConfirmViewModel
+        var formData = EmptyState;
+
+        if (action.SchemaFactory is not null && !action.ReadOnlyFlag)
         {
-            Panel = panel,
-            Resource = resource,
-            Id = id,
-            Label = Singularize(Humanize(resource.Slug)),
-        };
+            var form = action.SchemaFactory();
+            var submitted = await ctx.Request.ReadFormAsync(ct);
+            var state = form.Fields.ToDictionary(f => f.Path, f => (string?)submitted[f.Path].ToString());
+            formData = state;
 
-        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
-        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_DeleteConfirm.cshtml", model);
+            var evaluation = EvaluationContextFor(ctx, db, entity, state);
+            var errors = new List<(string Path, string Message)>();
 
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
-        return Results.Content(html, "text/html");
-    }
+            // A hidden field was never rendered, so nothing was submitted for it — validating
+            // it would fail the form on a control the user cannot see.
+            foreach (var field in form.Fields.Where(f => f.ResolveVisible(evaluation)))
+            {
+                var raw = submitted[field.Path].ToString();
 
-    private static async Task<IResult> HandleDeleteAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
-    {
-        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
-        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+                if (field.ResolveRequired(evaluation) && string.IsNullOrWhiteSpace(raw))
+                {
+                    errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is required."));
+                    continue;
+                }
 
-        var entity = await resource.FindAsync(db, id, ct);
-        if (entity is not null)
-            await resource.DeleteAsync(db, entity, ct);
+                try
+                {
+                    field.SetValue(entity, FieldBinding.Parse(field.ValueType, raw));
+                }
+                catch
+                {
+                    errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is invalid."));
+                }
+            }
 
-        // Matches Filament's DeleteAction: packages/actions/resources/lang/en/delete.php,
-        // notifications.deleted.title = "Deleted".
-        SetCloseAndNotifyTrigger(ctx, "Deleted", "danger");
+            if (errors.Count > 0)
+            {
+                var formModel = new FilaActionFormViewModel
+                {
+                    Panel = panel,
+                    Resource = resource,
+                    Action = action,
+                    Form = form,
+                    Entity = entity,
+                    Db = db,
+                    Evaluation = evaluation,
+                    Id = id,
+                    Errors = errors,
+                };
+
+                var formRenderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+                var formHtml = await formRenderer.RenderAsync(ctx, "~/Views/Fila/_ActionForm.cshtml", formModel);
+
+                // Redirect this response into the modal instead of the table — the form's own
+                // hx-target/hx-swap point at #fila-table for the success path, so a validation
+                // failure has to override that per-response rather than change the form's markup.
+                ctx.Response.Headers["HX-Retarget"] = "#fila-modal-body";
+                ctx.Response.Headers["HX-Reswap"] = "innerHTML";
+                return Results.Content(formHtml, "text/html");
+            }
+        }
+
+        if (action.HandleCallback is not null)
+        {
+            var actionContext = new ActionContext { HttpContext = ctx, Db = db, Record = entity, FormData = formData, Ct = ct };
+            await action.HandleCallback(actionContext);
+        }
+
+        if (action.Notification is { } notification)
+            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
+        else
+            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
 
         return await RenderTableAsync(ctx, panel, resource, db, ct);
     }
 
-    /// <summary>Tells the client to close the CRUD modal and pop a toast, in one response —
+    private static async Task<IResult> HandleBulkActionExecuteAsync(
+        HttpContext ctx, Panel panel, Type resourceType, string actionName, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var action = resource.BuildTable().BulkActions.FirstOrDefault(a => a.Name == actionName);
+        if (action is null) return Results.NotFound();
+
+        var submitted = await ctx.Request.ReadFormAsync(ct);
+        var records = new List<object>();
+
+        foreach (var rawId in submitted["ids"])
+        {
+            if (string.IsNullOrEmpty(rawId)) continue;
+            var entity = await resource.FindAsync(db, rawId, ct);
+            if (entity is not null) records.Add(entity);
+        }
+
+        if (action.HandleCallback is not null)
+        {
+            var bulkContext = new BulkActionContext { HttpContext = ctx, Db = db, Records = records, Ct = ct };
+            await action.HandleCallback(bulkContext);
+        }
+
+        if (action.Notification is { } notification)
+            SetNotifyTrigger(ctx, notification.Title, notification.Color);
+
+        return await RenderTableAsync(ctx, panel, resource, db, ct);
+    }
+
+    /// <summary>Header actions (no id in the route) resolve against the resource's implicit
+    /// action list — just Create, when the resource has a form. Row actions (an id is present)
+    /// resolve against Table.RowActions, which is where Edit/Delete/any custom action lives —
+    /// see Resource&lt;TEntity&gt;.BuildTable() for how that list gets its built-in default.</summary>
+    private static Fila.Actions.Action? ResolveAction(IResource resource, string? id, string name)
+    {
+        var candidates = id is null
+            ? HeaderActionsFor(resource)
+            : resource.BuildTable().RowActions.SelectMany(a => a.Flatten());
+
+        return candidates.FirstOrDefault(a => a.Name == name);
+    }
+
+    private static IEnumerable<Fila.Actions.Action> HeaderActionsFor(IResource resource) =>
+        resource.BuildForm() is null ? [] : [Fila.Panels.Actions.CreateAction.Make(resource)];
+
+    private static Task<object?> ResolveRecordAsync(IResource resource, DbContext db, Fila.Actions.Action action, string? id, CancellationToken ct) =>
+        action.RecordSource == ActionRecordSource.New
+            ? Task.FromResult<object?>(resource.CreateBlank())
+            : id is null ? Task.FromResult<object?>(null) : resource.FindAsync(db, id, ct);
+
+    /// <summary>Tells the client to close the action modal and pop a toast, in one response —
     /// htmx parses a JSON-object HX-Trigger header as {eventName: detail} and dispatches a
     /// CustomEvent per key, so both signals ride the same header instead of needing two.</summary>
     private static void SetCloseAndNotifyTrigger(HttpContext ctx, string title, string color)
@@ -384,6 +452,16 @@ public static class FilaExtensions
         ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
         {
             ["fila-modal-close"] = true,
+            ["fila-notify"] = new { title, color },
+        });
+    }
+
+    /// <summary>Same as above without the modal-close signal — a bulk action never opens Fila's
+    /// modal (see BulkAction's doc comment), so there's nothing to tell the client to close.</summary>
+    private static void SetNotifyTrigger(HttpContext ctx, string title, string color)
+    {
+        ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
             ["fila-notify"] = new { title, color },
         });
     }
@@ -404,14 +482,11 @@ public static class FilaExtensions
     private static Dictionary<string, string?> StateOf(IForm form, object entity) =>
         form.Fields.ToDictionary(f => f.Path, f => (string?)FieldBinding.Format(f.GetValue(entity)));
 
-    private static string Singularize(string label) =>
-        label.EndsWith('s') && !label.EndsWith("ss") ? label[..^1] : label;
-
     private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, CancellationToken ct)
     {
-        // hx-include on the Delete button normally carries #fila-table-state along as a form
-        // body, but delete doesn't strictly need it — falling back to defaults here rather
-        // than throwing keeps a bare POST (no body at all) working instead of 500ing.
+        // hx-include on a confirm-only action normally carries #fila-table-state along as a
+        // form body, but doesn't strictly need it — falling back to defaults here rather than
+        // throwing keeps a bare POST (no body at all) working instead of 500ing.
         var table = resource.BuildTable();
         var query = ctx.Request.HasFormContentType
             ? TableQuery.FromForm(await ctx.Request.ReadFormAsync(ct))

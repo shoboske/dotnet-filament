@@ -10,8 +10,10 @@ public static class ViewAction
 {
     public static Fila.Actions.Action Make(IResource resource) =>
         new Fila.Actions.Action("view")
+            .Label("View")
             .Icon("eye")
             .Color("gray")
+            .ModalHeading($"View {ResourceNaming.SingularLabel(resource.Slug)}")
             .ReadOnly()
             .Schema(() => resource.BuildForm()
                 ?? throw new InvalidOperationException("ViewAction requires the resource to define a form."));

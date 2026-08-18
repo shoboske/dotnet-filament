@@ -8,6 +8,19 @@ internal static class ResourceNaming
 {
     public static string ToSlug(string entityName) => ToKebabCase(Pluralize(entityName));
 
+    /// <summary>Turns a kebab-case slug into space-separated, capitalized words — "order-items"
+    /// becomes "Order Items". Used for nav labels, page headings, and the empty-state text.</summary>
+    public static string Humanize(string slug) =>
+        string.Join(' ', slug.Split('-').Select(w => w.Length == 0 ? w : char.ToUpperInvariant(w[0]) + w[1..]));
+
+    /// <summary>The singular, humanized form of a resource's slug — "order-items" becomes
+    /// "Order Item". Used for one-record headings like "Edit Order Item"/"Delete Order Item".</summary>
+    public static string SingularLabel(string slug)
+    {
+        var label = Humanize(slug);
+        return label.EndsWith('s') && !label.EndsWith("ss") ? label[..^1] : label;
+    }
+
     public static string Pluralize(string word)
     {
         if (word.Length > 1 && word.EndsWith('y') && !IsVowel(word[^2]))

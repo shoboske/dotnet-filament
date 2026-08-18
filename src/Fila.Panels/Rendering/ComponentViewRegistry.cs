@@ -52,9 +52,10 @@ public sealed class ComponentViewRegistry
         _columnPartials.TryGetValue(view, out var partial) ? partial : _columnPartials[DefaultColumnView];
 }
 
-/// <summary>What a field partial needs to render its control — everything <c>_Form.cshtml</c>
-/// already computed per field before the dispatch existed.</summary>
-public sealed record FieldRenderModel(IFormField Field, EvaluationContext Evaluation, string FieldId, string? RawValue);
+/// <summary>What a field partial needs to render its control — everything the form-rendering
+/// view already computed per field before the dispatch existed. Disabled is true only for
+/// ViewAction's read-only mount.</summary>
+public sealed record FieldRenderModel(IFormField Field, EvaluationContext Evaluation, string FieldId, string? RawValue, bool Disabled = false);
 
 /// <summary>What a column partial needs to render one cell.</summary>
 public sealed record ColumnRenderModel(ITableColumn Column, object Row);

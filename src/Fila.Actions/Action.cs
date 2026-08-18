@@ -47,6 +47,8 @@ public sealed class Action : IRowAction
 
     private Evaluated<string> LabelValue { get; set; }
 
+    private Evaluated<bool> VisibleValue { get; set; } = true;
+
     /// <summary>Icon name, resolved the same way as Resource.NavigationIcon — via
     /// Fila.Support.IconRegistry. Null renders no icon.</summary>
     public string? IconName { get; private set; }
@@ -85,6 +87,10 @@ public sealed class Action : IRowAction
         (ModalHeadingValue ?? LabelValue).Resolve(context) ?? ResolveLabel(context);
 
     public string? ResolveModalDescription(EvaluationContext context) => ModalDescriptionValue?.Resolve(context);
+
+    /// <summary>False hides this action for the given record — e.g. a "Mark shipped" row
+    /// action hiding itself once the order already has that status.</summary>
+    public bool ResolveVisible(EvaluationContext context) => VisibleValue.Resolve(context);
 
     public Action Label(string label)
     {
@@ -153,6 +159,22 @@ public sealed class Action : IRowAction
         Notification = (title, color);
         return this;
     }
+
+    public Action Visible(bool value = true)
+    {
+        VisibleValue = value;
+        return this;
+    }
+
+    public Action Visible(Func<EvaluationContext, bool> value)
+    {
+        VisibleValue = Evaluated<bool>.From(value);
+        return this;
+    }
+
+    public Action Hidden(bool value = true) => Visible(!value);
+
+    public Action Hidden(Func<EvaluationContext, bool> value) => Visible(context => !value(context));
 
     IReadOnlyList<Action> IRowAction.Flatten() => [this];
 }

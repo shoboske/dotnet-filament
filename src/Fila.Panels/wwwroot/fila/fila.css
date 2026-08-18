@@ -487,6 +487,41 @@ body {
   }
 }
 
+.fi-ta-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  background: var(--fi-primary-50, rgb(99 102 241 / 0.05));
+  border-bottom: 1px solid var(--fi-border);
+}
+
+.fi-ta-bulk-toolbar-summary {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fi-text);
+}
+
+.fi-ta-bulk-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fi-ta-checkbox-cell {
+  width: 2.5rem;
+}
+
+.fi-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--fi-border);
+  accent-color: var(--fi-primary, #4f46e5);
+  cursor: pointer;
+}
+
 .fi-input,
 .fi-ta-search {
   border: 1px solid var(--fi-input-border);

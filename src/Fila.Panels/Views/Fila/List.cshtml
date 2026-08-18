@@ -91,7 +91,7 @@
                     @if (Model.Resource.BuildForm() is not null)
                     {
                         <button type="button" class="fi-btn fi-btn-primary"
-                                hx-get="/@Model.Panel.Path/@Model.Resource.Slug/create"
+                                hx-get="/@Model.Panel.Path/@Model.Resource.Slug/actions/create"
                                 hx-target="#fila-modal-body" hx-swap="innerHTML"
                                 hx-include="#fila-table-state">
                             @Html.Raw(IconRegistry.Render("plus"))
