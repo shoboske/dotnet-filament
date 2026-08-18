@@ -2,6 +2,10 @@
 @{
     ViewBag.Title = Model.Panel.Brand;
     ViewBag.PanelForLayout = Model.Panel;
+    var bulkActions = Model.Table.BulkActions;
+    var hasBulkActions = bulkActions.Count > 0;
+    var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
+    var resourceLabel = Model.Panel.Navigation.FirstOrDefault(n => n.Slug == Model.Resource.Slug)?.Label ?? Model.Resource.Slug;
 }
 <div x-data="filaTable" class="fi-shell" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
 
@@ -70,11 +74,77 @@
     </aside>
 
     <div class="fi-main">
+        <div class="fi-page-header-ctn">
+            <nav class="fi-breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                    <li><a href="@resourceUrl">@resourceLabel</a></li>
+                    <li>
+                        @Html.Raw(IconRegistry.Render("chevron-right"))
+                        <span>List</span>
+                    </li>
+                </ol>
+            </nav>
+            <header class="fi-header">
+                <h1 class="fi-header-heading">@resourceLabel</h1>
+                @if (Model.Resource.BuildForm() is not null)
+                {
+                    <div class="fi-header-actions-ctn">
+                        <button type="button" class="fi-btn fi-btn-primary"
+                                hx-get="@resourceUrl/actions/create"
+                                hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                hx-include="#fila-table-state">
+                            @Html.Raw(IconRegistry.Render("plus"))
+                            New
+                        </button>
+                    </div>
+                }
+            </header>
+        </div>
+
         <div class="fi-ta-card">
             <div class="fi-ta-toolbar">
-                <h2 class="fi-ta-heading">@Model.Resource.Slug.Replace('-', ' ')</h2>
-
                 <div class="fi-ta-toolbar-actions">
+                    @if (hasBulkActions)
+                    {
+                        <div class="fi-dropdown fi-ta-bulk-actions" x-data="{ open: false }"
+                             x-show="$store.bulkSelection.count > 0" x-cloak
+                             @@keydown.escape.window="open = false" @@click.outside="open = false">
+                            <button type="button" class="fi-btn fi-btn-outlined" @@click="open = !open" :aria-expanded="open">
+                                @Html.Raw(IconRegistry.Render("dots-vertical"))
+                                <span>Bulk actions</span>
+                            </button>
+                            <div class="fi-dropdown-panel" x-show="open && $store.bulkSelection.count > 0" x-cloak x-transition>
+                                <div class="fi-dropdown-list">
+                                    @foreach (var bulk in bulkActions)
+                                    {
+                                        var itemClass = "fi-dropdown-list-item" + (bulk.ColorValue == "danger" ? " fi-dropdown-list-item-danger" : "");
+                                        if (bulk.RequiresConfirmationFlag)
+                                        {
+                                            <button type="button" class="@itemClass"
+                                                    hx-get="@resourceUrl/bulk-actions/@bulk.Name"
+                                                    hx-target="#fila-modal-body" hx-swap="innerHTML"
+                                                    @@click="open = false">
+                                                @Html.Raw(IconRegistry.Render(bulk.IconName))
+                                                <span class="fi-dropdown-list-item-label">@bulk.ResolveLabel(Model.Evaluation)</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="@itemClass"
+                                                    hx-post="@resourceUrl/bulk-actions/@bulk.Name"
+                                                    hx-target="#fila-table" hx-swap="innerHTML"
+                                                    hx-include="[name='ids']:checked,#fila-table-state"
+                                                    @@click="open = false">
+                                                @Html.Raw(IconRegistry.Render(bulk.IconName))
+                                                <span class="fi-dropdown-list-item-label">@bulk.ResolveLabel(Model.Evaluation)</span>
+                                            </button>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     <input type="search"
                            name="search"
                            value="@Model.Query.Search"
@@ -87,17 +157,6 @@
                            hx-include="#fila-table-state"
                            hx-push-url="true"
                            hx-indicator="#fila-loading" />
-
-                    @if (Model.Resource.BuildForm() is not null)
-                    {
-                        <button type="button" class="fi-btn fi-btn-primary"
-                                hx-get="/@Model.Panel.Path/@Model.Resource.Slug/actions/create"
-                                hx-target="#fila-modal-body" hx-swap="innerHTML"
-                                hx-include="#fila-table-state">
-                            @Html.Raw(IconRegistry.Render("plus"))
-                            New
-                        </button>
-                    }
                 </div>
             </div>
 

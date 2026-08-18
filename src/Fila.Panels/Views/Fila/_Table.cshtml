@@ -12,151 +12,141 @@
     var hasBulkActions = bulkActions.Count > 0;
     var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
 }
-<div x-data="{ selected: 0 }">
-    @if (hasBulkActions)
-    {
-        <div class="fi-ta-bulk-toolbar" x-show="selected > 0" x-cloak>
-            <span class="fi-ta-bulk-toolbar-summary" x-text="selected + ' selected'"></span>
-            <div class="fi-ta-bulk-toolbar-actions">
-                @foreach (var bulk in bulkActions)
-                {
-                    <button type="button"
-                            class="fi-btn @(bulk.ColorValue == "danger" ? "fi-btn-danger" : "fi-btn-primary")"
-                            hx-post="@resourceUrl/bulk-actions/@bulk.Name"
-                            hx-target="#fila-table"
-                            hx-swap="innerHTML"
-                            hx-include="[name='ids']:checked,#fila-table-state"
-                            hx-confirm="@(bulk.RequiresConfirmationFlag ? "Are you sure you would like to do this?" : null)">
-                        @bulk.ResolveLabel(evaluation)
-                    </button>
-                }
-            </div>
-        </div>
-    }
+@if (hasBulkActions)
+{
+    <div class="fi-ta-selection-indicator" x-show="$store.bulkSelection.count > 0" x-cloak>
+        <span class="fi-ta-selection-indicator-text" x-text="$store.bulkSelection.count + ' selected'"></span>
+        <button type="button" class="fi-link"
+                x-on:click="
+                    $root.querySelectorAll('input[name=ids]').forEach(b => b.checked = false);
+                    $store.bulkSelection.count = 0">
+            Deselect all
+        </button>
+    </div>
+}
 
-    <div class="fi-ta-table-wrapper">
-        <table class="fi-ta-table">
-            <thead>
-                <tr>
+<div class="fi-ta-table-wrapper">
+    <table class="fi-ta-table">
+        <thead>
+            <tr>
+                @if (hasBulkActions)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-checkbox-cell">
+                        <input type="checkbox" class="fi-checkbox" aria-label="Select all"
+                               x-on:change="
+                                    let boxes = $root.querySelectorAll('input[name=ids]');
+                                    boxes.forEach(b => b.checked = $event.target.checked);
+                                    $store.bulkSelection.count = $event.target.checked ? boxes.length : 0" />
+                    </th>
+                }
+                @foreach (var column in columns)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                        @if (column.IsSortable)
+                        {
+                            <button type="button"
+                                    class="fi-ta-sort-btn"
+                                    hx-get="@resourceUrl"
+                                    hx-target="#fila-table"
+                                    hx-include="#fila-table-state"
+                                    hx-push-url="true"
+                                    hx-vals='@Model.Query.SortValsFor(column)'>
+                                <span>@column.ResolveLabel(evaluation)</span>
+                                @if (Model.Query.Sort == column.Path)
+                                {
+                                    <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
+                                }
+                            </button>
+                        }
+                        else
+                        {
+                            @column.ResolveLabel(evaluation)
+                        }
+                    </th>
+                }
+                @if (hasRowActions)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-end fi-ta-empty-header-cell"></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Model.Paged.Rows.Count; i++)
+            {
+                var row = Model.Paged.Rows[i];
+                var rowEvaluation = evaluation.ForRecord(row);
+                var rowId = Model.Resource.GetId(Model.Db, row);
+                <tr wire-key="@(Model.Resource.Slug)-@i">
                     @if (hasBulkActions)
                     {
-                        <th scope="col" class="fi-ta-header-cell fi-ta-checkbox-cell">
-                            <input type="checkbox" class="fi-checkbox" aria-label="Select all"
-                                   x-on:change="
-                                        let boxes = $root.querySelectorAll('input[name=ids]');
-                                        boxes.forEach(b => b.checked = $event.target.checked);
-                                        selected = $event.target.checked ? boxes.length : 0" />
-                        </th>
+                        <td class="fi-ta-cell fi-ta-checkbox-cell">
+                            <input type="checkbox" class="fi-checkbox" name="ids" value="@rowId" aria-label="Select record"
+                                   x-on:change="$store.bulkSelection.count = $root.querySelectorAll('input[name=ids]:checked').length" />
+                        </td>
                     }
                     @foreach (var column in columns)
                     {
-                        <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
-                            @if (column.IsSortable)
-                            {
-                                <button type="button"
-                                        class="fi-ta-sort-btn"
-                                        hx-get="@resourceUrl"
-                                        hx-target="#fila-table"
-                                        hx-include="#fila-table-state"
-                                        hx-push-url="true"
-                                        hx-vals='@Model.Query.SortValsFor(column)'>
-                                    <span>@column.ResolveLabel(evaluation)</span>
-                                    @if (Model.Query.Sort == column.Path)
-                                    {
-                                        <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
-                                    }
-                                </button>
-                            }
-                            else
-                            {
-                                @column.ResolveLabel(evaluation)
-                            }
-                        </th>
+                        <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                            <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                        </td>
                     }
                     @if (hasRowActions)
                     {
-                        <th scope="col" class="fi-ta-header-cell fi-ta-align-end fi-ta-empty-header-cell"></th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                @for (var i = 0; i < Model.Paged.Rows.Count; i++)
-                {
-                    var row = Model.Paged.Rows[i];
-                    var rowEvaluation = evaluation.ForRecord(row);
-                    var rowId = Model.Resource.GetId(Model.Db, row);
-                    <tr wire-key="@(Model.Resource.Slug)-@i">
-                        @if (hasBulkActions)
-                        {
-                            <td class="fi-ta-cell fi-ta-checkbox-cell">
-                                <input type="checkbox" class="fi-checkbox" name="ids" value="@rowId" aria-label="Select record"
-                                       x-on:change="selected = $root.querySelectorAll('input[name=ids]:checked').length" />
-                            </td>
-                        }
-                        @foreach (var column in columns)
-                        {
-                            <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
-                                <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
-                            </td>
-                        }
-                        @if (hasRowActions)
-                        {
-                            var rowActionUrl = $"{resourceUrl}/{rowId}/actions";
-                            <td class="fi-ta-cell fi-ta-align-end">
-                                <div class="fi-ta-actions">
-                                    @foreach (var item in rowActions)
+                        var rowActionUrl = $"{resourceUrl}/{rowId}/actions";
+                        <td class="fi-ta-cell fi-ta-align-end">
+                            <div class="fi-ta-actions">
+                                @foreach (var item in rowActions)
+                                {
+                                    if (item is ActionGroup group)
                                     {
-                                        if (item is ActionGroup group)
-                                        {
-                                            <div class="fi-dropdown" x-data="{ open: false }" @@keydown.escape.window="open = false" @@click.outside="open = false">
-                                                <button type="button" class="fi-icon-btn" @@click="open = !open" :aria-expanded="open" aria-label="More actions">
-                                                    @Html.Raw(IconRegistry.Render(group.IconName))
-                                                </button>
-                                                <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition>
-                                                    <div class="fi-dropdown-list">
-                                                        @foreach (var grouped in group.Actions.Where(a => a.ResolveVisible(rowEvaluation)))
-                                                        {
-                                                            <button type="button" class="fi-dropdown-list-item"
-                                                                    hx-get="@rowActionUrl/@grouped.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
-                                                                @Html.Raw(IconRegistry.Render(grouped.IconName))
-                                                                <span class="fi-dropdown-list-item-label">@grouped.ResolveLabel(rowEvaluation)</span>
-                                                            </button>
-                                                        }
-                                                    </div>
+                                        <div class="fi-dropdown" x-data="{ open: false }" @@keydown.escape.window="open = false" @@click.outside="open = false">
+                                            <button type="button" class="fi-icon-btn" @@click="open = !open" :aria-expanded="open" aria-label="More actions">
+                                                @Html.Raw(IconRegistry.Render(group.IconName))
+                                            </button>
+                                            <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition>
+                                                <div class="fi-dropdown-list">
+                                                    @foreach (var grouped in group.Actions.Where(a => a.ResolveVisible(rowEvaluation)))
+                                                    {
+                                                        <button type="button" class="fi-dropdown-list-item"
+                                                                hx-get="@rowActionUrl/@grouped.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                                            @Html.Raw(IconRegistry.Render(grouped.IconName))
+                                                            <span class="fi-dropdown-list-item-label">@grouped.ResolveLabel(rowEvaluation)</span>
+                                                        </button>
+                                                    }
                                                 </div>
                                             </div>
-                                        }
-                                        else if (item is Action action && action.ResolveVisible(rowEvaluation))
-                                        {
-                                            <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
-                                                    hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
-                                                @Html.Raw(IconRegistry.Render(action.IconName))
-                                            </button>
-                                        }
+                                        </div>
                                     }
-                                </div>
-                            </td>
-                        }
-                    </tr>
-                }
-                @if (Model.Paged.Rows.Count == 0)
-                {
-                    <tr>
-                        <td class="fi-ta-empty-cell" colspan="@(columns.Count + (hasRowActions ? 1 : 0) + (hasBulkActions ? 1 : 0))">
-                            <div class="fi-ta-empty-state">
-                                <div class="fi-ta-empty-state-content">
-                                    <span class="fi-ta-empty-state-icon-bg">
-                                        @Html.Raw(IconRegistry.Render("inbox"))
-                                    </span>
-                                    <h3 class="fi-ta-empty-state-heading">No @Model.Resource.Slug.Replace('-', ' ')</h3>
-                                </div>
+                                    else if (item is Action action && action.ResolveVisible(rowEvaluation))
+                                    {
+                                        <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
+                                                hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                            @Html.Raw(IconRegistry.Render(action.IconName))
+                                        </button>
+                                    }
+                                }
                             </div>
                         </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                    }
+                </tr>
+            }
+            @if (Model.Paged.Rows.Count == 0)
+            {
+                <tr>
+                    <td class="fi-ta-empty-cell" colspan="@(columns.Count + (hasRowActions ? 1 : 0) + (hasBulkActions ? 1 : 0))">
+                        <div class="fi-ta-empty-state">
+                            <div class="fi-ta-empty-state-content">
+                                <span class="fi-ta-empty-state-icon-bg">
+                                    @Html.Raw(IconRegistry.Render("inbox"))
+                                </span>
+                                <h3 class="fi-ta-empty-state-heading">No @Model.Resource.Slug.Replace('-', ' ')</h3>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
 
 <partial name="Fila/_Pagination" model="Model" />
