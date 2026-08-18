@@ -12,7 +12,7 @@ public sealed class CustomersCreateTests(DemoAppFactory factory) : IClassFixture
         using var client = factory.CreateClient();
         await TestAuth.LoginAsync(client);
 
-        var createResponse = await client.PostAsync("/admin/customers", new FormUrlEncodedContent(
+        var createResponse = await client.PostAsync("/admin/customers/actions/create", new FormUrlEncodedContent(
         [
             new("Name", "Stark Industries"),
             new("Email", "tony@stark.test"),

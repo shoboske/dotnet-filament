@@ -39,7 +39,7 @@ public sealed class TextareaFieldTests(TextareaFieldAppFactory factory) : IClass
     {
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/textarea-check/textarea-customers/create");
+        var html = await client.GetStringAsync("/textarea-check/textarea-customers/actions/create");
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
         var textarea = document.QuerySelector("textarea[name='Name']");

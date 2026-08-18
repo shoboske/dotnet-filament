@@ -11,7 +11,7 @@ public sealed class OrdersCreateTests(DemoAppFactory factory) : IClassFixture<De
         using var client = factory.CreateClient();
         await TestAuth.LoginAsync(client);
 
-        var html = await client.GetStringAsync("/admin/orders/create");
+        var html = await client.GetStringAsync("/admin/orders/actions/create");
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
         // f.Select(o => o.CustomerId).Options(...) -- a select populated from a DbContext query,
