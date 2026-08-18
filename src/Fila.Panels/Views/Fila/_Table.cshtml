@@ -1,5 +1,6 @@
 @model FilaListViewModel
 @using Fila.Actions
+@using Action = Fila.Actions.Action
 @inject ComponentViewRegistry Registry
 @{
     Layout = null;
@@ -125,7 +126,7 @@
                                                 </div>
                                             </div>
                                         }
-                                        else if (item is Fila.Actions.Action action && action.ResolveVisible(rowEvaluation))
+                                        else if (item is Action action && action.ResolveVisible(rowEvaluation))
                                         {
                                             <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
                                                     hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">

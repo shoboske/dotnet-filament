@@ -1,8 +1,8 @@
-using Fila.Actions;
 using Fila.Forms;
 using Fila.Panels.Resources;
 using Fila.Support;
 using Microsoft.EntityFrameworkCore;
+using Action = Fila.Actions.Action;
 
 namespace Fila.Panels.Rendering;
 
@@ -14,7 +14,7 @@ public sealed class FilaActionFormViewModel
 {
     public required Panel Panel { get; init; }
     public required IResource Resource { get; init; }
-    public required Fila.Actions.Action Action { get; init; }
+    public required Action Action { get; init; }
     public required IForm Form { get; init; }
     public required object Entity { get; init; }
     public required DbContext Db { get; init; }

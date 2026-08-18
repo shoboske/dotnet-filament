@@ -55,6 +55,8 @@ public static class IconRegistry
             """<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/>""",
         ["dots-vertical"] =
             """<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>""",
+        ["restore"] =
+            """<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>""",
     };
 
     public static string Render(string? name)

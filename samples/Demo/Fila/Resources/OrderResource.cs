@@ -3,6 +3,7 @@ using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Demo.Data;
+using Action = global::Fila.Actions.Action;
 
 namespace Demo.Fila.Resources;
 
@@ -15,7 +16,7 @@ public sealed class OrderResource : Resource<Order>
     /// order's status and saves, the same shape DeleteAction uses. Hides itself once an order
     /// is already shipped or later in its lifecycle, so it isn't offered where it wouldn't
     /// make sense.</summary>
-    private static readonly global::Fila.Actions.Action MarkShippedAction = new global::Fila.Actions.Action("mark-shipped")
+    private static readonly Action MarkShippedAction = new Action("mark-shipped")
         .Label("Mark shipped")
         .Icon("check-circle")
         .Color("success")
@@ -39,12 +40,12 @@ public sealed class OrderResource : Resource<Order>
         .DefaultSort(o => o.CreatedAt, descending: true)
         .PaginateBy(25)
         .Actions(
-            ViewAction(),
-            EditAction(),
+            BuildViewAction(),
+            BuildEditAction(),
             MarkShippedAction,
-            ReplicateAction(),
-            DeleteAction())
-        .BulkActions(DeleteBulkAction());
+            BuildReplicateAction(),
+            BuildDeleteAction())
+        .BulkActions(BuildDeleteBulkAction());
 
     protected override IQueryable<Order> Query(IQueryable<Order> q) => q.Include(o => o.Customer);
 

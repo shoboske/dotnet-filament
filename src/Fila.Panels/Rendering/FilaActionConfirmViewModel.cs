@@ -1,6 +1,6 @@
-using Fila.Actions;
 using Fila.Panels.Resources;
 using Fila.Support;
+using Action = Fila.Actions.Action;
 
 namespace Fila.Panels.Rendering;
 
@@ -11,7 +11,7 @@ public sealed class FilaActionConfirmViewModel
 {
     public required Panel Panel { get; init; }
     public required IResource Resource { get; init; }
-    public required Fila.Actions.Action Action { get; init; }
+    public required Action Action { get; init; }
     public required EvaluationContext Evaluation { get; init; }
 
     /// <summary>Null for a header action; the id of the record being acted on otherwise. Every

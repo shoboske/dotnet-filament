@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
+using Action = Fila.Actions.Action;
 
 namespace Fila.Panels;
 
@@ -427,7 +428,7 @@ public static class FilaExtensions
     /// action list — just Create, when the resource has a form. Row actions (an id is present)
     /// resolve against Table.RowActions, which is where Edit/Delete/any custom action lives —
     /// see Resource&lt;TEntity&gt;.BuildTable() for how that list gets its built-in default.</summary>
-    private static Fila.Actions.Action? ResolveAction(IResource resource, string? id, string name)
+    private static Action? ResolveAction(IResource resource, string? id, string name)
     {
         var candidates = id is null
             ? HeaderActionsFor(resource)
@@ -436,10 +437,10 @@ public static class FilaExtensions
         return candidates.FirstOrDefault(a => a.Name == name);
     }
 
-    private static IEnumerable<Fila.Actions.Action> HeaderActionsFor(IResource resource) =>
-        resource.CreateAction() is { } action ? [action] : [];
+    private static IEnumerable<Action> HeaderActionsFor(IResource resource) =>
+        resource.BuildCreateAction() is { } action ? [action] : [];
 
-    private static Task<object?> ResolveRecordAsync(IResource resource, DbContext db, Fila.Actions.Action action, string? id, CancellationToken ct) =>
+    private static Task<object?> ResolveRecordAsync(IResource resource, DbContext db, Action action, string? id, CancellationToken ct) =>
         action.RecordSource == ActionRecordSource.New
             ? Task.FromResult<object?>(resource.CreateBlank())
             : id is null ? Task.FromResult<object?>(null) : resource.FindAsync(db, id, ct);
