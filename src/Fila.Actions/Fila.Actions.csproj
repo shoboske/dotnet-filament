@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
+    <ProjectReference Include="..\Fila.Notifications\Fila.Notifications.csproj" />
+  </ItemGroup>
+
+</Project>

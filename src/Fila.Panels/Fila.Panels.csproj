@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <IsPackable>false</IsPackable>
+    <StaticWebAssetBasePath>_content/Fila</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ResourceNaming is internal — it is a scaffolding detail, not public API. The in-app
+         CLI is its only consumer and is a separate assembly after the split, so it gets
+         explicit access rather than the type being widened to public. -->
+    <InternalsVisibleTo Include="Fila.Tooling" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fila.Actions\Fila.Actions.csproj" />
+    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
+    <ProjectReference Include="..\Fila.Infolists\Fila.Infolists.csproj" />
+    <ProjectReference Include="..\Fila.Notifications\Fila.Notifications.csproj" />
+    <ProjectReference Include="..\Fila.Schemas\Fila.Schemas.csproj" />
+    <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
+    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
+    <ProjectReference Include="..\Fila.Widgets\Fila.Widgets.csproj" />
+  </ItemGroup>
+
+</Project>
