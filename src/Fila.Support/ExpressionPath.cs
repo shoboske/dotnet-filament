@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace Fila.Tables;
+namespace Fila.Support;
 
 /// <summary>
 /// Turns a property-access lambda (e.g. <c>o =&gt; o.Customer.Name</c>) into a dotted path

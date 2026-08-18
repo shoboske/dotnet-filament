@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Fila.Rendering;
+namespace Fila.Support;
 
 /// <summary>Tiny hex color helpers so a panel's PrimaryColor only has to be one hex string —
 /// the hover shade and the light/dark "soft" tint used behind the active sidebar link are

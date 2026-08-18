@@ -1,4 +1,4 @@
-namespace Fila.Rendering;
+namespace Fila.Support;
 
 /// <summary>Small built-in icon set for Resource.NavigationIcon, referenced by name (e.g.
 /// "shopping-cart"). Inlined as SVG rather than pulling an icon font/CDN — keeps the

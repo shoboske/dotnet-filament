@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Claims;
 using Fila.Resources;
+using Fila.Support;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Panels;
@@ -85,7 +86,7 @@ public sealed class PanelBuilder
     /// derived from it automatically.</summary>
     public PanelBuilder PrimaryColor(string hex)
     {
-        if (!Rendering.ColorMath.IsValidHex(hex))
+        if (!ColorMath.IsValidHex(hex))
             throw new ArgumentException(
                 $"PrimaryColor expects a 7-character hex string like \"#4f46e5\", got \"{hex}\".", nameof(hex));
 
