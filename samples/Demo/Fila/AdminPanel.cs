@@ -7,7 +7,7 @@ namespace Demo.Fila;
 
 public static class AdminPanel
 {
-    public static void Configure(PanelBuilder panel) => .AtPath("admin")
+    public static void Configure(PanelBuilder panel) => panel.AtPath("admin")
     .Brand("Demo Admin")
     .PrimaryColor("#f59e0b")
     .UseDbContext<AppDb>()

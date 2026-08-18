@@ -19,9 +19,10 @@ public interface ITableColumn
     string Path { get; }
 
     /// <summary>Names the markup this column's cells render as — Filament's
-    /// ViewComponent::$view. A value the renderer doesn't recognise renders as plain text,
-    /// which is what lets a consumer-authored column type work without touching Fila.
-    /// Phase 3 (#5) turns this into a lookup in a real partial registry.</summary>
+    /// ViewComponent::$view. Resolved to a partial by
+    /// Fila.Panels.Rendering.ComponentViewRegistry; a value the registry doesn't recognise
+    /// renders as plain text, which is what lets a consumer-authored column type work without
+    /// touching Fila.</summary>
     string View { get; }
 
     ColumnAlign Alignment { get; }

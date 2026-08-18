@@ -23,6 +23,7 @@ public static class FilaExtensions
         var panel = builder.Build();
 
         services.AddSingleton(panel);
+        services.AddSingleton<ComponentViewRegistry>();
         services.AddScoped<ViewRenderer>();
 
         // Views need the MVC view engine + tempdata plumbing even though the host app

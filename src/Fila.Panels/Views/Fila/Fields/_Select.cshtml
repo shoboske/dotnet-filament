@@ -1,0 +1,10 @@
+@model FieldRenderModel
+@{
+    var options = (Model.Field as ISelectField)?.ResolveOptions(Model.Evaluation) ?? [];
+}
+<select class="fi-input" id="@Model.FieldId" name="@Model.Field.Path">
+    @foreach (var option in options)
+    {
+        <option value="@option.Value" selected="@(option.Value == Model.RawValue ? "selected" : null)">@option.Label</option>
+    }
+</select>

@@ -16,10 +16,11 @@ public interface IFormField : IComponent
     /// talks in paths.</summary>
     string Path { get; }
 
-    /// <summary>Names the markup this field renders as — Filament's ViewComponent::$view. A
-    /// value the renderer doesn't recognise falls back to an <c>&lt;input&gt;</c> of type
+    /// <summary>Names the markup this field renders as — Filament's ViewComponent::$view.
+    /// Resolved to a partial by Fila.Panels.Rendering.ComponentViewRegistry; a value the
+    /// registry doesn't recognise falls back to an <c>&lt;input&gt;</c> of type
     /// <see cref="InputType"/>, which is what makes a consumer-authored field type renderable
-    /// without touching Fila. Phase 3 (#5) turns this into a real partial registry.</summary>
+    /// without touching Fila.</summary>
     string View { get; }
 
     /// <summary>The <c>type</c> attribute for fields rendered as a plain input — Filament's
