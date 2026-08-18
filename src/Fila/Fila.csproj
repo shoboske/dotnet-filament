@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Fila.Forms\Fila.Forms.csproj" />
     <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
+    <ProjectReference Include="..\Fila.Tables\Fila.Tables.csproj" />
   </ItemGroup>
 
 </Project>
