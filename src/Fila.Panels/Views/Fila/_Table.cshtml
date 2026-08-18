@@ -107,11 +107,22 @@
                                                 <div class="fi-dropdown-list">
                                                     @foreach (var grouped in group.Actions.Where(a => a.ResolveVisible(rowEvaluation)))
                                                     {
-                                                        <button type="button" class="fi-dropdown-list-item"
-                                                                hx-get="@rowActionUrl/@grouped.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
-                                                            @Html.Raw(IconRegistry.Render(grouped.IconName))
-                                                            <span class="fi-dropdown-list-item-label">@grouped.ResolveLabel(rowEvaluation)</span>
-                                                        </button>
+                                                        @if (grouped.SchemaFactory is not null || grouped.RequiresConfirmationFlag)
+                                                        {
+                                                            <button type="button" class="fi-dropdown-list-item"
+                                                                    hx-get="@rowActionUrl/@grouped.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                                                @Html.Raw(IconRegistry.Render(grouped.IconName))
+                                                                <span class="fi-dropdown-list-item-label">@grouped.ResolveLabel(rowEvaluation)</span>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button type="button" class="fi-dropdown-list-item"
+                                                                    hx-post="@rowActionUrl/@grouped.Name" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                                                @Html.Raw(IconRegistry.Render(grouped.IconName))
+                                                                <span class="fi-dropdown-list-item-label">@grouped.ResolveLabel(rowEvaluation)</span>
+                                                            </button>
+                                                        }
                                                     }
                                                 </div>
                                             </div>
@@ -119,10 +130,20 @@
                                     }
                                     else if (item is Action action && action.ResolveVisible(rowEvaluation))
                                     {
-                                        <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
-                                                hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
-                                            @Html.Raw(IconRegistry.Render(action.IconName))
-                                        </button>
+                                        @if (action.SchemaFactory is not null || action.RequiresConfirmationFlag)
+                                        {
+                                            <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
+                                                    hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                                @Html.Raw(IconRegistry.Render(action.IconName))
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
+                                                    hx-post="@rowActionUrl/@action.Name" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
+                                                @Html.Raw(IconRegistry.Render(action.IconName))
+                                            </button>
+                                        }
                                     }
                                 }
                             </div>

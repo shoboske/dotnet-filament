@@ -252,11 +252,20 @@ public static class FilaExtensions
         var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
         var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
 
-        var action = ResolveAction(resource, id, actionName);
+        // Build the table once here (only needed for row actions); reuse it in ResolveAction so
+        // it isn't constructed a second time inside that helper.
+        var table = id is not null ? resource.BuildTable() : null;
+        var action = ResolveAction(resource, table, id, actionName);
         if (action is null) return Results.NotFound();
 
         var entity = await ResolveRecordAsync(resource, db, action, id, ct);
         if (entity is null) return Results.NotFound();
+
+        // Enforce visibility server-side — the predicate is identical to the one that hides the
+        // button in _Table.cshtml, so a direct GET on a hidden action returns 404, just like
+        // Filament's own isHidden() check inside its action-execution pipeline.
+        if (!action.ResolveVisible(new EvaluationContext { Db = db, Record = entity, User = ctx.User }))
+            return Results.NotFound();
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
 
@@ -315,11 +324,20 @@ public static class FilaExtensions
         var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
         var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
 
-        var action = ResolveAction(resource, id, actionName);
+        // Build the table once — ResolveAction and RenderTableAsync both need it; building it
+        // twice per POST was redundant (see finding #4).
+        var table = id is not null ? resource.BuildTable() : null;
+        var action = ResolveAction(resource, table, id, actionName);
         if (action is null) return Results.NotFound();
 
         var entity = await ResolveRecordAsync(resource, db, action, id, ct);
         if (entity is null) return Results.NotFound();
+
+        // Enforce visibility server-side — a hidden action must be rejected on POST too, not
+        // only omitted from the rendered table. Mirrors Filament's CanBeHidden::isHidden()
+        // check inside its action execution pipeline.
+        if (!action.ResolveVisible(new EvaluationContext { Db = db, Record = entity, User = ctx.User }))
+            return Results.NotFound();
 
         var formData = EmptyState;
 
@@ -393,7 +411,7 @@ public static class FilaExtensions
         else
             ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
 
-        return await RenderTableAsync(ctx, panel, resource, db, ct);
+        return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
 
     /// <summary>The GET side of a bulk action: only meaningful when it requires confirmation
@@ -430,7 +448,9 @@ public static class FilaExtensions
         var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
         var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
 
-        var action = resource.BuildTable().BulkActions.FirstOrDefault(a => a.Name == actionName);
+        // Build once; pass to RenderTableAsync so it doesn't build a second time.
+        var table = resource.BuildTable();
+        var action = table.BulkActions.FirstOrDefault(a => a.Name == actionName);
         if (action is null) return Results.NotFound();
 
         var submitted = await ctx.Request.ReadFormAsync(ct);
@@ -454,18 +474,21 @@ public static class FilaExtensions
         else
             ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
 
-        return await RenderTableAsync(ctx, panel, resource, db, ct);
+        return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
 
     /// <summary>Header actions (no id in the route) resolve against the resource's implicit
     /// action list — just Create, when the resource has a form. Row actions (an id is present)
     /// resolve against Table.RowActions, which is where Edit/Delete/any custom action lives —
-    /// see Resource&lt;TEntity&gt;.BuildTable() for how that list gets its built-in default.</summary>
-    private static Action? ResolveAction(IResource resource, string? id, string name)
+    /// see Resource&lt;TEntity&gt;.BuildTable() for how that list gets its built-in default.
+    ///
+    /// <paramref name="table"/> is a pre-built table the caller already has — passing it avoids
+    /// a second BuildTable() call. Pass null for header actions (no table is needed).</summary>
+    private static Action? ResolveAction(IResource resource, ITable? table, string? id, string name)
     {
         var candidates = id is null
             ? HeaderActionsFor(resource)
-            : resource.BuildTable().RowActions.SelectMany(a => a.Flatten());
+            : (table ?? resource.BuildTable()).RowActions.SelectMany(a => a.Flatten());
 
         return candidates.FirstOrDefault(a => a.Name == name);
     }
@@ -506,12 +529,13 @@ public static class FilaExtensions
     private static Dictionary<string, string?> StateOf(IForm form, object entity) =>
         form.Fields.ToDictionary(f => f.Path, f => (string?)FieldBinding.Format(f.GetValue(entity)));
 
-    private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, CancellationToken ct)
+    private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct)
     {
         // hx-include on a confirm-only action normally carries #fila-table-state along as a
         // form body, but doesn't strictly need it — falling back to defaults here rather than
         // throwing keeps a bare POST (no body at all) working instead of 500ing.
-        var table = resource.BuildTable();
+        // Accept a pre-built table from callers that already have one to avoid a redundant build.
+        table ??= resource.BuildTable();
         var query = ctx.Request.HasFormContentType
             ? TableQuery.FromForm(await ctx.Request.ReadFormAsync(ct))
             : new TableQuery(null, null, "asc", 1);

@@ -14,7 +14,7 @@
         </span>
     </div>
     <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
-    <p class="fi-modal-description">Are you sure you would like to do this?</p>
+    <p class="fi-modal-description">@(Model.Action.ResolveModalDescription(evaluation) ?? "Are you sure you would like to do this?")</p>
 </div>
 
 <div class="fi-modal-footer">

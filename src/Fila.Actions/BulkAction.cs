@@ -27,6 +27,7 @@ public sealed class BulkAction
     public bool RequiresConfirmationFlag { get; private set; }
 
     private Evaluated<string>? ModalHeadingValue;
+    private Evaluated<string>? ModalDescriptionValue;
     private Evaluated<string>? ModalSubmitLabelValue;
 
     public Func<BulkActionContext, Task>? HandleCallback { get; private set; }
@@ -40,6 +41,11 @@ public sealed class BulkAction
     /// resource's plural label ("Delete selected Orders") which the label alone can't carry.</summary>
     public string ResolveModalHeading(EvaluationContext context) =>
         (ModalHeadingValue ?? LabelValue).Resolve(context) ?? ResolveLabel(context);
+
+    /// <summary>Optional body text shown below the heading in the confirmation modal — mirrors
+    /// <see cref="Action.ResolveModalDescription"/>. Returns null when none was set, letting the
+    /// view fall back to a generic "Are you sure?" default.</summary>
+    public string? ResolveModalDescription(EvaluationContext context) => ModalDescriptionValue?.Resolve(context);
 
     /// <summary>The confirm button's own text — shorter than the label on every built-in bulk
     /// action ("Delete" rather than "Delete selected"; the label already did the job of saying
@@ -68,6 +74,12 @@ public sealed class BulkAction
     public BulkAction ModalHeading(string heading)
     {
         ModalHeadingValue = heading;
+        return this;
+    }
+
+    public BulkAction ModalDescription(string description)
+    {
+        ModalDescriptionValue = description;
         return this;
     }
 

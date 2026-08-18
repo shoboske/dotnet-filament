@@ -173,7 +173,8 @@ public abstract class Resource<TEntity> : IResource
             async ctx =>
             {
                 foreach (var record in ctx.Records)
-                    await RestoreAsync(ctx.Db, record, ctx.Ct);
+                    ((ISoftDeletable)record).DeletedAt = null;
+                await ctx.Db.SaveChangesAsync(ctx.Ct);
             });
     }
 
@@ -182,7 +183,8 @@ public abstract class Resource<TEntity> : IResource
         async ctx =>
         {
             foreach (var record in ctx.Records)
-                await ForceDeleteAsync(ctx.Db, record, ctx.Ct);
+                ctx.Db.Set<TEntity>().Remove((TEntity)record);
+            await ctx.Db.SaveChangesAsync(ctx.Ct);
         });
 
     protected Action BuildReplicateAction() => ReplicateAction.Make(
@@ -197,8 +199,17 @@ public abstract class Resource<TEntity> : IResource
         $"Delete selected {ResourceNaming.Humanize(Slug)}",
         async ctx =>
         {
-            foreach (var record in ctx.Records)
-                await DeleteAsync(ctx.Db, record, ctx.Ct);
+            if (SupportsSoftDelete)
+            {
+                foreach (var record in ctx.Records)
+                    ((ISoftDeletable)record).DeletedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                foreach (var record in ctx.Records)
+                    ctx.Db.Set<TEntity>().Remove((TEntity)record);
+            }
+            await ctx.Db.SaveChangesAsync(ctx.Ct);
         });
 
     public async Task<PagedRows> ListAsync(DbContext db, ITable table, TableQuery query, CancellationToken ct)
@@ -265,6 +276,9 @@ public abstract class Resource<TEntity> : IResource
         foreach (var property in entityType.GetProperties())
         {
             if (property == pk || property.PropertyInfo is null) continue;
+            // Don't carry a soft-deleted tombstone onto the clone — the copy should always
+            // start as a live record regardless of the source record's deletion state.
+            if (SupportsSoftDelete && property.Name == nameof(ISoftDeletable.DeletedAt)) continue;
             property.PropertyInfo.SetValue(clone, property.PropertyInfo.GetValue(entity));
         }
 
