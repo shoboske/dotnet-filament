@@ -1,3 +1,4 @@
+using Fila.Notifications;
 using Fila.Support;
 
 namespace Fila.Actions;
@@ -32,7 +33,9 @@ public sealed class BulkAction
 
     public Func<BulkActionContext, Task>? HandleCallback { get; private set; }
 
-    public (string Title, string Color)? Notification { get; private set; }
+    /// <summary>The notification sent once Handle completes successfully, or null to send
+    /// none — see <see cref="Action.Notification"/>.</summary>
+    public Notification? Notification { get; private set; }
 
     public string ResolveLabel(EvaluationContext context) => LabelValue.Resolve(context) ?? Name;
 
@@ -101,9 +104,12 @@ public sealed class BulkAction
         return this;
     }
 
-    public BulkAction Notifies(string title, string color = "success")
+    public BulkAction Notifies(string title, string color = "success") =>
+        Notify(Fila.Notifications.Notification.Make().Title(title).Color(color));
+
+    public BulkAction Notify(Notification notification)
     {
-        Notification = (title, color);
+        Notification = notification;
         return this;
     }
 }

@@ -1,4 +1,5 @@
 using Fila.Actions;
+using Fila.Notifications;
 using Fila.Panels.Rendering;
 using Fila.Panels.Resources;
 using Fila.Tables;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Action = Fila.Actions.Action;
 
 namespace Fila.Panels;
@@ -29,6 +30,10 @@ public static class FilaExtensions
         services.AddSingleton(panel);
         services.AddSingleton<ComponentViewRegistry>();
         services.AddScoped<ViewRenderer>();
+
+        // TryAdd, not Add: with two AddFilaPanel calls this runs twice, and a host that
+        // registered its own store ahead of us should keep it.
+        services.TryAddSingleton<IFilaNotificationStore>(HxTriggerNotificationStore.Instance);
 
         // Views need the MVC view engine + tempdata plumbing even though the host app
         // never registers MVC itself.
@@ -406,10 +411,10 @@ public static class FilaExtensions
             await action.HandleCallback(actionContext);
         }
 
-        if (action.Notification is { } notification)
-            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
-        else
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+        // Close the modal, then let the notification (if any) merge itself onto the same
+        // header — see HxTriggerNotificationStore for why both signals ride one HX-Trigger.
+        ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+        action.Notification?.Send(ctx);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
@@ -469,10 +474,10 @@ public static class FilaExtensions
             await action.HandleCallback(bulkContext);
         }
 
-        if (action.Notification is { } notification)
-            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
-        else
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+        // Close the modal, then let the notification (if any) merge itself onto the same
+        // header — see HxTriggerNotificationStore for why both signals ride one HX-Trigger.
+        ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+        action.Notification?.Send(ctx);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
@@ -500,18 +505,6 @@ public static class FilaExtensions
         action.RecordSource == ActionRecordSource.New
             ? Task.FromResult<object?>(resource.CreateBlank())
             : id is null ? Task.FromResult<object?>(null) : resource.FindAsync(db, id, ct);
-
-    /// <summary>Tells the client to close the action modal and pop a toast, in one response —
-    /// htmx parses a JSON-object HX-Trigger header as {eventName: detail} and dispatches a
-    /// CustomEvent per key, so both signals ride the same header instead of needing two.</summary>
-    private static void SetCloseAndNotifyTrigger(HttpContext ctx, string title, string color)
-    {
-        ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            ["fila-modal-close"] = true,
-            ["fila-notify"] = new { title, color },
-        });
-    }
 
     /// <summary>The context a form's evaluated settings resolve against: the entity being
     /// edited plus whatever the other fields currently hold, so one field's configuration can
