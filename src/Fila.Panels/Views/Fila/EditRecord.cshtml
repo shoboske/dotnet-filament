@@ -1,0 +1,124 @@
+@model FilaEditViewModel
+@inject ComponentViewRegistry Registry
+@{
+    ViewBag.Title = Model.Panel.Brand;
+    ViewBag.PanelForLayout = Model.Panel;
+    var evaluation = Model.Evaluation;
+    var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
+    var editUrl = $"{resourceUrl}/{Model.Id}/edit";
+    var resourceLabel = Model.Panel.Navigation.FirstOrDefault(n => n.Slug == Model.Resource.Slug)?.Label ?? Model.Resource.Slug;
+    var hasRelations = Model.Relations.Count > 0;
+}
+<div class="fi-shell">
+
+    <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, Model.Resource.Slug)" />
+
+    <div class="fi-main">
+        <div class="fi-page-header-ctn">
+            <nav class="fi-breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                    <li><a href="@resourceUrl">@resourceLabel</a></li>
+                    <li>
+                        @Html.Raw(IconRegistry.Render("chevron-right"))
+                        <span>Edit</span>
+                    </li>
+                </ol>
+            </nav>
+            <header class="fi-header">
+                <h1 class="fi-header-heading">Edit @resourceLabel</h1>
+            </header>
+        </div>
+
+        <div class="fi-ta-card">
+            <form method="post" action="@editUrl">
+                <div class="fi-modal-content">
+                    @foreach (var field in Model.Form.Fields.Where(f => f.ResolveVisible(evaluation)))
+                    {
+                        var label = field.ResolveLabel(evaluation);
+                        var rawValue = FieldBinding.Format(field.GetValue(Model.Entity));
+                        var error = Model.ErrorFor(field.Path);
+                        var fieldId = $"fila-field-{field.Path}";
+
+                        <div class="fi-field">
+                            @if (field.View != "checkbox")
+                            {
+                                <label class="fi-login-label" for="@fieldId">
+                                    @label
+                                    @if (field.ResolveRequired(evaluation))
+                                    {
+                                        <sup class="fi-required-mark">*</sup>
+                                    }
+                                </label>
+                            }
+
+                            <partial name="@Registry.PartialForField(field.View)" model="new FieldRenderModel(field, evaluation, fieldId, rawValue)" />
+
+                            @if (error is not null)
+                            {
+                                <p class="fi-login-error">@error</p>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="fi-modal-footer">
+                    <div class="fi-modal-footer-actions">
+                        <button type="submit" class="fi-btn fi-btn-primary">Save</button>
+                        <a href="@resourceUrl" class="fi-btn fi-btn-outlined">Cancel</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        @if (hasRelations)
+        {
+            <div class="fi-section fi-relation-managers" x-data="{ tab: '@Model.Relations[0].RelationManager.Slug' }">
+                <nav class="fi-tabs fi-contained" aria-label="Relations">
+                    @foreach (var relation in Model.Relations)
+                    {
+                        var slug = relation.RelationManager.Slug;
+                        <button type="button" class="fi-tabs-item" x-bind:class="{ 'fi-active': tab === '@slug' }" @@click="tab = '@slug'">
+                            <span class="fi-tabs-item-label">@relation.RelationManager.Title</span>
+                        </button>
+                    }
+                </nav>
+
+                @foreach (var relation in Model.Relations)
+                {
+                    var slug = relation.RelationManager.Slug;
+                    var stateId = $"fila-relation-state-{slug}";
+                    var targetId = $"fila-relation-table-{slug}";
+                    <div class="fi-relation-manager-panel" x-show="tab === '@slug'" x-cloak>
+                        <div class="fi-ta-toolbar">
+                            <div class="fi-ta-toolbar-actions">
+                                <input type="search"
+                                       name="search"
+                                       value="@relation.Query.Search"
+                                       placeholder="Search"
+                                       class="fi-input fi-ta-search"
+                                       aria-label="Search @relation.RelationManager.Title"
+                                       hx-get="@relation.TableUrl"
+                                       hx-target="#@targetId"
+                                       hx-trigger="input changed delay:300ms, search"
+                                       hx-include="#@stateId"
+                                       hx-indicator="#fila-loading-@slug" />
+                            </div>
+                        </div>
+
+                        <div id="@stateId">
+                            <input type="hidden" name="sort" value="@relation.Query.Sort" />
+                            <input type="hidden" name="dir" value="@relation.Query.Dir" />
+                            <input type="hidden" name="page" value="@relation.Query.Page" />
+                        </div>
+
+                        <div id="fila-loading-@slug" class="fi-ta-loading htmx-indicator" aria-live="polite">Loading…</div>
+
+                        <div id="@targetId">
+                            <partial name="Fila/_RelationManagerTable" model="relation" />
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

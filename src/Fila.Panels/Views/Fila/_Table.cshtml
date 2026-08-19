@@ -11,6 +11,10 @@
     var hasRowActions = rowActions.Count > 0;
     var hasBulkActions = bulkActions.Count > 0;
     var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
+    // A resource that registers a relation manager gets its Edit action pointed at the
+    // dedicated Edit page (issue #9) instead of the modal every other resource still opens —
+    // relation manager tabs need real page space a modal doesn't have.
+    var hasRelations = Model.Resource.GetRelations().Count > 0;
 }
 @if (hasBulkActions)
 {
@@ -133,7 +137,13 @@
                                     }
                                     else if (item is Action action && action.ResolveVisible(rowEvaluation))
                                     {
-                                        @if (action.SchemaFactory is not null || action.RequiresConfirmationFlag)
+                                        @if (action.Name == "edit" && hasRelations)
+                                        {
+                                            <a class="fi-icon-btn" aria-label="@action.ResolveLabel(rowEvaluation)" href="@resourceUrl/@rowId/edit">
+                                                @Html.Raw(IconRegistry.Render(action.IconName))
+                                            </a>
+                                        }
+                                        else if (action.SchemaFactory is not null || action.RequiresConfirmationFlag)
                                         {
                                             <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
                                                     hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">

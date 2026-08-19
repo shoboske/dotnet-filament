@@ -1,6 +1,7 @@
 using Fila.Actions;
 using Fila.Notifications;
 using Fila.Panels.Rendering;
+using Fila.Panels.RelationManagers;
 using Fila.Panels.Resources;
 using Fila.Tables;
 using Fila.Forms;
@@ -161,6 +162,22 @@ public static class FilaExtensions
             group.MapPost($"/{entry.Slug}/{{id}}/actions/{{name}}", (HttpContext ctx, string id, string name, CancellationToken ct) =>
                 HandleActionExecuteAsync(ctx, panel, entry.ResourceType, id, name, ct));
 
+            // The dedicated Edit page (issue #9) — only ever linked to from the row Edit
+            // action when a resource registers a relation manager (see _Table.cshtml); a
+            // resource with none keeps editing through the existing modal above unchanged.
+            // A literal "edit" segment here takes routing precedence over the parameterized
+            // .../{id}/relations/{relation} route below regardless of declaration order.
+            group.MapGet($"/{entry.Slug}/{{id}}/edit", (HttpContext ctx, string id, CancellationToken ct) =>
+                HandleEditPageAsync(ctx, panel, entry.ResourceType, id, ct));
+
+            group.MapPost($"/{entry.Slug}/{{id}}/edit", (HttpContext ctx, string id, CancellationToken ct) =>
+                HandleEditSaveAsync(ctx, panel, entry.ResourceType, id, ct));
+
+            // A relation manager's own nested table re-requests itself here for
+            // sort/search/paginate, the same "verb/{name}" nesting actions/{name} already uses.
+            group.MapGet($"/{entry.Slug}/{{id}}/relations/{{relation}}", (HttpContext ctx, string id, string relation, CancellationToken ct) =>
+                HandleRelationTableAsync(ctx, panel, entry.ResourceType, id, relation, ct));
+
             group.MapGet($"/{entry.Slug}/bulk-actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
                 HandleBulkActionMountAsync(ctx, panel, entry.ResourceType, name, ct));
 
@@ -301,6 +318,151 @@ public static class FilaExtensions
         var viewPath = isHtmxRequest ? "~/Views/Fila/_Table.cshtml" : "~/Views/Fila/List.cshtml";
 
         var html = await renderer.RenderAsync(ctx, viewPath, model);
+        return Results.Content(html, "text/html");
+    }
+
+    // ---- the dedicated Edit page (relation managers) ---------------------------------------
+
+    private static async Task<IResult> HandleEditPageAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var form = resource.BuildForm();
+        if (form is null) return Results.NotFound();
+
+        var entity = await resource.FindAsync(db, id, ct);
+        if (entity is null) return Results.NotFound();
+
+        var model = await BuildEditViewModelAsync(ctx, panel, resource, db, form, entity, id, [], ct);
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/EditRecord.cshtml", model);
+        return Results.Content(html, "text/html");
+    }
+
+    /// <summary>Plain (non-htmx) form post — a full page navigation back to the same Edit page
+    /// on success, re-rendering it with errors on failure. Deliberately independent of the
+    /// generic action-execute route above: that route's response is a re-rendered resource
+    /// list table, meant to swap into a modal's #fila-table, not into a standalone page.</summary>
+    private static async Task<IResult> HandleEditSaveAsync(HttpContext ctx, Panel panel, Type resourceType, string id, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var form = resource.BuildForm();
+        if (form is null) return Results.NotFound();
+
+        var entity = await resource.FindAsync(db, id, ct);
+        if (entity is null) return Results.NotFound();
+
+        var submitted = await ctx.Request.ReadFormAsync(ct);
+        var state = StateFrom(form, f => submitted[f.Path].ToString());
+        var evaluation = EvaluationContextFor(ctx, db, entity, state);
+        var errors = new List<(string Path, string Message)>();
+
+        foreach (var field in form.Fields.Where(f => f.ResolveVisible(evaluation)))
+        {
+            var raw = submitted[field.Path].ToString();
+
+            if (field.ResolveRequired(evaluation) && string.IsNullOrWhiteSpace(raw))
+            {
+                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is required."));
+                continue;
+            }
+
+            try
+            {
+                field.SetValue(entity, FieldBinding.Parse(field.ValueType, raw));
+            }
+            catch
+            {
+                errors.Add((field.Path, $"{field.ResolveLabel(evaluation)} is invalid."));
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            var model = await BuildEditViewModelAsync(ctx, panel, resource, db, form, entity, id, errors, ct);
+            var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+            var html = await renderer.RenderAsync(ctx, "~/Views/Fila/EditRecord.cshtml", model);
+            return Results.Content(html, "text/html");
+        }
+
+        await resource.SaveAsync(db, entity, isNew: false, ct);
+
+        return Results.Redirect($"/{panel.Path}/{resource.Slug}/{id}/edit");
+    }
+
+    private static async Task<FilaEditViewModel> BuildEditViewModelAsync(
+        HttpContext ctx, Panel panel, IResource resource, DbContext db, IForm form, object entity, string id,
+        IReadOnlyList<(string Path, string Message)> errors, CancellationToken ct)
+    {
+        var evaluation = EvaluationContextFor(ctx, db, entity, StateOf(form, entity));
+
+        var relations = new List<FilaRelationTableViewModel>();
+        foreach (var registration in resource.GetRelations())
+        {
+            var manager = (RelationManager)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, registration.RelationManagerType);
+            relations.Add(await BuildRelationTableViewModelAsync(ctx, panel, resource, db, manager, entity, id, new TableQuery(null, null, "asc", 1), ct));
+        }
+
+        return new FilaEditViewModel
+        {
+            Panel = panel,
+            Resource = resource,
+            Form = form,
+            Entity = entity,
+            Id = id,
+            Db = db,
+            Evaluation = evaluation,
+            Errors = errors,
+            Relations = relations,
+        };
+    }
+
+    private static async Task<FilaRelationTableViewModel> BuildRelationTableViewModelAsync(
+        HttpContext ctx, Panel panel, IResource resource, DbContext db, RelationManager manager, object parent, string parentId,
+        TableQuery query, CancellationToken ct)
+    {
+        var table = manager.BuildTable();
+        var paged = await manager.ListAsync(db, parent, table, query, ct);
+
+        return new FilaRelationTableViewModel
+        {
+            Panel = panel,
+            ParentResource = resource,
+            ParentId = parentId,
+            RelationManager = manager,
+            Table = table,
+            Query = query,
+            Paged = paged,
+            Evaluation = new EvaluationContext { Db = db, User = ctx.User },
+        };
+    }
+
+    /// <summary>A relation manager's own table re-requesting itself for sort/search/paginate —
+    /// mirrors HandleListAsync, scoped to the one parent record and one relation manager the
+    /// route names instead of a whole resource.</summary>
+    private static async Task<IResult> HandleRelationTableAsync(
+        HttpContext ctx, Panel panel, Type resourceType, string id, string relationSlug, CancellationToken ct)
+    {
+        var resource = (IResource)ctx.RequestServices.GetRequiredService(resourceType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var entity = await resource.FindAsync(db, id, ct);
+        if (entity is null) return Results.NotFound();
+
+        var manager = resource.GetRelations()
+            .Select(r => (RelationManager)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, r.RelationManagerType))
+            .FirstOrDefault(m => m.Slug == relationSlug);
+        if (manager is null) return Results.NotFound();
+
+        var query = TableQuery.FromRequest(ctx.Request.Query);
+        var model = await BuildRelationTableViewModelAsync(ctx, panel, resource, db, manager, entity, id, query, ct);
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_RelationManagerTable.cshtml", model);
         return Results.Content(html, "text/html");
     }
 
