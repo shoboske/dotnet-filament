@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Demo.Data;
+using Demo.Fila.Widgets;
 using Fila.Panels;
 
 namespace Demo.Fila;
@@ -10,6 +11,7 @@ public static class StaffPanel
         .AtPath("staff")
         .Brand("Staff")
         .UseDbContext<AppDb>()
+        .Widgets(typeof(DemoStatsWidget), typeof(RevenueChartWidget))
         .PrimaryColor("#ef4444")
         .WithLogin((username, password, _) =>
         {

@@ -61,9 +61,14 @@
                  + string.Join(" ", points.Select((p, i) => $"L {N(X(i))},{N(Y(p.Value))}"))
                  + $" L {N(X(points.Count - 1))},{N(Y(lo))} Z";
 
-        // Label every point while they still fit; past that, thin them out to about six rather
-        // than letting them overlap into mush.
-        var labelEvery = points.Count <= 8 ? 1 : (int)Math.Ceiling(points.Count / 6.0);
+        // Label every point while they still fit; past that, thin them down to at most six,
+        // spaced evenly across the series and always including both ends. Labelling every Nth
+        // point *plus* the last one is what crowds the axis — with 14 points and a stride of 3
+        // the final two labels land side by side and overlap.
+        var labelCount = Math.Min(points.Count, 6);
+        var labelled = Enumerable.Range(0, labelCount)
+            .Select(k => labelCount == 1 ? 0 : (int)Math.Round(k * (points.Count - 1) / (double)(labelCount - 1)))
+            .ToHashSet();
 
         <div class="fi-wi-chart">
             <svg viewBox="0 0 @N(Width) @N(Height)" class="fi-wi-chart-svg" role="img"
@@ -85,7 +90,7 @@
                         <title>@points[i].Label: @FormatValue(points[i].Value)</title>
                     </circle>
 
-                    if (i % labelEvery == 0 || i == points.Count - 1)
+                    if (labelled.Contains(i))
                     {
                         @AxisLabel(X(i), Height - 8, "middle", points[i].Label)
                     }

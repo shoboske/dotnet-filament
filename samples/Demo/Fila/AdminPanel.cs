@@ -2,6 +2,7 @@ using System.Security.Claims;
 
 using Fila.Panels;
 using Demo.Data;
+using Demo.Fila.Widgets;
 
 namespace Demo.Fila;
 
@@ -11,6 +12,7 @@ public static class AdminPanel
     .Brand("Demo Admin")
     .PrimaryColor("#f59e0b")
     .UseDbContext<AppDb>()
+    .Widgets(typeof(DemoStatsWidget), typeof(RevenueChartWidget))
     .WithLogin((username, password, _) =>
     {
         var principal = username == "admin" && password == "admin"
