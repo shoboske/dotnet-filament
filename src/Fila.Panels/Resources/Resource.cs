@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Fila.Actions;
 using Fila.Forms;
+using Fila.Panels.RelationManagers;
 using Fila.Support;
 using Fila.Tables;
 using Fila.Widgets;
@@ -42,6 +43,12 @@ public interface IResource
     /// default.</summary>
     IReadOnlyList<WidgetRegistration> GetWidgets();
 
+    /// <summary>Relation managers this resource contributes to its own Edit page — Filament's
+    /// Resource::getRelations(). Lets a Customer resource show that customer's Orders inline on
+    /// the Edit page without EditRecord's routing having to know Orders exist. Empty by
+    /// default, mirroring GetWidgets().</summary>
+    IReadOnlyList<RelationManagerRegistration> GetRelations();
+
     /// <summary>This resource's header action — the "New" button — or null when it has no
     /// form. The one thing panel routing needs from just an IResource (it never sees the
     /// concrete Resource&lt;TEntity&gt;) to mount/execute Create the same generic way it
@@ -74,6 +81,13 @@ public abstract class Resource<TEntity> : IResource
     /// request scope, so a widget can inject whatever it needs. Empty by default, so a resource
     /// that says nothing contributes nothing.</summary>
     public virtual IReadOnlyList<WidgetRegistration> GetWidgets() => [];
+
+    /// <summary>Override to put a related entity's own table on this resource's Edit page —
+    /// see samples/Demo's CustomerResource. Named, not instantiated, for the same reason
+    /// GetWidgets() is: a relation manager is activated out of the request scope once the
+    /// parent record is known. Empty by default, so a resource that says nothing contributes
+    /// nothing.</summary>
+    public virtual IReadOnlyList<RelationManagerRegistration> GetRelations() => [];
 
     /// <summary>True when TEntity opted into soft deletes by implementing ISoftDeletable.
     /// Computed once per closed generic Resource&lt;TEntity&gt; rather than per call.</summary>
