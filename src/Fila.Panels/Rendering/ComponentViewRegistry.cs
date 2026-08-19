@@ -1,6 +1,7 @@
 using Fila.Forms;
 using Fila.Support;
 using Fila.Tables;
+using Fila.Widgets;
 
 namespace Fila.Panels.Rendering;
 
@@ -18,9 +19,11 @@ public sealed class ComponentViewRegistry
 {
     private const string DefaultFieldView = "input";
     private const string DefaultColumnView = "text";
+    private const string DefaultWidgetView = "widget";
 
     private readonly Dictionary<string, string> _fieldPartials = new();
     private readonly Dictionary<string, string> _columnPartials = new();
+    private readonly Dictionary<string, string> _widgetPartials = new();
 
     public ComponentViewRegistry()
     {
@@ -31,6 +34,11 @@ public sealed class ComponentViewRegistry
 
         RegisterColumn(DefaultColumnView, "Fila/Columns/_Text");
         RegisterColumn("badge", "Fila/Columns/_Badge");
+
+        RegisterWidget(DefaultWidgetView, "Fila/Widgets/_Widget");
+        RegisterWidget("stats-overview", "Fila/Widgets/_StatsOverview");
+        RegisterWidget("table", "Fila/Widgets/_Table");
+        RegisterWidget("chart", "Fila/Widgets/_Chart");
     }
 
     public ComponentViewRegistry RegisterField(string view, string partialPath)
@@ -45,11 +53,20 @@ public sealed class ComponentViewRegistry
         return this;
     }
 
+    public ComponentViewRegistry RegisterWidget(string view, string partialPath)
+    {
+        _widgetPartials[view] = partialPath;
+        return this;
+    }
+
     public string PartialForField(string view) =>
         _fieldPartials.TryGetValue(view, out var partial) ? partial : _fieldPartials[DefaultFieldView];
 
     public string PartialForColumn(string view) =>
         _columnPartials.TryGetValue(view, out var partial) ? partial : _columnPartials[DefaultColumnView];
+
+    public string PartialForWidget(string view) =>
+        _widgetPartials.TryGetValue(view, out var partial) ? partial : _widgetPartials[DefaultWidgetView];
 }
 
 /// <summary>What a field partial needs to render its control — everything the form-rendering
@@ -59,3 +76,11 @@ public sealed record FieldRenderModel(IFormField Field, EvaluationContext Evalua
 
 /// <summary>What a column partial needs to render one cell.</summary>
 public sealed record ColumnRenderModel(ITableColumn Column, object Row);
+
+/// <summary>What a widget partial needs: the widget itself (for its heading, and for any
+/// setting the partial reads off the concrete type), whatever its LoadAsync returned, and the
+/// page's evaluation context. The first two are only meaningful together — a widget type and
+/// its partial agree on the shape of Data between themselves, which is what lets the dashboard
+/// stay ignorant of both. Evaluation is what a table widget resolves its column labels
+/// against, the same way the resource list view does.</summary>
+public sealed record WidgetRenderModel(Widget Widget, object Data, EvaluationContext Evaluation);

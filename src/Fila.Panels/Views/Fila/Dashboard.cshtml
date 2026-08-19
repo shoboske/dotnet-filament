@@ -1,0 +1,50 @@
+@model FilaDashboardViewModel
+@inject ComponentViewRegistry Registry
+@{
+    ViewBag.Title = Model.Panel.Brand;
+    ViewBag.PanelForLayout = Model.Panel;
+}
+@* The panel's landing page — Filament's Pages\Dashboard. Every widget already loaded its own
+   data before this ran (see FilaExtensions.HandleDashboardAsync), so nothing here queries.
+   This view knows only how to place widgets in a grid; each one's markup comes from whichever
+   partial its View name resolves to. *@
+<div class="fi-shell">
+
+    <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, null)" />
+
+    <div class="fi-main">
+        <div class="fi-page-header-ctn">
+            <header class="fi-header">
+                <h1 class="fi-header-heading">Dashboard</h1>
+            </header>
+        </div>
+
+        @if (Model.Widgets.Count == 0)
+        {
+            <div class="fi-wi-empty">
+                <span class="fi-wi-empty-icon-bg">
+                    @Html.Raw(IconRegistry.Render("home"))
+                </span>
+                <h3 class="fi-wi-empty-heading">No widgets yet</h3>
+                <p class="fi-wi-empty-description">
+                    Register widgets on this panel with <code>.Widgets(typeof(MyWidget))</code>,
+                    or return them from a resource's <code>GetWidgets()</code>.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="fi-wi-grid">
+                @foreach (var widget in Model.Widgets)
+                {
+                    @* Clamped rather than trusted: a widget declaring a span of 0 or 40 would
+                       otherwise collapse the grid or silently overflow it. *@
+                    var span = Math.Clamp(widget.Widget.ColumnSpan, 1, 12);
+                    <div class="fi-wi" style="--fi-wi-span: @span">
+                        <partial name="@Registry.PartialForWidget(widget.Widget.View)" model="widget" />
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

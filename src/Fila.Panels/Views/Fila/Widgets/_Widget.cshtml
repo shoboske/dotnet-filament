@@ -1,0 +1,12 @@
+@model WidgetRenderModel
+@{
+    Layout = null;
+}
+@* Fallback for a View name with no registration — the widget equivalent of Columns/_Text
+   rendering an unregistered column as plain text. A consumer-authored widget therefore appears
+   on the dashboard with its heading and its data as text, rather than throwing, and registering
+   a partial for it is an upgrade rather than a prerequisite. *@
+<div class="fi-wi-card">
+    <partial name="Fila/Widgets/_Header" model="Model.Widget" />
+    <div class="fi-wi-body">@Model.Data</div>
+</div>

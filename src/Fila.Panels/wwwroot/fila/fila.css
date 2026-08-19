@@ -10,6 +10,7 @@
    Fila.Panels is the one thing every app actually references (List.cshtml/Login.cshtml link
    only this file), so its entry point pulls in Fila.Actions' rendered surface the same way. */
 @import "fila.actions.css";
+@import "fila.widgets.css";
 
 *,
 *::before,

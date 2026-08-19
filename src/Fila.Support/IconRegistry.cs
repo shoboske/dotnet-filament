@@ -13,6 +13,8 @@ public static class IconRegistry
 
     private static readonly Dictionary<string, string> Bodies = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["home"] =
+            """<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/>""",
         ["shopping-cart"] =
             """<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6"/>""",
         ["users"] =

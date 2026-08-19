@@ -1,0 +1,27 @@
+@model WidgetRenderModel
+@using Fila.Widgets
+@{
+    Layout = null;
+    var stats = (IReadOnlyList<Stat>)Model.Data;
+}
+<partial name="Fila/Widgets/_Header" model="Model.Widget" />
+@* Each stat is its own card, so this widget draws no card of its own around them. *@
+<div class="fi-wi-stats">
+    @foreach (var stat in stats)
+    {
+        <div class="fi-wi-stat">
+            <span class="fi-wi-stat-label">@stat.Label</span>
+            <span class="fi-wi-stat-value">@stat.Value</span>
+            @if (stat.DescriptionText is { } description)
+            {
+                <span class="fi-wi-stat-description fi-wi-stat-@stat.ColorValue">
+                    @if (stat.IconName is not null)
+                    {
+                        @Html.Raw(IconRegistry.Render(stat.IconName))
+                    }
+                    <span>@description</span>
+                </span>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,96 @@
+@model WidgetRenderModel
+@using System.Globalization
+@using Microsoft.AspNetCore.Html
+@using Fila.Widgets
+@{
+    Layout = null;
+    var chart = (ChartData)Model.Data;
+    var points = chart.Points;
+
+    // A fixed viewBox scaled to the card's width by CSS: the chart stays crisp at any size and
+    // needs no measurement, no resize observer and no script. Filament reaches for Chart.js
+    // here; Fila has vendored its whole frontend so far (fila.css, IconRegistry's inlined SVG)
+    // and a dashboard whose charts disappear when a CDN is blocked would break that.
+    const double Width = 640, Height = 220;
+    const double PadLeft = 52, PadRight = 12, PadTop = 12, PadBottom = 28;
+    const double PlotW = Width - PadLeft - PadRight;
+    const double PlotH = Height - PadTop - PadBottom;
+
+    // Same display culture TextColumn formats money and dates with, so a chart's numbers read
+    // the same as the table's.
+    var display = CultureInfo.GetCultureInfo("en-US");
+
+    // Baseline pinned to zero whenever the series is entirely positive. A line chart that crops
+    // its own baseline turns every small wiggle into a cliff — the classic misleading chart.
+    var lo = points.Count == 0 ? 0m : Math.Min(0m, points.Min(p => p.Value));
+    var hi = points.Count == 0 ? 1m : points.Max(p => p.Value);
+    if (hi <= lo) hi = lo + 1m;
+
+    double X(int i) => points.Count == 1
+        ? PadLeft + PlotW / 2
+        : PadLeft + i * PlotW / (points.Count - 1);
+
+    double Y(decimal value) => PadTop + (1 - (double)((value - lo) / (hi - lo))) * PlotH;
+
+    // Invariant, always: SVG path data is not localised, and a server running under a culture
+    // with a comma decimal separator would otherwise emit "12,5" and silently break every path.
+    string N(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+
+    // Razor treats a literal <text> tag as its own construct and refuses to let it carry
+    // attributes (RZ1023), so SVG's <text> — which is not optional here — is emitted as raw
+    // HTML instead. Html.Encode keeps a label that contains markup characters safe.
+    IHtmlContent AxisLabel(double x, double y, string anchor, string content) => new HtmlString(
+        $"""<text class="fi-wi-chart-axis-label" x="{N(x)}" y="{N(y)}" text-anchor="{anchor}">{Html.Encode(content)}</text>""");
+
+    string FormatValue(decimal v) =>
+        chart.ValuePrefix
+        + (v == Math.Truncate(v) ? v.ToString("N0", display) : v.ToString("N2", display))
+        + chart.ValueSuffix;
+}
+<div class="fi-wi-card">
+    <partial name="Fila/Widgets/_Header" model="Model.Widget" />
+
+    @if (points.Count == 0)
+    {
+        <div class="fi-wi-chart-empty">No data to chart yet.</div>
+    }
+    else
+    {
+        var line = string.Join(" ", points.Select((p, i) => $"{N(X(i))},{N(Y(p.Value))}"));
+        var area = $"M {N(X(0))},{N(Y(lo))} "
+                 + string.Join(" ", points.Select((p, i) => $"L {N(X(i))},{N(Y(p.Value))}"))
+                 + $" L {N(X(points.Count - 1))},{N(Y(lo))} Z";
+
+        // Label every point while they still fit; past that, thin them out to about six rather
+        // than letting them overlap into mush.
+        var labelEvery = points.Count <= 8 ? 1 : (int)Math.Ceiling(points.Count / 6.0);
+
+        <div class="fi-wi-chart">
+            <svg viewBox="0 0 @N(Width) @N(Height)" class="fi-wi-chart-svg" role="img"
+                 aria-label="@(Model.Widget.Heading ?? "Chart"): @FormatValue(points[0].Value) on @points[0].Label to @FormatValue(points[^1].Value) on @points[^1].Label">
+
+                @foreach (var value in new[] { hi, lo + (hi - lo) / 2, lo })
+                {
+                    <line class="fi-wi-chart-grid" x1="@N(PadLeft)" y1="@N(Y(value))" x2="@N(PadLeft + PlotW)" y2="@N(Y(value))" />
+                    @AxisLabel(PadLeft - 8, Y(value) + 4, "end", FormatValue(value))
+                }
+
+                <path class="fi-wi-chart-area" d="@area" />
+                <polyline class="fi-wi-chart-line" points="@line" />
+
+                @for (var i = 0; i < points.Count; i++)
+                {
+                    <circle class="fi-wi-chart-dot" cx="@N(X(i))" cy="@N(Y(points[i].Value))" r="3">
+                        @* A native SVG tooltip — hover detail with no script and no library. *@
+                        <title>@points[i].Label: @FormatValue(points[i].Value)</title>
+                    </circle>
+
+                    if (i % labelEvery == 0 || i == points.Count - 1)
+                    {
+                        @AxisLabel(X(i), Height - 8, "middle", points[i].Label)
+                    }
+                }
+            </svg>
+        </div>
+    }
+</div>

@@ -9,69 +9,7 @@
 }
 <div x-data="filaTable" class="fi-shell" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
 
-    <aside class="fi-sidebar">
-        <div class="fi-sidebar-brand">@Model.Panel.Brand</div>
-        <nav class="fi-sidebar-nav" aria-label="Resources">
-            @foreach (var item in Model.Panel.Navigation)
-            {
-                var isActive = item.Slug == Model.Resource.Slug;
-                <a class="fi-sidebar-link@(isActive ? " fi-sidebar-link-active" : "")"
-                   href="/@Model.Panel.Path/@item.Slug"
-                   aria-current="@(isActive ? "page" : null)">
-                    @Html.Raw(IconRegistry.Render(item.NavigationIcon))
-                    <span>@item.Label</span>
-                </a>
-            }
-        </nav>
-
-        @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)
-        {
-            var userName = Context.User.Identity!.Name ?? "?";
-            // Matches Filament's default UiAvatarsProvider exactly: initials per
-            // space-separated name segment, gray-950 background, white text, SVG.
-            var initials = string.Join(' ', userName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Select(segment => segment[..1]));
-            var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&format=svg&color=FFFFFF&background=030712";
-
-            <div class="fi-sidebar-footer">
-                <div class="fi-dropdown fi-user-menu" x-data="{ open: false, theme: filaGetTheme() }"
-                     @@keydown.escape.window="open = false" @@click.outside="open = false">
-                    <button type="button" class="fi-user-menu-trigger" @@click="open = !open" :aria-expanded="open">
-                        <img class="fi-avatar fi-circular" alt="" src="@avatarUrl" />
-                        <span class="fi-user-menu-trigger-text">@userName</span>
-                        @Html.Raw(IconRegistry.Render("chevron-up"))
-                    </button>
-
-                    <div class="fi-dropdown-panel" x-show="open" x-cloak x-transition>
-                        <div class="fi-dropdown-list">
-                            <div class="fi-theme-switcher" role="group" aria-label="Theme">
-                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'light' }"
-                                        @@click="theme = 'light'; filaSetTheme('light')" aria-label="Light theme" title="Light">
-                                    @Html.Raw(IconRegistry.Render("sun"))
-                                </button>
-                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'dark' }"
-                                        @@click="theme = 'dark'; filaSetTheme('dark')" aria-label="Dark theme" title="Dark">
-                                    @Html.Raw(IconRegistry.Render("moon"))
-                                </button>
-                                <button type="button" class="fi-theme-switcher-btn" :class="{ 'fi-active': theme === 'system' }"
-                                        @@click="theme = 'system'; filaSetTheme('system')" aria-label="System theme" title="System">
-                                    @Html.Raw(IconRegistry.Render("system"))
-                                </button>
-                            </div>
-                        </div>
-                        <div class="fi-dropdown-list">
-                            <form method="post" action="@Model.Panel.LogoutPath">
-                                <button type="submit" class="fi-dropdown-list-item">
-                                    @Html.Raw(IconRegistry.Render("logout"))
-                                    <span class="fi-dropdown-list-item-label">Sign out</span>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-    </aside>
+    <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, Model.Resource.Slug)" />
 
     <div class="fi-main">
         <div class="fi-page-header-ctn">

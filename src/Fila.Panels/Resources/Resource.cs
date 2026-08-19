@@ -34,6 +34,12 @@ public interface IResource
 
     string GetId(DbContext db, object entity);
 
+    /// <summary>Widget types this resource contributes to its panel's dashboard — Filament's
+    /// Resource::getWidgets(). Lets the thing that owns a slice of the domain also own the
+    /// dashboard summary of it, instead of every widget having to be registered centrally on
+    /// the panel. Empty by default.</summary>
+    IReadOnlyList<Type> GetWidgets();
+
     /// <summary>This resource's header action — the "New" button — or null when it has no
     /// form. The one thing panel routing needs from just an IResource (it never sees the
     /// concrete Resource&lt;TEntity&gt;) to mount/execute Create the same generic way it
@@ -60,6 +66,12 @@ public abstract class Resource<TEntity> : IResource
     /// <summary>Override to enable Create/Edit/Delete. Returning null (the default) means this
     /// resource is list-only — no form, no New button, no row actions.</summary>
     protected virtual Form<TEntity>? Form(Form<TEntity> f) => null;
+
+    /// <summary>Override to put widgets summarising this resource on its panel's dashboard —
+    /// see samples/Demo's OrderResource. Types, not instances: they are activated out of the
+    /// request scope, so a widget can inject whatever it needs. Empty by default, so a resource
+    /// that says nothing contributes nothing.</summary>
+    public virtual IReadOnlyList<Type> GetWidgets() => [];
 
     /// <summary>True when TEntity opted into soft deletes by implementing ISoftDeletable.
     /// Computed once per closed generic Resource&lt;TEntity&gt; rather than per call.</summary>

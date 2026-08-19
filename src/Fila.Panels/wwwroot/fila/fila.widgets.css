@@ -1,0 +1,232 @@
+/* Fila — dashboard widgets. Imported by fila.css the same way fila.actions.css is; Fila.Panels
+   is the one stylesheet every app links, so its entry point pulls in each package's rendered
+   surface. Mirrors packages/widgets/resources/css in filamentphp/filament.
+
+   Every colour here is one of fila.css's tokens, so widgets follow a panel's PrimaryColor
+   override and the light/dark swap without knowing either exists. */
+
+/* --- the dashboard grid ------------------------------------------------------------------ */
+
+/* Twelve columns, so a widget's ColumnSpan reads as a plain fraction of the page: 12 is full
+   width, 6 is half, 4 is a third. Dashboard.cshtml clamps the declared span into 1..12 and
+   hands it over as --fi-wi-span. */
+.fi-wi-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.fi-wi {
+  grid-column: span var(--fi-wi-span, 12) / span var(--fi-wi-span, 12);
+  min-width: 0; /* without this a wide table inside a grid item stretches the whole column */
+}
+
+/* Below the sidebar's own breakpoint a 12-column grid is finer than the space justifies —
+   every widget goes full width rather than being squeezed into a sliver. */
+@media (max-width: 64rem) {
+  .fi-wi {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- shared widget chrome ---------------------------------------------------------------- */
+
+.fi-wi-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-bottom: 0.75rem;
+}
+
+.fi-wi-heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.0125em;
+  color: var(--fi-text);
+  margin: 0;
+}
+
+.fi-wi-description {
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+  margin: 0;
+}
+
+/* Matches fi-ta-card exactly — a widget that draws a surface is the same surface a table is,
+   and a dashboard where the two disagree by a pixel of radius looks broken. */
+.fi-wi-card {
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+/* A table widget supplies its own padding via fi-wi-card, so the table inside it must not add
+   the rounded corners and ring it would carry on a list page. */
+.fi-wi-card .fi-ta-table-wrapper {
+  margin: 0 -1rem -1rem;
+}
+
+.fi-wi-body {
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+}
+
+/* --- stats overview ---------------------------------------------------------------------- */
+
+/* auto-fit rather than a fixed count: three stats fill the row, five wrap to two rows, and one
+   stat does not stretch into a billboard. */
+.fi-wi-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1.5rem;
+}
+
+.fi-wi-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border);
+}
+
+.fi-wi-stat-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text-secondary);
+}
+
+/* Tabular figures so a column of stats lines up digit for digit instead of shimmering as the
+   numbers change width. */
+.fi-wi-stat-value {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--fi-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fi-wi-stat-description {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-wi-stat-description .fi-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+/* Same colour vocabulary as a badge column — a stat's colour is how it shows a trend, so it
+   reuses the badge foreground tokens rather than inventing a second scale. */
+.fi-wi-stat-neutral { color: var(--fi-text-secondary); }
+.fi-wi-stat-info { color: var(--fi-badge-info-fg); }
+.fi-wi-stat-success { color: var(--fi-badge-success-fg); }
+.fi-wi-stat-warning { color: var(--fi-badge-warning-fg); }
+.fi-wi-stat-danger { color: var(--fi-badge-danger-fg); }
+
+/* --- chart ------------------------------------------------------------------------------- */
+
+.fi-wi-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.fi-wi-chart-grid {
+  stroke: var(--fi-border);
+  stroke-width: 1;
+}
+
+/* currentColor would resolve against the card's text colour; the accent is the point. */
+.fi-wi-chart-line {
+  fill: none;
+  stroke: var(--fi-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fi-wi-chart-area {
+  fill: var(--fi-accent);
+  opacity: 0.1;
+  stroke: none;
+}
+
+.fi-wi-chart-dot {
+  fill: var(--fi-surface);
+  stroke: var(--fi-accent);
+  stroke-width: 2;
+}
+
+.fi-wi-chart-axis-label {
+  fill: var(--fi-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fi-wi-chart-empty {
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+}
+
+/* --- a panel with no widgets registered --------------------------------------------------- */
+
+.fi-wi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--fi-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border);
+}
+
+.fi-wi-empty-icon-bg {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: var(--fi-hover-bg);
+}
+
+.fi-wi-empty-icon-bg .fi-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-wi-empty-heading {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--fi-text);
+  margin: 0;
+}
+
+.fi-wi-empty-description {
+  margin: 0.375rem 0 0;
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+}
+
+.fi-wi-empty-description code {
+  font-size: 0.8125rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--fi-hover-bg);
+  color: var(--fi-text-tertiary);
+}
