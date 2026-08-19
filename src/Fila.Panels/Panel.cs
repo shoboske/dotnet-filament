@@ -24,9 +24,9 @@ public sealed class Panel
     public string? LogoutPath { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
 
-    /// <summary>Widget types registered directly on this panel via .Widgets(...) — the
-    /// dashboard's own widgets, as opposed to the ones each resource contributes.</summary>
-    public List<Type> WidgetTypes { get; } = [];
+    /// <summary>Widgets registered directly on this panel via .Widgets(...) — the dashboard's
+    /// own widgets, as opposed to the ones each resource contributes.</summary>
+    public List<WidgetRegistration> Widgets { get; } = [];
 
     /// <summary>Overrides the default indigo accent for this panel — set via .PrimaryColor(...).
     /// A 7-character hex string ("#rrggbb"), or null to use Fila's default.</summary>
@@ -56,11 +56,11 @@ public sealed class Panel
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
     public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
 
-    /// <summary>Everything the dashboard draws: this panel's own WidgetTypes followed by each
+    /// <summary>Everything the dashboard draws: this panel's own Widgets followed by each
     /// resource's GetWidgets(), in navigation order. Resolved once by MapFilaPanel alongside
     /// Navigation — a resource's contribution only exists on an instance, so it cannot be known
     /// at AddFilaPanel time. Empty before routes are mapped.</summary>
-    public IReadOnlyList<Type> DashboardWidgetTypes { get; internal set; } = [];
+    public IReadOnlyList<WidgetRegistration> DashboardWidgets { get; internal set; } = [];
 }
 
 public sealed class PanelBuilder
@@ -141,23 +141,19 @@ public sealed class PanelBuilder
     }
 
     /// <summary>Registers this panel's dashboard widgets, the way a Filament panel's
-    /// ->widgets([...]) does. Passed as types rather than instances so a widget can take its
-    /// own constructor dependencies — they are activated per request out of the request scope,
-    /// so a widget may inject the app's DbContext, an IOptions&lt;T&gt;, anything else scoped.
+    /// ->widgets([...]) does — and, like it, by naming the widget rather than instantiating it,
+    /// so a widget can take its own constructor dependencies and be activated per request out of
+    /// the request scope (the app's DbContext, an IOptions&lt;T&gt;, anything else scoped).
+    ///
+    /// <c>.Widgets(WidgetRegistration.Of&lt;RevenueChartWidget&gt;())</c>. Filament constrains
+    /// the same list to <c>class-string&lt;Widget&gt;</c> in a docblock; WidgetRegistration.Of's
+    /// type constraint makes it a compile error here instead.
     ///
     /// A resource contributes its own widgets separately, via Resource.GetWidgets(); those are
     /// appended after these. Widget.Sort orders the merged list.</summary>
-    public PanelBuilder Widgets(params Type[] widgetTypes)
+    public PanelBuilder Widgets(params WidgetRegistration[] widgets)
     {
-        foreach (var type in widgetTypes)
-        {
-            if (!typeof(Widget).IsAssignableFrom(type) || type.IsAbstract)
-                throw new ArgumentException(
-                    $"'{type.Name}' is not a widget. .Widgets(...) takes non-abstract types deriving from Fila.Widgets.Widget.",
-                    nameof(widgetTypes));
-        }
-
-        _panel.WidgetTypes.AddRange(widgetTypes);
+        _panel.Widgets.AddRange(widgets);
         return this;
     }
 

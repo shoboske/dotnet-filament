@@ -127,7 +127,7 @@ public static class FilaExtensions
 
         // The panel's own widgets first, then each resource's, in navigation order. Widget.Sort
         // reorders across both groups; ties keep this order.
-        panel.DashboardWidgetTypes = [.. panel.WidgetTypes, .. entries.SelectMany(e => e.WidgetTypes)];
+        panel.DashboardWidgets = [.. panel.Widgets, .. entries.SelectMany(e => e.Widgets)];
 
         // The panel root is the Dashboard now, not a redirect into the first resource's list.
         // This is a deliberate behaviour change (issue #8): a Filament panel's root is a page of
@@ -201,29 +201,23 @@ public static class FilaExtensions
     }
 
     /// <summary>Instantiates each resource once at startup to read the things routing needs off
-    /// it — its slug, label and icon, and the widget types it contributes to the dashboard.
+    /// it — its slug, label and icon, and the widgets it contributes to the dashboard.
     /// GetWidgets() is an instance member, so this is the earliest point those can be known:
-    /// AddFilaPanel only ever sees resource *types*.</summary>
-    private static List<(Type ResourceType, string Slug, string Label, string? NavigationIcon, IReadOnlyList<Type> WidgetTypes)> ResolveNavigationAtStartup(
+    /// AddFilaPanel only ever sees resource *types*.
+    ///
+    /// Nothing validates what comes back: WidgetRegistration.Of's type constraint means a
+    /// resource cannot name a non-widget in the first place.</summary>
+    private static List<(Type ResourceType, string Slug, string Label, string? NavigationIcon, IReadOnlyList<WidgetRegistration> Widgets)> ResolveNavigationAtStartup(
         IServiceProvider services, Panel panel)
     {
-        var entries = new List<(Type, string, string, string?, IReadOnlyList<Type>)>();
+        var entries = new List<(Type, string, string, string?, IReadOnlyList<WidgetRegistration>)>();
 
         using var scope = services.CreateScope();
         foreach (var resourceType in panel.ResourceTypes)
         {
             var resource = (IResource)scope.ServiceProvider.GetRequiredService(resourceType);
-            var widgetTypes = resource.GetWidgets();
 
-            foreach (var widgetType in widgetTypes)
-            {
-                if (!typeof(Widget).IsAssignableFrom(widgetType) || widgetType.IsAbstract)
-                    throw new InvalidOperationException(
-                        $"{resourceType.Name}.GetWidgets() returned '{widgetType.Name}', which is not a widget. " +
-                        "It must return non-abstract types deriving from Fila.Widgets.Widget.");
-            }
-
-            entries.Add((resourceType, resource.Slug, ResourceNaming.Humanize(resource.Slug), resource.NavigationIcon, widgetTypes));
+            entries.Add((resourceType, resource.Slug, ResourceNaming.Humanize(resource.Slug), resource.NavigationIcon, resource.GetWidgets()));
         }
 
         var collisions = entries
@@ -259,8 +253,8 @@ public static class FilaExtensions
         // cannot have been registered at AddFilaPanel time (GetWidgets() needs an instance to
         // call), so widgets are activated rather than resolved — while still honouring a
         // registration when the host app made one deliberately.
-        var widgets = panel.DashboardWidgetTypes
-            .Select(type => (Widget)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, type))
+        var widgets = panel.DashboardWidgets
+            .Select(registration => (Widget)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, registration.WidgetType))
             .OrderBy(widget => widget.Sort)
             .ToList();
 

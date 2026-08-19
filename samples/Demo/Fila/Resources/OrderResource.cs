@@ -5,6 +5,7 @@ using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Demo.Data;
 using Demo.Fila.Widgets;
+using Fila.Widgets;
 using Action = global::Fila.Actions.Action;
 
 namespace Demo.Fila.Resources;
@@ -15,7 +16,7 @@ public sealed class OrderResource : Resource<Order>
 
     /// <summary>Puts the "Recent orders" table on whichever panel this resource is registered
     /// on, without that panel having to know the widget exists.</summary>
-    public override IReadOnlyList<Type> GetWidgets() => [typeof(RecentOrdersWidget)];
+    public override IReadOnlyList<WidgetRegistration> GetWidgets() => [WidgetRegistration.Of<RecentOrdersWidget>()];
 
     /// <summary>A custom row action added entirely from this file — no changes to
     /// Fila.Actions/Fila.Panels needed. Confirmation-only, no schema: it just flips the

@@ -3,6 +3,7 @@ using Fila.Actions;
 using Fila.Forms;
 using Fila.Support;
 using Fila.Tables;
+using Fila.Widgets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Action = Fila.Actions.Action;
@@ -34,11 +35,12 @@ public interface IResource
 
     string GetId(DbContext db, object entity);
 
-    /// <summary>Widget types this resource contributes to its panel's dashboard — Filament's
-    /// Resource::getWidgets(). Lets the thing that owns a slice of the domain also own the
-    /// dashboard summary of it, instead of every widget having to be registered centrally on
-    /// the panel. Empty by default.</summary>
-    IReadOnlyList<Type> GetWidgets();
+    /// <summary>Widgets this resource contributes to its panel's dashboard — Filament's
+    /// Resource::getWidgets(), which returns <c>array&lt;class-string&lt;Widget&gt;&gt;</c>.
+    /// Lets the thing that owns a slice of the domain also own the dashboard summary of it,
+    /// instead of every widget having to be registered centrally on the panel. Empty by
+    /// default.</summary>
+    IReadOnlyList<WidgetRegistration> GetWidgets();
 
     /// <summary>This resource's header action — the "New" button — or null when it has no
     /// form. The one thing panel routing needs from just an IResource (it never sees the
@@ -68,10 +70,10 @@ public abstract class Resource<TEntity> : IResource
     protected virtual Form<TEntity>? Form(Form<TEntity> f) => null;
 
     /// <summary>Override to put widgets summarising this resource on its panel's dashboard —
-    /// see samples/Demo's OrderResource. Types, not instances: they are activated out of the
+    /// see samples/Demo's OrderResource. Named, not instantiated: they are activated out of the
     /// request scope, so a widget can inject whatever it needs. Empty by default, so a resource
     /// that says nothing contributes nothing.</summary>
-    public virtual IReadOnlyList<Type> GetWidgets() => [];
+    public virtual IReadOnlyList<WidgetRegistration> GetWidgets() => [];
 
     /// <summary>True when TEntity opted into soft deletes by implementing ISoftDeletable.
     /// Computed once per closed generic Resource&lt;TEntity&gt; rather than per call.</summary>
