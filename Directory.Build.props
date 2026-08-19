@@ -4,5 +4,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
+
+    <!-- One source for the whole repo. Fila.Tools pins the published tool package's version,
+         but the CLI's version switch is answered by FilaCli in Fila.Tooling, which reported its
+         own assembly version: defaulting to 1.0.0 and disagreeing with the package the user
+         actually installed. Setting it here keeps every assembly on the same number. -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

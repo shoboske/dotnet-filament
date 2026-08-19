@@ -1,4 +1,5 @@
 using Fila.Actions;
+using Fila.Notifications;
 using Fila.Panels.Rendering;
 using Fila.Panels.Resources;
 using Fila.Tables;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Action = Fila.Actions.Action;
 
 namespace Fila.Panels;
@@ -29,6 +30,16 @@ public static class FilaExtensions
         services.AddSingleton(panel);
         services.AddSingleton<ComponentViewRegistry>();
         services.AddScoped<ViewRenderer>();
+
+        // The one thing in the notification path that touches HttpContext, so it needs the
+        // accessor; nothing else here reaches for the current request out of band.
+        services.AddHttpContextAccessor();
+        services.TryAddScoped<IHxTriggerDataReader, HxTriggerDataReader>();
+
+        // Keyed on the panel's path (MapFilaPanel already enforces those are unique), so each
+        // panel resolves its own store and a host can give one panel a different implementation
+        // without touching the rest. TryAdd, so a store registered ahead of us wins.
+        services.TryAddKeyedScoped<IFilaNotificationStore, HxTriggerNotificationStore>(panel.Path);
 
         // Views need the MVC view engine + tempdata plumbing even though the host app
         // never registers MVC itself.
@@ -288,7 +299,7 @@ public static class FilaExtensions
             };
 
             var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionForm.cshtml", model);
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
             return Results.Content(html, "text/html");
         }
 
@@ -306,7 +317,7 @@ public static class FilaExtensions
             };
 
             var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionConfirm.cshtml", model);
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
             return Results.Content(html, "text/html");
         }
 
@@ -345,7 +356,7 @@ public static class FilaExtensions
         {
             var form = action.SchemaFactory();
             var submitted = await ctx.Request.ReadFormAsync(ct);
-            var state = form.Fields.ToDictionary(f => f.Path, f => (string?)submitted[f.Path].ToString());
+            var state = StateFrom(form, f => submitted[f.Path].ToString());
             formData = state;
 
             var evaluation = EvaluationContextFor(ctx, db, entity, state);
@@ -406,10 +417,12 @@ public static class FilaExtensions
             await action.HandleCallback(actionContext);
         }
 
+        // Both signals ride one HX-Trigger header; IHxTriggerDataReader is what lets them
+        // coexist without either clobbering the other.
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-close");
+
         if (action.Notification is { } notification)
-            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
-        else
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+            ctx.RequestServices.GetRequiredKeyedService<IFilaNotificationStore>(panel.Path).Send(notification);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
@@ -438,7 +451,7 @@ public static class FilaExtensions
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
         var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_BulkActionConfirm.cshtml", model);
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
         return Results.Content(html, "text/html");
     }
 
@@ -469,10 +482,12 @@ public static class FilaExtensions
             await action.HandleCallback(bulkContext);
         }
 
+        // Both signals ride one HX-Trigger header; IHxTriggerDataReader is what lets them
+        // coexist without either clobbering the other.
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-close");
+
         if (action.Notification is { } notification)
-            SetCloseAndNotifyTrigger(ctx, notification.Title, notification.Color);
-        else
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
+            ctx.RequestServices.GetRequiredKeyedService<IFilaNotificationStore>(panel.Path).Send(notification);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
@@ -501,18 +516,6 @@ public static class FilaExtensions
             ? Task.FromResult<object?>(resource.CreateBlank())
             : id is null ? Task.FromResult<object?>(null) : resource.FindAsync(db, id, ct);
 
-    /// <summary>Tells the client to close the action modal and pop a toast, in one response —
-    /// htmx parses a JSON-object HX-Trigger header as {eventName: detail} and dispatches a
-    /// CustomEvent per key, so both signals ride the same header instead of needing two.</summary>
-    private static void SetCloseAndNotifyTrigger(HttpContext ctx, string title, string color)
-    {
-        ctx.Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            ["fila-modal-close"] = true,
-            ["fila-notify"] = new { title, color },
-        });
-    }
-
     /// <summary>The context a form's evaluated settings resolve against: the entity being
     /// edited plus whatever the other fields currently hold, so one field's configuration can
     /// depend on another's value.</summary>
@@ -527,7 +530,24 @@ public static class FilaExtensions
         };
 
     private static Dictionary<string, string?> StateOf(IForm form, object entity) =>
-        form.Fields.ToDictionary(f => f.Path, f => (string?)FieldBinding.Format(f.GetValue(entity)));
+        StateFrom(form, f => FieldBinding.Format(f.GetValue(entity)));
+
+    /// <summary>Field state keyed by path, tolerating two fields bound to the same property.
+    /// That is a legitimate thing to declare — two mutually exclusive controls over one value,
+    /// each gated by Visible(...) — and it became a natural idiom once fields could be
+    /// conditionally visible. ToDictionary throws ArgumentException on the duplicate key, which
+    /// surfaces as a 500 on an otherwise valid form. Last write wins, which is not arbitrary:
+    /// both selectors derive the value from the path (or from the same entity), so every field
+    /// sharing a path yields the same value anyway.</summary>
+    private static Dictionary<string, string?> StateFrom(IForm form, Func<IFormField, string?> value)
+    {
+        var state = new Dictionary<string, string?>();
+
+        foreach (var field in form.Fields)
+            state[field.Path] = value(field);
+
+        return state;
+    }
 
     private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct)
     {

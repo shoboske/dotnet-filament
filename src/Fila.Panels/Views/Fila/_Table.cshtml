@@ -97,7 +97,10 @@
                             <div class="fi-ta-actions">
                                 @foreach (var item in rowActions)
                                 {
-                                    if (item is ActionGroup group)
+                                    // Resolve first: a group whose actions are all hidden for this row must not
+                                    // render its trigger at all, or the row shows a "More actions" button that
+                                    // opens an empty panel. The flat-action branch below already gates this way.
+                                    if (item is ActionGroup group && group.Actions.Any(a => a.ResolveVisible(rowEvaluation)))
                                     {
                                         <div class="fi-dropdown" x-data="{ open: false }" @@keydown.escape.window="open = false" @@click.outside="open = false">
                                             <button type="button" class="fi-icon-btn" @@click="open = !open" :aria-expanded="open" aria-label="More actions">

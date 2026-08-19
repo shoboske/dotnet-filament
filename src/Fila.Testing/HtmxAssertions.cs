@@ -7,7 +7,7 @@ namespace Fila.Testing;
 /// from a consumer's test suite regardless of which framework they've chosen.</summary>
 public sealed class FilaAssertionException(string message) : Exception(message);
 
-/// <summary>Assertions against Fila's htmx wire format (see FilaExtensions.SetCloseAndNotifyTrigger),
+/// <summary>Assertions against Fila's htmx wire format (see Fila.Panels' IHxTriggerDataReader),
 /// so a resource author's own tests — and Fila's own — don't have to hand-parse the HX-Trigger
 /// header. Mirrors what Filament's per-package Testing traits (packages/*/src/Testing) give
 /// consumers, adapted to Fila's server-rendered-HTML-over-htmx model instead of Livewire.</summary>

@@ -1,4 +1,5 @@
 using Fila.Forms;
+using Fila.Notifications;
 using Fila.Support;
 
 namespace Fila.Actions;
@@ -76,10 +77,10 @@ public sealed class Action : IRowAction
 
     public Func<ActionContext, Task>? HandleCallback { get; private set; }
 
-    /// <summary>Title/color shown via Fila's existing ad hoc HX-Trigger notification mechanism
-    /// after Handle completes successfully — generalizing that into a real Notification API is
-    /// a later phase, not this one.</summary>
-    public (string Title, string Color)? Notification { get; private set; }
+    /// <summary>The notification sent once Handle completes successfully, or null to send none.
+    /// Built through Fila.Notifications' fluent builder, so a resource author configuring a
+    /// custom action reaches for the same API Fila's own built-ins use.</summary>
+    public Notification? Notification { get; private set; }
 
     public string ResolveLabel(EvaluationContext context) => LabelValue.Resolve(context) ?? Name;
 
@@ -154,9 +155,16 @@ public sealed class Action : IRowAction
         return this;
     }
 
-    public Action Notifies(string title, string color = "success")
+    /// <summary>Shorthand for the common case. Equivalent to
+    /// <c>Notify(Notification.Make().Title(title).Color(color))</c>.</summary>
+    public Action Notifies(string title, string color = "success") =>
+        Notify(Fila.Notifications.Notification.Make().Title(title).Color(color));
+
+    /// <summary>Sends a notification built however the caller likes — the escape hatch from
+    /// <see cref="Notifies"/>'s two positional strings.</summary>
+    public Action Notify(Notification notification)
     {
-        Notification = (title, color);
+        Notification = notification;
         return this;
     }
 

@@ -16,9 +16,14 @@ public sealed class MarkShippedActionTests(DemoAppFactory factory) : IClassFixtu
         using var client = factory.CreateClient();
         await TestAuth.LoginAsync(client);
 
-        // Seeded by samples/Demo/Data/DemoSeeder.cs: order 1 (i=1) is OrderStatus.Processing —
-        // MarkShippedAction.Visible(...) only offers this action for Pending/Processing orders.
-        var html = await client.GetStringAsync("/admin/orders/1/actions/mark-shipped");
+        // Seeded by samples/Demo/Data/DemoSeeder.cs: order 6 (i=6, statuses[6 % 5]) is
+        // OrderStatus.Processing — MarkShippedAction.Visible(...) only offers this action for
+        // Pending/Processing orders, so mounting it against anything else 404s.
+        //
+        // Deliberately not order 1, which the sibling test below marks shipped: the class's
+        // two tests share one seeded database (see DemoAppFactory) and xUnit does not order
+        // tests within a class, so keying both off the same row made whichever ran second fail.
+        var html = await client.GetStringAsync("/admin/orders/6/actions/mark-shipped");
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
         Assert.Equal("Mark shipped", document.QuerySelector(".fi-modal-heading")?.TextContent);
