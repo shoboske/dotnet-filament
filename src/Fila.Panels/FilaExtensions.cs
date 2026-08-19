@@ -356,7 +356,7 @@ public static class FilaExtensions
         {
             var form = action.SchemaFactory();
             var submitted = await ctx.Request.ReadFormAsync(ct);
-            var state = form.Fields.ToDictionary(f => f.Path, f => (string?)submitted[f.Path].ToString());
+            var state = StateFrom(form, f => submitted[f.Path].ToString());
             formData = state;
 
             var evaluation = EvaluationContextFor(ctx, db, entity, state);
@@ -530,7 +530,24 @@ public static class FilaExtensions
         };
 
     private static Dictionary<string, string?> StateOf(IForm form, object entity) =>
-        form.Fields.ToDictionary(f => f.Path, f => (string?)FieldBinding.Format(f.GetValue(entity)));
+        StateFrom(form, f => FieldBinding.Format(f.GetValue(entity)));
+
+    /// <summary>Field state keyed by path, tolerating two fields bound to the same property.
+    /// That is a legitimate thing to declare — two mutually exclusive controls over one value,
+    /// each gated by Visible(...) — and it became a natural idiom once fields could be
+    /// conditionally visible. ToDictionary throws ArgumentException on the duplicate key, which
+    /// surfaces as a 500 on an otherwise valid form. Last write wins, which is not arbitrary:
+    /// both selectors derive the value from the path (or from the same entity), so every field
+    /// sharing a path yields the same value anyway.</summary>
+    private static Dictionary<string, string?> StateFrom(IForm form, Func<IFormField, string?> value)
+    {
+        var state = new Dictionary<string, string?>();
+
+        foreach (var field in form.Fields)
+            state[field.Path] = value(field);
+
+        return state;
+    }
 
     private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct)
     {

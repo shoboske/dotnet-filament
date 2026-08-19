@@ -105,7 +105,7 @@ public abstract class Resource<TEntity> : IResource
     public Action? BuildCreateAction() => BuildForm() is null
         ? null
         : CreateAction.Make(
-            $"Create {Slug.TrimEnd('s').Replace('-', ' ')}",
+            $"Create {ResourceNaming.SingularLabel(Slug)}",
             () => BuildForm()!,
             ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: true, ctx.Ct));
 
@@ -113,7 +113,7 @@ public abstract class Resource<TEntity> : IResource
     /// .Actions(...) itself (see samples/Demo's OrderResource) can still include the built-in
     /// behavior alongside its own custom actions.</summary>
     protected Action BuildEditAction() => EditAction.Make(
-        $"Edit {Slug.TrimEnd('s').Replace('-', ' ')}",
+        $"Edit {ResourceNaming.SingularLabel(Slug)}",
         () => BuildForm() ?? throw new InvalidOperationException("EditAction requires this resource to define a form."),
         ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: false, ctx.Ct));
 
