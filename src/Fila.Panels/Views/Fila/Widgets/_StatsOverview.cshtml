@@ -3,25 +3,48 @@
 @{
     Layout = null;
     var stats = (IReadOnlyList<Stat>)Model.Data;
+
+    // Filament's StatsOverviewWidget::getColumns(): three across, except when that would leave a
+    // single stat stranded on its own final row (count % 3 == 1), where it uses four.
+    var columns = stats.Count >= 3 && stats.Count % 3 == 1 ? 4 : 3;
 }
-<partial name="Fila/Widgets/_Header" model="Model.Widget" />
-@* Each stat is its own card, so this widget draws no card of its own around them. *@
-<div class="fi-wi-stats">
-    @foreach (var stat in stats)
-    {
-        <div class="fi-wi-stat">
-            <span class="fi-wi-stat-label">@stat.Label</span>
-            <span class="fi-wi-stat-value">@stat.Value</span>
-            @if (stat.DescriptionText is { } description)
-            {
-                <span class="fi-wi-stat-description fi-wi-stat-@stat.ColorValue">
-                    @if (stat.IconName is not null)
-                    {
-                        @Html.Raw(IconRegistry.Render(stat.IconName))
-                    }
-                    <span>@description</span>
-                </span>
-            }
+@* fi-wi-stats-overview wraps a *not-contained* section (Section::contained(false) in
+   StatsOverviewWidget::getSectionContentComponent()), so the widget draws no card of its own —
+   each stat is its own card. *@
+<div class="fi-wi-stats-overview">
+    <div class="fi-section fi-section-not-contained">
+        <partial name="Fila/Widgets/_Section" model="Model.Widget" />
+
+        <div class="fi-section-content-ctn">
+            <div class="fi-section-content fi-wi-stats-overview-stats-ctn" style="--fi-wi-stats-columns: @columns">
+                @foreach (var stat in stats)
+                {
+                    <div class="fi-wi-stats-overview-stat">
+                        <div class="fi-wi-stats-overview-stat-content">
+                            <div class="fi-wi-stats-overview-stat-label-ctn">
+                                @if (stat.IconName is not null)
+                                {
+                                    @Html.Raw(IconRegistry.Render(stat.IconName))
+                                }
+                                <span class="fi-wi-stats-overview-stat-label">@stat.Label</span>
+                            </div>
+
+                            <div class="fi-wi-stats-overview-stat-value">@stat.Value</div>
+
+                            @if (stat.DescriptionText is { } description)
+                            {
+                                <div class="fi-wi-stats-overview-stat-description fi-color fi-color-@stat.DescriptionColorValue">
+                                    @if (stat.DescriptionIconName is not null)
+                                    {
+                                        @Html.Raw(IconRegistry.Render(stat.DescriptionIconName))
+                                    }
+                                    <span>@description</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
-    }
+    </div>
 </div>

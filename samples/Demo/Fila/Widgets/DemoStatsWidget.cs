@@ -35,18 +35,19 @@ public sealed class DemoStatsWidget(AppDb db) : StatsOverviewWidget
         return
         [
             Stat.Make("Customers", customers.ToString(DisplayCulture))
-                .Description("Active accounts")
-                .Icon("users"),
+                .Icon("users")
+                .Description("Active accounts"),
 
             Stat.Make("Orders", orders.ToString(DisplayCulture))
-                .Description($"{shipped} shipped")
                 .Icon("shopping-cart")
-                .Color("info"),
+                .Description($"{shipped} shipped")
+                .DescriptionIcon("check-circle")
+                .DescriptionColor("info"),
 
             Stat.Make("Revenue", revenue.ToString("C", DisplayCulture))
+                .Icon("tag")
                 .Description("All time")
-                .Icon("check-circle")
-                .Color("success"),
+                .DescriptionColor("success"),
         ];
     }
 }

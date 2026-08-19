@@ -16,20 +16,25 @@ public sealed record ChartData(
     string? ValuePrefix = null,
     string? ValueSuffix = null);
 
-/// <summary>A line chart over a series a subclass computes — Filament's Widgets\ChartWidget.
+/// <summary>A chart over a series a subclass computes — Filament's Widgets\ChartWidget.
+/// Keeps that class's shape: a heading and description on the widget, the series from
+/// GetData, and the chart kind behind <see cref="Type"/> (Filament's abstract getType(), which
+/// its LineChartWidget/BarChartWidget subclasses exist only to override).
 ///
-/// Drawn as inline SVG by the panel's chart partial, with no charting library and no CDN
-/// script: Fila has vendored or hand-rolled its whole frontend so far (fila.css, IconRegistry's
-/// inlined icons), and a dashboard that silently loses its charts when a CDN is blocked would
-/// break that. The trade is that this plots one series as a line and nothing more — bar,
-/// stacked and multi-series charts are backlog, per the issue's non-goals.</summary>
+/// Drawn as inline SVG by the panel's chart partial. Filament paints onto a &lt;canvas&gt;
+/// with Chart.js; Fila has vendored or hand-rolled its whole frontend so far (fila.css,
+/// IconRegistry's inlined icons) and the issue rules out a CDN script, so the same chart is
+/// server-rendered instead. The trade is that the built-in partial draws "line" and nothing
+/// else — the other types Filament ships (bar, pie, doughnut, radar, ...) are backlog, per the
+/// issue's non-goals. Type is still the seam they arrive through: a consumer can register their
+/// own partial for a view today and a future built-in can branch on it.</summary>
 public abstract class ChartWidget : Widget
 {
     public sealed override string View => "chart";
 
-    /// <summary>Half the dashboard grid, so two charts sit side by side — the one place a
-    /// widget usually does not want the full width.</summary>
-    public override int ColumnSpan => 6;
+    /// <summary>Which chart to draw — Filament's getType(). Only "line" is implemented by the
+    /// built-in partial.</summary>
+    public virtual string Type => "line";
 
     /// <summary>Compute the series. Runs once per dashboard request.</summary>
     protected abstract Task<ChartData> GetDataAsync(WidgetContext context);

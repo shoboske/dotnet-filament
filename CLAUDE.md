@@ -20,6 +20,21 @@
   `rm -rf ~/.nuget/packages/fila.tools` or bump the version. Silently stale otherwise.
 - `make:resource X --force` overwrites hand-edited demo resources. `git checkout` after.
 
+## Porting from Filament
+- The upstream reference is `git clone --branch 6.x https://github.com/filamentphp/filament`.
+  Clone it *before* writing a port, not after — an issue saying "if useful" still means clone
+  it. Check out the branch the issue names and confirm with `git rev-parse --abbrev-ref HEAD`;
+  don't substitute another branch or add a fallback chain (`4.x || 3.x` silently succeeds and
+  you never notice).
+- Class names and spacing are not up for invention. `fi-*` names come from Filament's own
+  `packages/*/resources/css/*.css`, and Fila hardcodes the resolved Tailwind values with the
+  utility named in a comment. `text-gray-500 dark:text-gray-400` is exactly `--fi-text-secondary`
+  and `text-gray-400 dark:text-gray-500` is exactly `--fi-text-muted` — reuse the token, don't
+  re-pick a hex.
+- Widget/section chrome lives in `fila.widgets.css`, imported from `fila.css` the way
+  `fila.actions.css` is. `.fi-section` belongs to Filament's *support* package; it sits in
+  fila.widgets.css only until a second Fila package needs it.
+
 ## Editing
 - `FilaCli.cs` and `Scaffolder.cs` hold code-generation templates as string literals.
   Sweeping renames rewrite them too — they still compile and tests still pass, but the

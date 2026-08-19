@@ -18,6 +18,11 @@ public sealed class RecentOrdersWidget : TableWidget<Order>
 {
     public override string? Heading => "Recent orders";
 
+    /// <summary>Filament's TableWidget inherits the default span of 1, i.e. half the dashboard.
+    /// Five columns of order data do not fit in half a row, and picking a span per widget is
+    /// exactly what columnSpan is for.</summary>
+    public override int ColumnSpan => WidgetColumnSpan.Full;
+
     public override int Sort => 10;
 
     protected override Table<Order> Table(Table<Order> t) => t

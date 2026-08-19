@@ -7,12 +7,12 @@
     var chart = (ChartData)Model.Data;
     var points = chart.Points;
 
-    // A fixed viewBox scaled to the card's width by CSS: the chart stays crisp at any size and
-    // needs no measurement, no resize observer and no script. Filament reaches for Chart.js
-    // here; Fila has vendored its whole frontend so far (fila.css, IconRegistry's inlined SVG)
-    // and a dashboard whose charts disappear when a CDN is blocked would break that.
-    const double Width = 640, Height = 220;
-    const double PadLeft = 52, PadRight = 12, PadTop = 12, PadBottom = 28;
+    // 3:2, matching the aspect-[1.5] that packages/widgets/resources/css/chart-widget.css gives
+    // .fi-wi-chart-frame at container width — the frame's CSS sets the box, this viewBox fills
+    // it exactly rather than letterboxing inside it. A fixed viewBox scaled by CSS also means
+    // the chart stays crisp at any size with no measurement, resize observer or script.
+    const double Width = 600, Height = 400;
+    const double PadLeft = 52, PadRight = 12, PadTop = 12, PadBottom = 32;
     const double PlotW = Width - PadLeft - PadRight;
     const double PlotH = Height - PadTop - PadBottom;
 
@@ -40,19 +40,33 @@
     // attributes (RZ1023), so SVG's <text> — which is not optional here — is emitted as raw
     // HTML instead. Html.Encode keeps a label that contains markup characters safe.
     IHtmlContent AxisLabel(double x, double y, string anchor, string content) => new HtmlString(
-        $"""<text class="fi-wi-chart-axis-label" x="{N(x)}" y="{N(y)}" text-anchor="{anchor}">{Html.Encode(content)}</text>""");
+        $"""<text class="fi-wi-chart-text-color" x="{N(x)}" y="{N(y)}" text-anchor="{anchor}">{Html.Encode(content)}</text>""");
 
     string FormatValue(decimal v) =>
         chart.ValuePrefix
         + (v == Math.Truncate(v) ? v.ToString("N0", display) : v.ToString("N2", display))
         + chart.ValueSuffix;
 }
-<div class="fi-wi-card">
-    <partial name="Fila/Widgets/_Header" model="Model.Widget" />
+@* Structure mirrors packages/widgets/resources/views/chart-widget.blade.php: the widget wraps a
+   <x-filament::section>, whose content holds .fi-wi-chart-frame. Filament puts a <canvas> in
+   that frame and paints it with Chart.js; this puts server-rendered SVG in the same box. *@
+<div class="fi-wi-chart">
+    <div class="fi-section@(Model.Widget.Heading is not null ? " fi-section-has-header" : "")">
+        <partial name="Fila/Widgets/_Section" model="Model.Widget" />
 
+        <div class="fi-section-content-ctn">
+        <div class="fi-section-content">
     @if (points.Count == 0)
     {
-        <div class="fi-wi-chart-empty">No data to chart yet.</div>
+        @* Filament renders <x-filament::empty-state :contained="false"> inside the frame here. *@
+        <div class="fi-wi-chart-frame">
+            <div class="fi-ta-empty-state">
+                <div class="fi-ta-empty-state-content">
+                    <span class="fi-ta-empty-state-icon-bg">@Html.Raw(IconRegistry.Render("inbox"))</span>
+                    <h3 class="fi-ta-empty-state-heading">No chart data</h3>
+                </div>
+            </div>
+        </div>
     }
     else
     {
@@ -70,32 +84,39 @@
             .Select(k => labelCount == 1 ? 0 : (int)Math.Round(k * (points.Count - 1) / (double)(labelCount - 1)))
             .ToHashSet();
 
-        <div class="fi-wi-chart">
+        <div class="fi-wi-chart-frame">
             <svg viewBox="0 0 @N(Width) @N(Height)" class="fi-wi-chart-svg" role="img"
                  aria-label="@(Model.Widget.Heading ?? "Chart"): @FormatValue(points[0].Value) on @points[0].Label to @FormatValue(points[^1].Value) on @points[^1].Label">
 
                 @foreach (var value in new[] { hi, lo + (hi - lo) / 2, lo })
                 {
-                    <line class="fi-wi-chart-grid" x1="@N(PadLeft)" y1="@N(Y(value))" x2="@N(PadLeft + PlotW)" y2="@N(Y(value))" />
+                    <line class="fi-wi-chart-grid-color" x1="@N(PadLeft)" y1="@N(Y(value))" x2="@N(PadLeft + PlotW)" y2="@N(Y(value))" />
                     @AxisLabel(PadLeft - 8, Y(value) + 4, "end", FormatValue(value))
                 }
 
-                <path class="fi-wi-chart-area" d="@area" />
-                <polyline class="fi-wi-chart-line" points="@line" />
+                <path class="fi-wi-chart-bg-color" d="@area" />
+                <polyline class="fi-wi-chart-border-color" points="@line" />
 
                 @for (var i = 0; i < points.Count; i++)
                 {
-                    <circle class="fi-wi-chart-dot" cx="@N(X(i))" cy="@N(Y(points[i].Value))" r="3">
+                    <circle class="fi-wi-chart-dot fi-wi-chart-border-color" cx="@N(X(i))" cy="@N(Y(points[i].Value))" r="3">
                         @* A native SVG tooltip — hover detail with no script and no library. *@
                         <title>@points[i].Label: @FormatValue(points[i].Value)</title>
                     </circle>
 
                     if (labelled.Contains(i))
                     {
-                        @AxisLabel(X(i), Height - 8, "middle", points[i].Label)
+                        // The outermost labels anchor inward. Centred on their own point they
+                        // would hang past the viewBox and be clipped, since the first and last
+                        // points sit on the plot's edges.
+                        var anchor = i == 0 ? "start" : i == points.Count - 1 ? "end" : "middle";
+                        @AxisLabel(X(i), Height - 8, anchor, points[i].Label)
                     }
                 }
             </svg>
         </div>
     }
+        </div>
+        </div>
+    </div>
 </div>

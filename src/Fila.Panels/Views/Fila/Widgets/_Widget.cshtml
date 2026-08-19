@@ -1,12 +1,16 @@
 @model WidgetRenderModel
 @{
     Layout = null;
+    var hasHeader = Model.Widget.Heading is not null;
 }
 @* Fallback for a View name with no registration — the widget equivalent of Columns/_Text
    rendering an unregistered column as plain text. A consumer-authored widget therefore appears
-   on the dashboard with its heading and its data as text, rather than throwing, and registering
-   a partial for it is an upgrade rather than a prerequisite. *@
-<div class="fi-wi-card">
-    <partial name="Fila/Widgets/_Header" model="Model.Widget" />
-    <div class="fi-wi-body">@Model.Data</div>
+   on the dashboard in the standard section card with its data as text, rather than throwing,
+   and registering a partial for it is an upgrade rather than a prerequisite. *@
+<div class="fi-section@(hasHeader ? " fi-section-has-header" : "")">
+    <partial name="Fila/Widgets/_Section" model="Model.Widget" />
+
+    <div class="fi-section-content-ctn">
+        <div class="fi-section-content">@Model.Data</div>
+    </div>
 </div>
