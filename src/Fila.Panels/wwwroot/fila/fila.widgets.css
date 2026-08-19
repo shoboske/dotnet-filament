@@ -283,18 +283,37 @@
 .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-danger-bg); }
 .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #ef4444; } /* red-500 */
 
-/* dark:text-color-400 — one step lighter, so the line still reads on a dark card. */
+/* In dark the line steps to color-400 and the fill becomes `color-400/10` — a 10% wash, NOT a
+   solid shade. Fila's badge backgrounds are solid dark fills (#172554, #052e16, ...), which
+   under a sparkline read as a slab of colour rather than the tint Filament draws, so the dark
+   fills are stated as the 400s at 10%. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
-  :root:not([data-theme="light"]) .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
-  :root:not([data-theme="light"]) .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
-  :root:not([data-theme="light"]) .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+  :root:not([data-theme="light"]) {
+    & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
+    & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
+    & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
+    & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+
+    & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(96 165 250 / 0.1); }
+    & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(74 222 128 / 0.1); }
+    & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(251 191 36 / 0.1); }
+    & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(248 113 113 / 0.1); }
+    & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
+  }
 }
 
-:root[data-theme="dark"] .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
-:root[data-theme="dark"] .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
-:root[data-theme="dark"] .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
-:root[data-theme="dark"] .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+:root[data-theme="dark"] {
+  & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
+  & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
+  & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
+  & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+
+  & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(96 165 250 / 0.1); }
+  & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(74 222 128 / 0.1); }
+  & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(251 191 36 / 0.1); }
+  & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(248 113 113 / 0.1); }
+  & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
+}
 
 /* --- chart --------------------------------------------------------------------------------
    packages/widgets/resources/css/chart-widget.css. */
@@ -362,8 +381,20 @@
 }
 
 .fi-wi-chart-bg-color {
-  fill: var(--fi-accent-soft-bg);
+  fill: var(--fi-accent-soft-bg); /* text-color-50 */
   stroke: none;
+}
+
+/* dark:text-color-400/10 — a 10% wash. Fila's --fi-accent-soft-bg is a solid dark shade in
+   dark mode, which under the line reads as a filled slab rather than Filament's tint. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fi-wi-chart-bg-color {
+    fill: color-mix(in srgb, var(--fi-accent) 10%, transparent);
+  }
+}
+
+:root[data-theme="dark"] .fi-wi-chart-bg-color {
+  fill: color-mix(in srgb, var(--fi-accent) 10%, transparent);
 }
 
 .fi-wi-chart-dot {
