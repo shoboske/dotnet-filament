@@ -1,13 +1,19 @@
 using Fila.Forms;
+using Fila.Panels.RelationManagers;
 using Fila.Panels.Resources;
 using Fila.Tables;
 using Demo.Data;
+using Demo.Fila.RelationManagers;
 
 namespace Demo.Fila.Resources;
 
 public sealed class CustomerResource : Resource<Customer>
 {
     public override string? NavigationIcon => "users";
+
+    /// <summary>Shows this customer's Orders inline on their Edit page — see
+    /// OrdersRelationManager for the CustomerId scope.</summary>
+    public override IReadOnlyList<RelationManagerRegistration> GetRelations() => [RelationManagerRegistration.Of<OrdersRelationManager>()];
 
     protected override Table<Customer> Table(Table<Customer> t) => t
         .Columns(
