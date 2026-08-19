@@ -44,8 +44,8 @@ public interface IResource
     IReadOnlyList<WidgetRegistration> GetWidgets();
 
     /// <summary>Relation managers this resource contributes to its own Edit page — Filament's
-    /// Resource::getRelations(). Lets a Customer resource show that customer's Orders inline on
-    /// the Edit page without EditRecord's routing having to know Orders exist. Empty by
+    /// Resource::getRelations(). Lets a resource show a related entity's own table inline on
+    /// the Edit page without EditRecord's routing having to know that relation exists. Empty by
     /// default, mirroring GetWidgets().</summary>
     IReadOnlyList<RelationManagerRegistration> GetRelations();
 

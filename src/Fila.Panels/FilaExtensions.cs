@@ -162,7 +162,7 @@ public static class FilaExtensions
             group.MapPost($"/{entry.Slug}/{{id}}/actions/{{name}}", (HttpContext ctx, string id, string name, CancellationToken ct) =>
                 HandleActionExecuteAsync(ctx, panel, entry.ResourceType, id, name, ct));
 
-            // The dedicated Edit page (issue #9) — only ever linked to from the row Edit
+            // The dedicated Edit page — only ever linked to from the row Edit
             // action when a resource registers a relation manager (see _Table.cshtml); a
             // resource with none keeps editing through the existing modal above unchanged.
             // A literal "edit" segment here takes routing precedence over the parameterized

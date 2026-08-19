@@ -3,8 +3,8 @@ using Xunit;
 
 namespace Fila.Tests;
 
-/// <summary>End-to-end coverage for issue #9 — a seeded Customer's Edit page shows their Orders
-/// through the OrdersRelationManager registered on CustomerResource.</summary>
+/// <summary>End-to-end coverage for relation managers — a seeded Customer's Edit page shows
+/// their Orders through the OrdersRelationManager registered on CustomerResource.</summary>
 public sealed class RelationManagerTests(DemoAppFactory factory) : IClassFixture<DemoAppFactory>
 {
     [Fact]

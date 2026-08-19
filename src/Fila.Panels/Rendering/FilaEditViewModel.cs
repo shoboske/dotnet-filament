@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Panels.Rendering;
 
-/// <summary>The dedicated Edit page a resource with relation managers gets (see issue #9) —
-/// its own form plus a tab per <see cref="Fila.Panels.RelationManagers.RelationManager"/> the
+/// <summary>The dedicated Edit page a resource with relation managers gets — its own form
+/// plus a tab per <see cref="Fila.Panels.RelationManagers.RelationManager"/> the
 /// resource registers. A resource with no relations never routes here; its row Edit action
 /// keeps opening the existing modal (see <see cref="FilaActionFormViewModel"/>) unchanged.</summary>
 public sealed class FilaEditViewModel

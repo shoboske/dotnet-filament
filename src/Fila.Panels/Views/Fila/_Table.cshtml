@@ -12,7 +12,7 @@
     var hasBulkActions = bulkActions.Count > 0;
     var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
     // A resource that registers a relation manager gets its Edit action pointed at the
-    // dedicated Edit page (issue #9) instead of the modal every other resource still opens —
+    // dedicated Edit page instead of the modal every other resource still opens —
     // relation manager tabs need real page space a modal doesn't have.
     var hasRelations = Model.Resource.GetRelations().Count > 0;
 }

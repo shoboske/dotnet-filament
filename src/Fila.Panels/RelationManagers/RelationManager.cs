@@ -9,19 +9,18 @@ namespace Fila.Panels.RelationManagers;
 /// RelationManager&lt;TParent, TRelated&gt;, only this and the parent record.</summary>
 public interface IRelationManager
 {
-    /// <summary>The route segment and htmx-target suffix a relation manager's tab/table use —
-    /// "orders" for a Customer's Orders. Defaults to the same pluralised-kebab-case rule
-    /// Resource&lt;TEntity&gt;.Slug uses, off TRelated rather than the parent.</summary>
+    /// <summary>The route segment and htmx-target suffix a relation manager's tab/table use.
+    /// Defaults to the same pluralised-kebab-case rule Resource&lt;TEntity&gt;.Slug uses, off
+    /// TRelated rather than the parent.</summary>
     string Slug { get; }
 
-    /// <summary>The tab label. Defaults to the humanized Slug — "Orders".</summary>
+    /// <summary>The tab label. Defaults to the humanized Slug.</summary>
     string Title { get; }
 
     ITable BuildTable();
 
-    /// <summary><paramref name="parent"/> is the already-resolved parent record (e.g. the
-    /// Customer being edited) — routing hands it over as object since it never knows TParent
-    /// either.</summary>
+    /// <summary><paramref name="parent"/> is the already-resolved parent record being edited —
+    /// routing hands it over as object since it never knows TParent either.</summary>
     Task<PagedRows> ListAsync(DbContext db, object parent, ITable table, TableQuery query, CancellationToken ct);
 }
 
@@ -38,13 +37,12 @@ public abstract class RelationManager : IRelationManager
 }
 
 /// <summary>Wraps a Fila.Tables.Table&lt;TRelated&gt; scoped to whatever navigation relates it
-/// to TParent — Filament's Resources\RelationManagers\RelationManager, trimmed to the "a
-/// relation manager is a scoped Table shown as a tab on Edit" concept (see issue #9): no
-/// Livewire component, no attach/associate actions, no relationship-type detection. A
-/// straightforward one-to-many (TParent has many TRelated via a foreign key on TRelated) is the
-/// only shape this supports — <see cref="Scope"/> is where a resource author expresses that
-/// foreign key, the same way Resource&lt;TEntity&gt;.Query lets a resource author add
-/// .Include(...).</summary>
+/// to TParent — Filament's Resources\RelationManagers\RelationManager, trimmed to "a relation
+/// manager is a scoped Table shown as a tab on Edit": no Livewire component, no
+/// attach/associate actions, no relationship-type detection. A straightforward one-to-many
+/// (TParent has many TRelated via a foreign key on TRelated) is the only shape this supports —
+/// <see cref="Scope"/> is where a resource author expresses that foreign key, the same way
+/// Resource&lt;TEntity&gt;.Query lets a resource author add .Include(...).</summary>
 public abstract class RelationManager<TParent, TRelated> : RelationManager
     where TParent : class
     where TRelated : class
@@ -57,8 +55,8 @@ public abstract class RelationManager<TParent, TRelated> : RelationManager
     protected abstract Table<TRelated> Table(Table<TRelated> t);
 
     /// <summary>Narrows TRelated's query down to just the rows belonging to
-    /// <paramref name="parent"/> — e.g. <c>q.Where(o =&gt; o.CustomerId == parent.Id)</c>. The
-    /// one thing every relation manager must supply: there is no generic way to discover the FK
+    /// <paramref name="parent"/> — e.g. <c>q.Where(child =&gt; child.ParentId == parent.Id)</c>.
+    /// The one thing every relation manager must supply: there is no generic way to discover the FK
     /// from TParent/TRelated alone without reflecting into EF's navigation metadata, which is
     /// more machinery than a one-to-many relation manager needs.</summary>
     protected abstract IQueryable<TRelated> Scope(TParent parent, IQueryable<TRelated> q);
