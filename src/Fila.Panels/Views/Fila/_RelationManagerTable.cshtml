@@ -1,0 +1,95 @@
+@model FilaRelationTableViewModel
+@inject ComponentViewRegistry Registry
+@{
+    Layout = null;
+    var evaluation = Model.Evaluation;
+    var columns = Model.Table.Columns.Where(c => c.ResolveVisible(evaluation)).ToList();
+    var stateId = $"fila-relation-state-{Model.RelationManager.Slug}";
+    var targetId = $"fila-relation-table-{Model.RelationManager.Slug}";
+}
+<div class="fi-ta-table-wrapper">
+    <table class="fi-ta-table">
+        <thead>
+            <tr>
+                @foreach (var column in columns)
+                {
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                        @if (column.IsSortable)
+                        {
+                            <button type="button"
+                                    class="fi-ta-sort-btn"
+                                    hx-get="@Model.TableUrl"
+                                    hx-target="#@targetId"
+                                    hx-include="#@stateId"
+                                    hx-vals='@Model.Query.SortValsFor(column)'>
+                                <span>@column.ResolveLabel(evaluation)</span>
+                                @if (Model.Query.Sort == column.Path)
+                                {
+                                    <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
+                                }
+                            </button>
+                        }
+                        else
+                        {
+                            @column.ResolveLabel(evaluation)
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Paged.Rows)
+            {
+                <tr>
+                    @foreach (var column in columns)
+                    {
+                        <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                            <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                        </td>
+                    }
+                </tr>
+            }
+            @if (Model.Paged.Rows.Count == 0)
+            {
+                <tr>
+                    <td class="fi-ta-empty-cell" colspan="@columns.Count">
+                        <div class="fi-ta-empty-state">
+                            <div class="fi-ta-empty-state-content">
+                                <span class="fi-ta-empty-state-icon-bg">
+                                    @Html.Raw(IconRegistry.Render("inbox"))
+                                </span>
+                                <h3 class="fi-ta-empty-state-heading">No @Model.RelationManager.Title.ToLowerInvariant()</h3>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="fi-ta-pagination" role="navigation" aria-label="Pagination">
+    <span class="fi-ta-pagination-summary">
+        Page @Model.Paged.Page of @Model.Paged.LastPage (@Model.Paged.Total total)
+    </span>
+    <div class="fi-ta-pagination-controls">
+        <button type="button"
+                class="fi-btn fi-btn-outlined"
+                disabled="@(Model.Paged.Page <= 1 ? "disabled" : null)"
+                hx-get="@Model.TableUrl"
+                hx-target="#@targetId"
+                hx-include="#@stateId"
+                hx-vals='{"page": "@(Model.Paged.Page - 1)"}'>
+            Previous
+        </button>
+        <button type="button"
+                class="fi-btn fi-btn-outlined"
+                disabled="@(Model.Paged.Page >= Model.Paged.LastPage ? "disabled" : null)"
+                hx-get="@Model.TableUrl"
+                hx-target="#@targetId"
+                hx-include="#@stateId"
+                hx-vals='{"page": "@(Model.Paged.Page + 1)"}'>
+            Next
+        </button>
+    </div>
+</div>

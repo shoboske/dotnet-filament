@@ -11,6 +11,7 @@
    only this file), so its entry point pulls in Fila.Actions' rendered surface the same way. */
 @import "fila.actions.css";
 @import "fila.widgets.css";
+@import "fila.relation-managers.css";
 
 *,
 *::before,
