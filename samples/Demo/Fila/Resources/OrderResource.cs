@@ -1,4 +1,5 @@
 using Fila.Forms;
+using Fila.Notifications;
 using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,10 @@ public sealed class OrderResource : Resource<Order>
             ((Order)ctx.Record!).Status = OrderStatus.Shipped;
             await ctx.Db.SaveChangesAsync(ctx.Ct);
         })
-        .Notifies("Marked as shipped", "success");
+        // Built through the Notification API rather than the Notifies(title, color) shorthand,
+        // to show a resource author reaching for the same builder Fila's own built-in actions
+        // use — nothing about it is internal to the framework.
+        .Notify(Notification.Make().Title("Marked as shipped").Success());
 
     protected override Table<Order> Table(Table<Order> t) => t
         .Columns(
