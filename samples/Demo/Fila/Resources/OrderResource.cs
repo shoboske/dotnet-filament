@@ -3,12 +3,32 @@ using Fila.Panels.Resources;
 using Fila.Tables;
 using Microsoft.EntityFrameworkCore;
 using Demo.Data;
+using Action = global::Fila.Actions.Action;
 
 namespace Demo.Fila.Resources;
 
 public sealed class OrderResource : Resource<Order>
 {
     public override string? NavigationIcon => "shopping-cart";
+
+    /// <summary>A custom row action added entirely from this file — no changes to
+    /// Fila.Actions/Fila.Panels needed. Confirmation-only, no schema: it just flips the
+    /// order's status and saves, the same shape DeleteAction uses. Hides itself once an order
+    /// is already shipped or later in its lifecycle, so it isn't offered where it wouldn't
+    /// make sense.</summary>
+    private static readonly Action MarkShippedAction = new Action("mark-shipped")
+        .Label("Mark shipped")
+        .Icon("check-circle")
+        .Color("success")
+        .RequiresConfirmation()
+        .ModalDescription("This marks the order as shipped.")
+        .Visible(ctx => ((Order)ctx.Record!).Status is OrderStatus.Pending or OrderStatus.Processing)
+        .Handle(async ctx =>
+        {
+            ((Order)ctx.Record!).Status = OrderStatus.Shipped;
+            await ctx.Db.SaveChangesAsync(ctx.Ct);
+        })
+        .Notifies("Marked as shipped", "success");
 
     protected override Table<Order> Table(Table<Order> t) => t
         .Columns(
@@ -18,7 +38,14 @@ public sealed class OrderResource : Resource<Order>
             t.Money(o => o.Total).Sortable().Alignment(ColumnAlign.End),
             t.Text(o => o.Customer.Name).Label("Customer"))
         .DefaultSort(o => o.CreatedAt, descending: true)
-        .PaginateBy(25);
+        .PaginateBy(25)
+        .Actions(
+            BuildViewAction(),
+            BuildEditAction(),
+            MarkShippedAction,
+            BuildReplicateAction(),
+            BuildDeleteAction())
+        .BulkActions(BuildDeleteBulkAction());
 
     protected override IQueryable<Order> Query(IQueryable<Order> q) => q.Include(o => o.Customer);
 

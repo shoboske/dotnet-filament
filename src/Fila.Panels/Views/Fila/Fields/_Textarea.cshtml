@@ -1,2 +1,2 @@
 @model FieldRenderModel
-<textarea class="fi-input" id="@Model.FieldId" name="@Model.Field.Path" rows="3">@Model.RawValue</textarea>
+<textarea class="fi-input" id="@Model.FieldId" name="@Model.Field.Path" rows="3" disabled="@(Model.Disabled ? "disabled" : null)">@Model.RawValue</textarea>

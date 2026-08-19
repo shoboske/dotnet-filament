@@ -1,20 +1,18 @@
-@model FilaFormViewModel
+@model FilaActionFormViewModel
 @inject ComponentViewRegistry Registry
 @{
     Layout = null;
     var evaluation = Model.Evaluation;
-    var actionUrl = Model.IsCreate
-        ? $"/{Model.Panel.Path}/{Model.Resource.Slug}"
-        : $"/{Model.Panel.Path}/{Model.Resource.Slug}/{Model.Id}";
+    var readOnly = Model.Action.ReadOnlyFlag;
 }
 <div class="fi-modal-header">
-    <h2 class="fi-modal-heading">@(Model.IsCreate ? "Create" : "Edit") @Model.Resource.Slug.TrimEnd('s').Replace('-', ' ')</h2>
+    <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
     <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
         @Html.Raw(IconRegistry.Render("x"))
     </button>
 </div>
 
-<form hx-post="@actionUrl" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
+<form hx-post="@Model.ActionUrl" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
     <div class="fi-modal-content">
         @foreach (var field in Model.Form.Fields.Where(f => f.ResolveVisible(evaluation)))
         {
@@ -35,7 +33,7 @@
                     </label>
                 }
 
-                <partial name="@Registry.PartialForField(field.View)" model="new FieldRenderModel(field, evaluation, fieldId, rawValue)" />
+                <partial name="@Registry.PartialForField(field.View)" model="new FieldRenderModel(field, evaluation, fieldId, rawValue, readOnly)" />
 
                 @if (error is not null)
                 {
@@ -47,8 +45,11 @@
 
     <div class="fi-modal-footer">
         <div class="fi-modal-footer-actions">
-            <button type="submit" class="fi-btn fi-btn-primary">Save</button>
-            <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
+            @if (!readOnly)
+            {
+                <button type="submit" class="fi-btn fi-btn-primary">Save</button>
+            }
+            <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">@(readOnly ? "Close" : "Cancel")</button>
         </div>
     </div>
 </form>

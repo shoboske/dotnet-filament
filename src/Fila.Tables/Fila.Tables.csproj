@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Fila.Actions\Fila.Actions.csproj" />
     <ProjectReference Include="..\Fila.Support\Fila.Support.csproj" />
   </ItemGroup>
 

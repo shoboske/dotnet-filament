@@ -1,0 +1,29 @@
+@model FilaActionConfirmViewModel
+@{
+    Layout = null;
+    var evaluation = Model.Evaluation;
+    var confirmBtnClass = Model.Action.ColorValue == "danger" ? "fi-btn-danger" : "fi-btn-primary";
+}
+<div class="fi-modal-header fi-align-center">
+    <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
+        @Html.Raw(IconRegistry.Render("x"))
+    </button>
+    <div class="fi-modal-icon-ctn">
+        <span class="fi-modal-icon-bg">
+            @Html.Raw(IconRegistry.Render(Model.Action.IconName))
+        </span>
+    </div>
+    <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
+    <p class="fi-modal-description">@(Model.Action.ResolveModalDescription(evaluation) ?? "Are you sure you would like to do this?")</p>
+</div>
+
+<div class="fi-modal-footer">
+    <div class="fi-modal-footer-actions fi-align-center">
+        <button type="button" class="fi-btn @confirmBtnClass"
+                hx-post="@Model.ActionUrl" hx-target="#fila-table" hx-swap="innerHTML"
+                hx-include="#fila-table-state">
+            @Model.Action.ResolveLabel(evaluation)
+        </button>
+        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
+    </div>
+</div>

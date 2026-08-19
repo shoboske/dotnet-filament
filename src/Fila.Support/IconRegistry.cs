@@ -41,6 +41,8 @@ public static class IconRegistry
             """<path d="M12 5v14M5 12h14"/>""",
         ["chevron-up"] =
             """<path d="m6 15 6-6 6 6"/>""",
+        ["chevron-right"] =
+            """<path d="m9 6 6 6-6 6"/>""",
         ["logout"] =
             """<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>""",
         ["inbox"] =
@@ -49,6 +51,14 @@ public static class IconRegistry
             """<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>""",
         ["x-circle"] =
             """<circle cx="12" cy="12" r="9"/><path d="m9.5 9.5 5 5m0-5-5 5"/>""",
+        ["copy"] =
+            """<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>""",
+        ["eye"] =
+            """<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/>""",
+        ["dots-vertical"] =
+            """<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>""",
+        ["restore"] =
+            """<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>""",
     };
 
     public static string Render(string? name)

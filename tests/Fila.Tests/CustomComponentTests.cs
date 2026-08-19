@@ -109,7 +109,7 @@ public sealed class CustomComponentTests(CustomComponentAppFactory factory)
     {
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/custom/custom-customers/create");
+        var html = await client.GetStringAsync("/custom/custom-customers/actions/create");
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
         var email = document.QuerySelector("input[name='Email']");

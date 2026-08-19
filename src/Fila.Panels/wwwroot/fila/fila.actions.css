@@ -1,0 +1,181 @@
+/* Fila.Actions' rendered surface — buttons, icon-buttons, dropdowns, and links, the
+   primitives every Action/ActionGroup/BulkAction ends up as in the DOM. Kept apart from
+   fila.css (panel chrome, tables, forms, modal) the same way upstream Filament keeps them
+   apart: these four map to packages/support/resources/css/components/{button,icon-button,
+   dropdown/*,link}.css, shared building blocks several packages consume — not
+   packages/actions' own actions.css (that one is just the `.fi-ac` flex-wrap container for a
+   plain row of rendered actions) and not packages/tables' actions.css (`.fi-ta-actions`,
+   which stays in fila.css since it's the table's own row-action-cell layout, not a
+   button/dropdown/link primitive). Depends on fila.css's :root custom properties — load
+   this file after it. */
+
+.fi-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem; /* fi-btn: text-sm */
+  font-weight: 500;
+  padding: 0.5rem 0.75rem; /* fi-btn: px-3 py-2 */
+  cursor: pointer;
+}
+
+.fi-btn:focus-visible {
+  outline: 2px solid var(--fi-accent);
+  outline-offset: 1px;
+}
+
+.fi-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fi-btn-outlined {
+  border: 1px solid var(--fi-input-border);
+  background: var(--fi-surface);
+  color: var(--fi-text);
+}
+
+.fi-btn-outlined:hover:not(:disabled) {
+  background: var(--fi-hover-bg);
+}
+
+.fi-btn-primary {
+  border: 1px solid var(--fi-accent);
+  background: var(--fi-accent);
+  color: var(--fi-accent-contrast);
+}
+
+.fi-btn-primary:hover:not(:disabled) {
+  background: var(--fi-accent-hover);
+  border-color: var(--fi-accent-hover);
+}
+
+.fi-btn-danger {
+  border: 1px solid var(--fi-danger, #dc2626);
+  background: var(--fi-danger, #dc2626);
+  color: #fff;
+}
+
+.fi-btn-danger:hover:not(:disabled) {
+  background: var(--fi-danger-hover, #b91c1c);
+  border-color: var(--fi-danger-hover, #b91c1c);
+}
+
+.fi-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--fi-text-muted);
+  cursor: pointer;
+}
+
+.fi-icon-btn .fi-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fi-icon-btn:hover {
+  background: var(--fi-hover-bg);
+  color: var(--fi-text);
+}
+
+.fi-icon-btn-danger:hover {
+  color: var(--fi-error-fg);
+}
+
+/* fi-dropdown / fi-dropdown-panel — packages/support/resources/css/components/dropdown/*.css.
+   The trigger (an Action/ActionGroup/BulkActionGroup rendered as a button or icon-button)
+   lives next to whatever it opens; fila.css's .fi-user-menu override is the one exception,
+   since that trigger sits at the bottom of a viewport-pinned sidebar and needs its panel to
+   open upward instead of this component's downward default. */
+.fi-dropdown {
+  position: relative;
+}
+
+.fi-dropdown-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: max-content;
+  max-width: 14rem;
+  border-radius: 0.5rem;
+  background: var(--fi-surface);
+  border: 1px solid var(--fi-border);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-dropdown-list {
+  display: grid;
+  gap: 1px;
+  padding: 0.25rem;
+}
+
+.fi-dropdown-list + .fi-dropdown-list {
+  border-top: 1px solid var(--fi-border);
+}
+
+.fi-dropdown-list-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  background: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  color: var(--fi-text-secondary);
+  cursor: pointer;
+}
+
+.fi-dropdown-list-item:hover {
+  background: var(--fi-hover-bg);
+}
+
+.fi-dropdown-list-item .fi-icon {
+  color: var(--fi-text-muted);
+}
+
+.fi-dropdown-list-item-label {
+  flex: 1 1 auto;
+  text-align: start;
+  color: var(--fi-text-secondary);
+}
+
+.fi-dropdown-list-item-danger:hover {
+  background: var(--fi-error-bg, rgb(239 68 68 / 0.1));
+}
+
+.fi-dropdown-list-item-danger .fi-icon,
+.fi-dropdown-list-item-danger .fi-dropdown-list-item-label {
+  color: var(--fi-error-fg);
+}
+
+/* fi-link — packages/support/resources/css/components/link.css. Used today for the bulk
+   selection indicator's "Deselect all" (see fila.css's .fi-ta-selection-indicator). */
+.fi-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fi-text-secondary);
+  cursor: pointer;
+}
+
+.fi-link:hover {
+  text-decoration: underline;
+}
+
+.fi-link-danger {
+  color: var(--fi-error-fg);
+}

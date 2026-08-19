@@ -3,6 +3,6 @@
     var label = Model.Field.ResolveLabel(Model.Evaluation);
 }
 <label class="fi-toggle-label" for="@Model.FieldId">
-    <input type="checkbox" class="fi-toggle-input" id="@Model.FieldId" name="@Model.Field.Path" value="true" checked="@(Model.RawValue == "true" ? "checked" : null)" />
+    <input type="checkbox" class="fi-toggle-input" id="@Model.FieldId" name="@Model.Field.Path" value="true" checked="@(Model.RawValue == "true" ? "checked" : null)" disabled="@(Model.Disabled ? "disabled" : null)" />
     <span>@label</span>
 </label>

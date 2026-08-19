@@ -13,7 +13,13 @@ public sealed class CustomerResource : Resource<Customer>
         .Columns(
             t.Text(c => c.Email).Searchable().Sortable(),
             t.Text(c => c.Name).Searchable().Sortable())
-        .PaginateBy(25);
+        .PaginateBy(25)
+        // Customer implements ISoftDeletable (see Demo/Data/Customer.cs) — Delete becomes a
+        // soft delete, and Restore/ForceDelete become available alongside it. Both only render
+        // for an already-deleted row, which the default list query excludes (see #20 for the
+        // still-missing "show trashed" UI to reach one through the table itself).
+        .Actions(BuildEditAction(), BuildDeleteAction(), BuildRestoreAction(), BuildForceDeleteAction())
+        .BulkActions(BuildRestoreBulkAction(), BuildForceDeleteBulkAction());
 
     protected override Form<Customer> Form(Form<Customer> f) => f
         .Fields(
