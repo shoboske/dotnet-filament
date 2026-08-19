@@ -1,40 +1,45 @@
 using Fila.Notifications;
+using Fila.Panels.Rendering;
 using Fila.Testing;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace Fila.Tests;
 
-/// <summary>Covers the Fila.Notifications API that replaced FilaExtensions' private
-/// SetCloseAndNotifyTrigger helper. The wire format is the contract here: fila.js already
-/// listens for a `fila-notify` event and renders the toast from its title/color, so these
-/// assert the serialized header exactly rather than just its parsed shape — a reordered or
-/// renamed key would still parse, and would still break the frontend.</summary>
+/// <summary>Covers the notification path that replaced FilaExtensions' private
+/// SetCloseAndNotifyTrigger helper: the transport-free Notification/IFilaNotificationStore pair
+/// in Fila.Notifications, and the htmx-specific half (IHxTriggerDataReader plus the store that
+/// rides it) in Fila.Panels.
+///
+/// The wire format is the contract — fila.js listens for a `fila-notify` event and renders the
+/// toast from its title/color — so these assert the serialized header exactly rather than just
+/// its parsed shape. A reordered or renamed key would still parse, and would still break the
+/// frontend.</summary>
 public sealed class NotificationApiTests
 {
-    private static HttpContext ContextWithPendingTrigger(string? trigger)
+    private static (IHxTriggerDataReader Triggers, HttpContext Context) NewReader(string? pending = null)
     {
         var context = new DefaultHttpContext();
 
-        if (trigger is not null) context.Response.Headers["HX-Trigger"] = trigger;
+        if (pending is not null) context.Response.Headers["HX-Trigger"] = pending;
 
-        return context;
+        return (new HxTriggerDataReader(new HttpContextAccessor { HttpContext = context }), context);
     }
 
     private static string TriggerOf(HttpContext context) => context.Response.Headers["HX-Trigger"].ToString();
 
-    /// <summary>The exact payload every built-in action produced before this API existed, and
-    /// still produces: the modal-close event the response already queued, folded from its bare
-    /// form into `{name: true}`, with the notification appended after it.</summary>
+    /// <summary>The payload every built-in action produces: the modal-close event the response
+    /// already queued, with the notification appended after it.</summary>
     [Theory]
     [InlineData("Created", "success")]
     [InlineData("Saved", "success")]
     [InlineData("Deleted", "danger")]
-    public void Send_MergesOntoAPendingModalClose_InTheOriginalWireFormat(string title, string color)
+    public void Store_AppendsTheToastToAPendingModalClose(string title, string color)
     {
-        var context = ContextWithPendingTrigger("fila-modal-close");
+        var (triggers, context) = NewReader();
+        triggers.Add("fila-modal-close");
 
-        Notification.Make().Title(title).Color(color).Send(context);
+        new HxTriggerNotificationStore(triggers).Send(Notification.Make().Title(title).Color(color));
 
         Assert.Equal(
             $$$"""{"fila-modal-close":true,"fila-notify":{"title":"{{{title}}}","color":"{{{color}}}"}}""",
@@ -42,30 +47,48 @@ public sealed class NotificationApiTests
     }
 
     [Fact]
-    public void Send_WithNothingPending_EmitsTheNotificationAlone()
+    public void Store_WithNothingPending_EmitsTheToastAlone()
     {
-        var context = ContextWithPendingTrigger(null);
+        var (triggers, context) = NewReader();
 
-        Notification.Make().Title("Marked as shipped").Success().Send(context);
+        new HxTriggerNotificationStore(triggers).Send(Notification.Make().Title("Marked as shipped").Success());
 
-        Assert.Equal(
-            """{"fila-notify":{"title":"Marked as shipped","color":"success"}}""",
-            TriggerOf(context));
+        Assert.Equal("""{"fila-notify":{"title":"Marked as shipped","color":"success"}}""", TriggerOf(context));
     }
 
-    /// <summary>The merge also has to cope with a header already in its JSON-object form —
-    /// otherwise a second Send, or any future event carrying a detail payload, would silently
-    /// drop whatever was there.</summary>
+    /// <summary>The whole point of the reader: two concerns writing the one header without
+    /// either erasing the other, whatever detail payloads they carry.</summary>
     [Fact]
-    public void Send_PreservesAnAlreadyStructuredTriggerHeader()
+    public void Reader_PreservesEventsAlreadyQueued()
     {
-        var context = ContextWithPendingTrigger("""{"fila-modal-close":true,"some-event":{"n":1}}""");
+        var (triggers, context) = NewReader("""{"fila-modal-close":true,"some-event":{"n":1}}""");
 
-        Notification.Make().Title("Saved").Success().Send(context);
+        triggers.Add("fila-notify", new { title = "Saved", color = "success" });
 
         Assert.Equal(
             """{"fila-modal-close":true,"some-event":{"n":1},"fila-notify":{"title":"Saved","color":"success"}}""",
             TriggerOf(context));
+    }
+
+    /// <summary>A detail-less event still serializes as JSON rather than htmx's bare
+    /// event-name form — one shape to append to, so nothing has to be rewritten when a second
+    /// event joins it.</summary>
+    [Fact]
+    public void Reader_WritesDetaillessEventsAsJsonToo()
+    {
+        var (triggers, context) = NewReader();
+
+        triggers.Add("fila-modal-open");
+
+        Assert.Equal("""{"fila-modal-open":true}""", TriggerOf(context));
+    }
+
+    [Fact]
+    public void Reader_OutsideARequest_SaysSoRatherThanFailingQuietly()
+    {
+        var triggers = new HxTriggerDataReader(new HttpContextAccessor { HttpContext = null });
+
+        Assert.Throws<InvalidOperationException>(() => triggers.Add("fila-notify"));
     }
 
     [Theory]
@@ -98,9 +121,9 @@ public sealed class NotificationApiTests
     }
 }
 
-/// <summary>The same guarantee as above, but end to end through the real endpoints — proving
-/// the built-in actions and the demo's own custom action both reach the frontend with the
-/// header unchanged from before Phase 5, not just that the builder can produce it.</summary>
+/// <summary>The same guarantee end to end through the real endpoints — proving the built-in
+/// actions and the demo's own custom action both reach the frontend with the toast payload
+/// unchanged from before Phase 5, not just that the pieces compose in isolation.</summary>
 public sealed class NotificationWireFormatTests(DemoAppFactory factory) : IClassFixture<DemoAppFactory>
 {
     private static string TriggerOf(HttpResponseMessage response) =>
@@ -124,9 +147,9 @@ public sealed class NotificationWireFormatTests(DemoAppFactory factory) : IClass
             TriggerOf(response));
     }
 
-    /// <summary>samples/Demo's "Mark shipped" builds its notification through the public
-    /// builder rather than the Notifies(title, color) shorthand — this is the acceptance test
-    /// that a resource author's own notification travels the same channel Fila's do.</summary>
+    /// <summary>samples/Demo's "Mark shipped" declares its notification through the public
+    /// builder — this is the acceptance test that a resource author's own notification travels
+    /// the same channel Fila's do.</summary>
     [Fact]
     public async Task CustomMarkShippedAction_SendsItsOwnNotificationThroughTheSameChannel()
     {
@@ -144,5 +167,21 @@ public sealed class NotificationWireFormatTests(DemoAppFactory factory) : IClass
 
         response.AssertNotificationTriggered(title: "Marked as shipped", color: "success");
         response.AssertModalClosed();
+    }
+
+    /// <summary>A mount carries no notification, so it queues only the open event. This is the
+    /// one payload the reader changes: it used to be htmx's bare `fila-modal-open` string.
+    /// Alpine dispatches the event identically either way, and List.cshtml's
+    /// @fila-modal-open.window listener reads only the event name.</summary>
+    [Fact]
+    public async Task Mount_QueuesTheOpenEventAlone()
+    {
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        var response = await client.GetAsync("/admin/orders/12/actions/edit");
+        response.EnsureSuccessStatusCode();
+
+        Assert.Equal("""{"fila-modal-open":true}""", TriggerOf(response));
     }
 }

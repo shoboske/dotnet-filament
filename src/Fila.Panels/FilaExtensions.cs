@@ -31,9 +31,15 @@ public static class FilaExtensions
         services.AddSingleton<ComponentViewRegistry>();
         services.AddScoped<ViewRenderer>();
 
-        // TryAdd, not Add: with two AddFilaPanel calls this runs twice, and a host that
-        // registered its own store ahead of us should keep it.
-        services.TryAddSingleton<IFilaNotificationStore>(HxTriggerNotificationStore.Instance);
+        // The one thing in the notification path that touches HttpContext, so it needs the
+        // accessor; nothing else here reaches for the current request out of band.
+        services.AddHttpContextAccessor();
+        services.TryAddScoped<IHxTriggerDataReader, HxTriggerDataReader>();
+
+        // Keyed on the panel's path (MapFilaPanel already enforces those are unique), so each
+        // panel resolves its own store and a host can give one panel a different implementation
+        // without touching the rest. TryAdd, so a store registered ahead of us wins.
+        services.TryAddKeyedScoped<IFilaNotificationStore, HxTriggerNotificationStore>(panel.Path);
 
         // Views need the MVC view engine + tempdata plumbing even though the host app
         // never registers MVC itself.
@@ -293,7 +299,7 @@ public static class FilaExtensions
             };
 
             var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionForm.cshtml", model);
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
             return Results.Content(html, "text/html");
         }
 
@@ -311,7 +317,7 @@ public static class FilaExtensions
             };
 
             var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionConfirm.cshtml", model);
-            ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+            ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
             return Results.Content(html, "text/html");
         }
 
@@ -411,10 +417,12 @@ public static class FilaExtensions
             await action.HandleCallback(actionContext);
         }
 
-        // Close the modal, then let the notification (if any) merge itself onto the same
-        // header — see HxTriggerNotificationStore for why both signals ride one HX-Trigger.
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
-        action.Notification?.Send(ctx);
+        // Both signals ride one HX-Trigger header; IHxTriggerDataReader is what lets them
+        // coexist without either clobbering the other.
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-close");
+
+        if (action.Notification is { } notification)
+            ctx.RequestServices.GetRequiredKeyedService<IFilaNotificationStore>(panel.Path).Send(notification);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
@@ -443,7 +451,7 @@ public static class FilaExtensions
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
         var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_BulkActionConfirm.cshtml", model);
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-open";
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
         return Results.Content(html, "text/html");
     }
 
@@ -474,10 +482,12 @@ public static class FilaExtensions
             await action.HandleCallback(bulkContext);
         }
 
-        // Close the modal, then let the notification (if any) merge itself onto the same
-        // header — see HxTriggerNotificationStore for why both signals ride one HX-Trigger.
-        ctx.Response.Headers["HX-Trigger"] = "fila-modal-close";
-        action.Notification?.Send(ctx);
+        // Both signals ride one HX-Trigger header; IHxTriggerDataReader is what lets them
+        // coexist without either clobbering the other.
+        ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-close");
+
+        if (action.Notification is { } notification)
+            ctx.RequestServices.GetRequiredKeyedService<IFilaNotificationStore>(panel.Path).Send(notification);
 
         return await RenderTableAsync(ctx, panel, resource, db, table, ct);
     }
