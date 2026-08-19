@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Claims;
 using Fila.Panels.Resources;
 using Fila.Support;
+using Fila.Widgets;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Panels;
@@ -22,6 +23,10 @@ public sealed class Panel
     public string? AuthorizationPolicy { get; internal set; }
     public string? LogoutPath { get; internal set; }
     public List<Type> ResourceTypes { get; } = [];
+
+    /// <summary>Widgets registered directly on this panel via .Widgets(...) — the dashboard's
+    /// own widgets, as opposed to the ones each resource contributes.</summary>
+    public List<WidgetRegistration> Widgets { get; } = [];
 
     /// <summary>Overrides the default indigo accent for this panel — set via .PrimaryColor(...).
     /// A 7-character hex string ("#rrggbb"), or null to use Fila's default.</summary>
@@ -50,6 +55,12 @@ public sealed class Panel
 
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
     public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
+
+    /// <summary>Everything the dashboard draws: this panel's own Widgets followed by each
+    /// resource's GetWidgets(), in navigation order. Resolved once by MapFilaPanel alongside
+    /// Navigation — a resource's contribution only exists on an instance, so it cannot be known
+    /// at AddFilaPanel time. Empty before routes are mapped.</summary>
+    public IReadOnlyList<WidgetRegistration> DashboardWidgets { get; internal set; } = [];
 }
 
 public sealed class PanelBuilder
@@ -126,6 +137,23 @@ public sealed class PanelBuilder
     {
         _panel.AuthenticationScheme = schemeName;
         _panel.ManagesOwnAuthenticationScheme = false;
+        return this;
+    }
+
+    /// <summary>Registers this panel's dashboard widgets, the way a Filament panel's
+    /// ->widgets([...]) does — and, like it, by naming the widget rather than instantiating it,
+    /// so a widget can take its own constructor dependencies and be activated per request out of
+    /// the request scope (the app's DbContext, an IOptions&lt;T&gt;, anything else scoped).
+    ///
+    /// <c>.Widgets(WidgetRegistration.Of&lt;RevenueChartWidget&gt;())</c>. Filament constrains
+    /// the same list to <c>class-string&lt;Widget&gt;</c> in a docblock; WidgetRegistration.Of's
+    /// type constraint makes it a compile error here instead.
+    ///
+    /// A resource contributes its own widgets separately, via Resource.GetWidgets(); those are
+    /// appended after these. Widget.Sort orders the merged list.</summary>
+    public PanelBuilder Widgets(params WidgetRegistration[] widgets)
+    {
+        _panel.Widgets.AddRange(widgets);
         return this;
     }
 

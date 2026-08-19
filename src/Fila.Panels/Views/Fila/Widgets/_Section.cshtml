@@ -1,0 +1,25 @@
+@model Fila.Widgets.Widget
+@{
+    Layout = null;
+}
+@* The header half of Filament's <x-filament::section>, which is what its chart and table
+   widgets wrap themselves in (chart-widget.blade.php). Structure and class names come from
+   packages/support/resources/views/components/section.blade.php; the widget partial that
+   includes this owns the surrounding .fi-section and .fi-section-content-ctn, because only it
+   knows whether its content wants the section's padding.
+
+   Renders nothing when the widget declares no heading — a section with no header must not draw
+   the header's border-top under it either, which is why fi-section-has-header is a class the
+   caller adds rather than something assumed. *@
+@if (Model.Heading is { } heading)
+{
+    <div class="fi-section-header">
+        <div class="fi-section-header-text-ctn">
+            <h3 class="fi-section-header-heading">@heading</h3>
+            @if (Model.Description is { } description)
+            {
+                <p class="fi-section-header-description">@description</p>
+            }
+        </div>
+    </div>
+}

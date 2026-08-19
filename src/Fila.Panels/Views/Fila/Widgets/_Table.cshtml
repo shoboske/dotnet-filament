@@ -1,0 +1,69 @@
+@model WidgetRenderModel
+@using Fila.Widgets
+@inject ComponentViewRegistry Registry
+@{
+    Layout = null;
+    var data = (TableWidgetData)Model.Data;
+    var evaluation = Model.Evaluation;
+    var columns = data.Table.Columns.Where(c => c.ResolveVisible(evaluation)).ToList();
+    var hasHeader = Model.Widget.Heading is not null;
+}
+@* Filament's table-widget.blade.php is just <x-filament-widgets::widget class="fi-wi-table">
+   around the widget's table, and that table brings its own container. Fila's equivalent
+   container is fi-ta-card (fila.css calls out that it mirrors fi-ta-ctn), so this reuses it
+   rather than nesting a section card inside a table card.
+
+   The same per-column partial dispatch the resource list page uses, minus everything
+   interactive: a dashboard table has no sortable headers, no row or bulk actions, no
+   pagination and no search. Which rows it shows is settled by the widget's own DefaultSort and
+   PaginateBy. *@
+<div class="fi-wi-table">
+    <div class="fi-ta-card@(hasHeader ? " fi-section-has-header" : "")">
+        <partial name="Fila/Widgets/_Section" model="Model.Widget" />
+
+        <div class="fi-section-content-ctn">
+            <div class="fi-ta-table-wrapper">
+                <table class="fi-ta-table">
+                    <thead>
+                        <tr>
+                            @foreach (var column in columns)
+                            {
+                                <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                                    @column.ResolveLabel(evaluation)
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in data.Rows)
+                        {
+                            <tr>
+                                @foreach (var column in columns)
+                                {
+                                    <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                                        <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                                    </td>
+                                }
+                            </tr>
+                        }
+                        @if (data.Rows.Count == 0)
+                        {
+                            <tr>
+                                <td class="fi-ta-empty-cell" colspan="@columns.Count">
+                                    <div class="fi-ta-empty-state">
+                                        <div class="fi-ta-empty-state-content">
+                                            <span class="fi-ta-empty-state-icon-bg">
+                                                @Html.Raw(IconRegistry.Render("inbox"))
+                                            </span>
+                                            <h3 class="fi-ta-empty-state-heading">Nothing to show</h3>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -13,6 +13,14 @@ public static class IconRegistry
 
     private static readonly Dictionary<string, string> Bodies = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Heroicons' own 24/outline "home" path, verbatim — Filament's Dashboard navigation
+        // icon is Heroicon::OutlinedHome (packages/panels/src/Pages/Dashboard.php).
+        // Heroicons 24/outline "arrow-trending-up" — what a Filament stat's descriptionIcon
+        // almost always is.
+        ["trending-up"] =
+            """<path d="M2.25 18 9 11.25l4.306 4.307a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22"/><path d="M21.75 9.349V15.4m0-6.051H15.7"/>""",
+        ["home"] =
+            """<path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>""",
         ["shopping-cart"] =
             """<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6"/>""",
         ["users"] =

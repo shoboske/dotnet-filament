@@ -1,0 +1,64 @@
+@model FilaDashboardViewModel
+@inject ComponentViewRegistry Registry
+@{
+    ViewBag.Title = Model.Panel.Brand;
+    ViewBag.PanelForLayout = Model.Panel;
+}
+@* The panel's landing page — Filament's Pages\Dashboard. Every widget already loaded its own
+   data before this ran (see FilaExtensions.HandleDashboardAsync), so nothing here queries.
+   This view knows only how to place widgets in a grid; each one's markup comes from whichever
+   partial its View name resolves to. *@
+<div class="fi-shell">
+
+    <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, null)" />
+
+    <div class="fi-main">
+        <div class="fi-page-header-ctn">
+            <header class="fi-header">
+                <h1 class="fi-header-heading">Dashboard</h1>
+            </header>
+        </div>
+
+        @if (Model.Widgets.Count == 0)
+        {
+            <div class="fi-wi-empty">
+                <span class="fi-wi-empty-icon-bg">
+                    @Html.Raw(IconRegistry.Render("home"))
+                </span>
+                <h3 class="fi-wi-empty-heading">No widgets yet</h3>
+                <p class="fi-wi-empty-description">
+                    Register widgets on this panel with <code>.Widgets(WidgetRegistration.Of&lt;MyWidget&gt;())</code>,
+                    or return them from a resource's <code>GetWidgets()</code>.
+                </p>
+            </div>
+        }
+        else
+        {
+            @* The grid is a schema Grid, not the deprecated <x-filament-widgets::widgets>
+               component: Pages\Dashboard::getWidgetsContentComponent() builds Grid::make(2) and
+               wraps each widget in a schema component. From the compiled 6.x theme.css:
+                 .fi-grid:not(.fi-grid-direction-col) { grid-template-columns: var(--cols-default); display: grid }
+                 .fi-grid-col                         { grid-column: var(--col-span-default) }
+                 .fi-sc.fi-sc-has-gap                 { gap: calc(var(--spacing) * 6) }
+               — so column counts and spans ride on custom properties, set inline per element
+               exactly as Filament sets them. *@
+            <div class="fi-sc fi-grid fi-sc-has-gap lg:fi-grid-cols"
+                 style="--cols-default: repeat(1, minmax(0, 1fr)); --cols-lg: repeat(2, minmax(0, 1fr))">
+                @foreach (var widget in Model.Widgets)
+                {
+                    @* A widget spanning more than one column of a two-column grid is spanning
+                       all of it, which Filament writes as `1 / -1` ('full'). `span 2` would
+                       instead create an implicit second column at the one-column default
+                       breakpoint; `1 / -1` is right at every breakpoint, which is why it needs
+                       no responsive variable alongside it. *@
+                    var span = widget.Widget.ColumnSpan >= 2 ? "1 / -1" : "span 1 / span 1";
+                    <div class="fi-grid-col" style="--col-span-default: @span">
+                        <div class="fi-sc-component">
+                            <partial name="@Registry.PartialForWidget(widget.Widget.View)" model="widget" />
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

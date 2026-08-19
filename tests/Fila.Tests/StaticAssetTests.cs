@@ -14,6 +14,7 @@ public sealed class StaticAssetTests(DemoAppFactory factory) : IClassFixture<Dem
     [Theory]
     [InlineData("/_content/Fila/fila/fila.css")]
     [InlineData("/_content/Fila/fila/fila.actions.css")]
+    [InlineData("/_content/Fila/fila/fila.widgets.css")]
     [InlineData("/_content/Fila/fila/fila.js")]
     public async Task PanelAssets_AreServedAtTheContentFilaBasePath(string path)
     {

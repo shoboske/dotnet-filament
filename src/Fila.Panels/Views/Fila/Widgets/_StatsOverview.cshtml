@@ -1,0 +1,81 @@
+@model WidgetRenderModel
+@using Fila.Widgets
+@{
+    Layout = null;
+    var stats = (IReadOnlyList<Stat>)Model.Data;
+
+    // Filament's StatsOverviewWidget::getColumns(): three across, except when that would leave a
+    // single stat stranded on its own final row (count % 3 == 1), where it uses four.
+    var columns = stats.Count >= 3 && stats.Count % 3 == 1 ? 4 : 3;
+}
+@* fi-wi-stats-overview wraps a *not-contained* section (Section::contained(false) in
+   StatsOverviewWidget::getSectionContentComponent()), so the widget draws no card of its own —
+   each stat is its own card. *@
+<div class="fi-wi-stats-overview">
+    <div class="fi-section fi-section-not-contained">
+        <partial name="Fila/Widgets/_Section" model="Model.Widget" />
+
+        <div class="fi-section-content-ctn">
+            @* Section::gridContainer() — the stats sit in the same schema grid the dashboard
+               uses, each in its own .fi-grid-col > .fi-sc-component. *@
+            <div class="fi-section-content fi-sc fi-grid fi-sc-has-gap lg:fi-grid-cols"
+                 style="--cols-default: repeat(1, minmax(0, 1fr)); --cols-lg: repeat(@columns, minmax(0, 1fr))">
+                @foreach (var stat in stats)
+                {
+                    <div class="fi-grid-col" style="--col-span-default: span 1 / span 1">
+                    <div class="fi-sc-component">
+                    <div class="fi-wi-stats-overview-stat">
+                        <div class="fi-wi-stats-overview-stat-content">
+                            <div class="fi-wi-stats-overview-stat-label-ctn">
+                                @if (stat.IconName is not null)
+                                {
+                                    @Html.Raw(IconRegistry.Render(stat.IconName))
+                                }
+                                <span class="fi-wi-stats-overview-stat-label">@stat.Label</span>
+                            </div>
+
+                            <div class="fi-wi-stats-overview-stat-value">@stat.Value</div>
+
+                            @if (stat.DescriptionText is { } description)
+                            {
+                                <div class="fi-wi-stats-overview-stat-description fi-color fi-color-@stat.DescriptionColorValue">
+                                    @* Filament's getDescriptionIconPosition() defaults to
+                                       IconPosition::After, so a trailing trend arrow is the
+                                       common case, not the exception. *@
+                                    @if (stat.DescriptionIconName is not null && stat.DescriptionIconPositionValue == "before")
+                                    {
+                                        @Html.Raw(IconRegistry.Render(stat.DescriptionIconName))
+                                    }
+                                    <span>@description</span>
+                                    @if (stat.DescriptionIconName is not null && stat.DescriptionIconPositionValue != "before")
+                                    {
+                                        @Html.Raw(IconRegistry.Render(stat.DescriptionIconName))
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (stat.ChartValues is { Count: > 1 } chartValues)
+                        {
+                            var (linePath, areaPath) = Sparkline.Build(chartValues);
+                            @* Absolutely positioned across the bottom of the card, exactly where
+                               Filament's <canvas> sits. preserveAspectRatio="none" lets it
+                               stretch to any card width the way the canvas does; the stroke is
+                               kept at 2px by vector-effect rather than being stretched with it. *@
+                            <div class="fi-wi-stats-overview-stat-chart fi-color fi-color-@stat.ChartColorValue">
+                                <svg viewBox="0 0 @Sparkline.Width @Sparkline.Height" preserveAspectRatio="none"
+                                     class="fi-wi-stats-overview-stat-chart-svg" aria-hidden="true">
+                                    <path class="fi-wi-stats-overview-stat-chart-bg-color" d="@areaPath" />
+                                    <path class="fi-wi-stats-overview-stat-chart-border-color" d="@linePath"
+                                          vector-effect="non-scaling-stroke" />
+                                </svg>
+                            </div>
+                        }
+                    </div>
+                    </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -5,6 +5,7 @@ using Fila.Panels.Resources;
 using Fila.Tables;
 using Fila.Forms;
 using Fila.Support;
+using Fila.Widgets;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -124,13 +125,18 @@ public static class FilaExtensions
         var entries = ResolveNavigationAtStartup(endpoints.ServiceProvider, panel);
         panel.Navigation = entries.Select(e => new ResourceNavItem(e.Slug, e.Label, e.NavigationIcon)).ToList();
 
-        group.MapGet("/", () =>
-        {
-            var first = entries.Count > 0 ? entries[0].Slug : null;
-            return first is null
-                ? Results.NotFound("No resources registered on this panel.")
-                : Results.Redirect($"/{panel.Path}/{first}");
-        });
+        // The panel's own widgets first, then each resource's, in navigation order. Widget.Sort
+        // reorders across both groups; ties keep this order.
+        panel.DashboardWidgets = [.. panel.Widgets, .. entries.SelectMany(e => e.Widgets)];
+
+        // The panel root is the Dashboard now, not a redirect into the first resource's list.
+        // This is a deliberate behaviour change (issue #8): a Filament panel's root is a page of
+        // widgets, and a panel root that means something different depending on how the panel
+        // happens to be configured is worse than one that always means "the dashboard" — so a
+        // panel with no widgets at all renders an empty dashboard rather than reviving the
+        // redirect.
+        group.MapGet("/", (HttpContext ctx, CancellationToken ct) =>
+            HandleDashboardAsync(ctx, panel, ct));
 
         foreach (var entry in entries)
         {
@@ -194,16 +200,24 @@ public static class FilaExtensions
         });
     }
 
-    private static List<(Type ResourceType, string Slug, string Label, string? NavigationIcon)> ResolveNavigationAtStartup(
+    /// <summary>Instantiates each resource once at startup to read the things routing needs off
+    /// it — its slug, label and icon, and the widgets it contributes to the dashboard.
+    /// GetWidgets() is an instance member, so this is the earliest point those can be known:
+    /// AddFilaPanel only ever sees resource *types*.
+    ///
+    /// Nothing validates what comes back: WidgetRegistration.Of's type constraint means a
+    /// resource cannot name a non-widget in the first place.</summary>
+    private static List<(Type ResourceType, string Slug, string Label, string? NavigationIcon, IReadOnlyList<WidgetRegistration> Widgets)> ResolveNavigationAtStartup(
         IServiceProvider services, Panel panel)
     {
-        var entries = new List<(Type, string, string, string?)>();
+        var entries = new List<(Type, string, string, string?, IReadOnlyList<WidgetRegistration>)>();
 
         using var scope = services.CreateScope();
         foreach (var resourceType in panel.ResourceTypes)
         {
             var resource = (IResource)scope.ServiceProvider.GetRequiredService(resourceType);
-            entries.Add((resourceType, resource.Slug, ResourceNaming.Humanize(resource.Slug), resource.NavigationIcon));
+
+            entries.Add((resourceType, resource.Slug, ResourceNaming.Humanize(resource.Slug), resource.NavigationIcon, resource.GetWidgets()));
         }
 
         var collisions = entries
@@ -220,6 +234,46 @@ public static class FilaExtensions
         }
 
         return entries;
+    }
+
+    /// <summary>The panel's landing page — Filament's Pages\Dashboard. Activates each
+    /// registered widget out of the request scope, has it compute its own data, and renders the
+    /// grid.
+    ///
+    /// Widgets load one after another on purpose: they all share this request's scoped
+    /// DbContext, and EF's DbContext is not thread-safe, so loading them concurrently would
+    /// race. Giving each widget its own context (an IDbContextFactory) is what a parallel
+    /// dashboard would need and is more than this phase calls for.</summary>
+    private static async Task<IResult> HandleDashboardAsync(HttpContext ctx, Panel panel, CancellationToken ct)
+    {
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+        var widgetContext = new WidgetContext { Db = db, User = ctx.User, Ct = ct };
+
+        // GetServiceOrCreateInstance, not GetRequiredService: a widget contributed by a resource
+        // cannot have been registered at AddFilaPanel time (GetWidgets() needs an instance to
+        // call), so widgets are activated rather than resolved — while still honouring a
+        // registration when the host app made one deliberately.
+        var widgets = panel.DashboardWidgets
+            .Select(registration => (Widget)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, registration.WidgetType))
+            .OrderBy(widget => widget.Sort)
+            .ToList();
+
+        var evaluation = new EvaluationContext { Db = db, User = ctx.User };
+
+        var loaded = new List<WidgetRenderModel>(widgets.Count);
+        foreach (var widget in widgets)
+            loaded.Add(new WidgetRenderModel(widget, await widget.LoadAsync(widgetContext), evaluation));
+
+        var model = new FilaDashboardViewModel
+        {
+            Panel = panel,
+            Widgets = loaded,
+            Evaluation = evaluation,
+        };
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/Dashboard.cshtml", model);
+        return Results.Content(html, "text/html");
     }
 
     private static async Task<IResult> HandleListAsync(HttpContext ctx, Panel panel, Type resourceType, CancellationToken ct)
