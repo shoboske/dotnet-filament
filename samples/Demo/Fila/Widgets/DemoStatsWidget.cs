@@ -16,6 +16,8 @@ public sealed class DemoStatsWidget(AppDb db) : StatsOverviewWidget
 {
     private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("en-US");
 
+    private const int TrendDays = 14;
+
     protected override async Task<IReadOnlyList<Stat>> GetStatsAsync(WidgetContext context)
     {
         // Matches what the Customers list shows: CustomerResource soft-deletes, and a headline
@@ -32,22 +34,45 @@ public sealed class DemoStatsWidget(AppDb db) : StatsOverviewWidget
 
         var shipped = await db.Orders.CountAsync(o => o.Status == OrderStatus.Shipped, context.Ct);
 
+        // One point per day for the sparklines, over the same fortnight the revenue chart
+        // covers. Pulled once and shaped twice rather than queried per stat.
+        var since = DateTime.UtcNow.Date.AddDays(-(TrendDays - 1));
+        var recent = await db.Orders
+            .Where(o => o.CreatedAt >= since)
+            .Select(o => new { o.CreatedAt, o.Total })
+            .ToListAsync(context.Ct);
+
+        var ordersPerDay = TrendSeries(since, recent.GroupBy(o => o.CreatedAt.Date)
+            .ToDictionary(g => g.Key, g => (decimal)g.Count()));
+
+        var revenuePerDay = TrendSeries(since, recent.GroupBy(o => o.CreatedAt.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(o => o.Total)));
+
         return
         [
             Stat.Make("Customers", customers.ToString(DisplayCulture))
-                .Icon("users")
                 .Description("Active accounts"),
 
             Stat.Make("Orders", orders.ToString(DisplayCulture))
-                .Icon("shopping-cart")
                 .Description($"{shipped} shipped")
-                .DescriptionIcon("check-circle")
-                .DescriptionColor("info"),
+                .DescriptionIcon("trending-up")
+                .DescriptionColor("info")
+                .Chart(ordersPerDay)
+                .ChartColor("info"),
 
             Stat.Make("Revenue", revenue.ToString("C", DisplayCulture))
-                .Icon("tag")
-                .Description("All time")
-                .DescriptionColor("success"),
+                .Description($"{revenuePerDay.Sum().ToString("C", DisplayCulture)} in {TrendDays} days")
+                .DescriptionIcon("trending-up")
+                .DescriptionColor("success")
+                .Chart(revenuePerDay)
+                .ChartColor("success"),
         ];
     }
+
+    /// <summary>One value per day across the window, zero-filled — a sparkline that skipped the
+    /// quiet days would compress them and overstate the trend.</summary>
+    private static List<decimal> TrendSeries(DateTime since, Dictionary<DateTime, decimal> byDay) =>
+        Enumerable.Range(0, TrendDays)
+            .Select(offset => byDay.GetValueOrDefault(since.AddDays(offset)))
+            .ToList();
 }

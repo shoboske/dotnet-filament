@@ -84,54 +84,59 @@
   padding: 0;
 }
 
-/* --- the dashboard grid -------------------------------------------------------------------
-   packages/widgets/resources/css/widget.css is just `.fi-wi { @apply gap-6 }`; the grid itself
-   comes from Dashboard::getWidgetsContentComponent() building a Grid of getColumns(), which
-   returns 2. Filament's grid helper resolves that to grid-cols-1 with lg:grid-cols-2. */
+/* --- the schema grid the dashboard and the stats row are both laid out with -----------------
+   Taken from Filament 6.x's compiled packages/panels/dist/theme.css, which is the ground truth
+   here — the source CSS builds these through a Tailwind plugin, so the compiled rules are the
+   only place the mechanism is written out:
 
-.fi-wi {
+     .fi-grid:not(.fi-grid-direction-col) { grid-template-columns: var(--cols-default); display: grid }
+     .fi-grid-col                         { grid-column: var(--col-span-default) }
+     .fi-sc.fi-sc-has-gap                 { gap: calc(var(--spacing) * 6) }
+     .fi-sc                               { font-size: var(--text-sm) }
+     .fi-sc > .fi-grid-col > .fi-sc-component { height: 100% }
+
+   Column counts and spans ride on custom properties set inline per element, which is what lets
+   one set of rules serve every grid in the app. --spacing is 0.25rem, so gap-6 is 1.5rem.
+
+   (Filament's widgets package also defines `.fi-wi { gap-6 }`, but that belongs to
+   <x-filament-widgets::widgets>, which is deprecated and is not what Pages\Dashboard uses.) */
+
+.fi-grid:not(.fi-grid-direction-col) {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.5rem; /* gap-6 */
-  align-items: start;
+  grid-template-columns: var(--cols-default);
 }
 
 @media (min-width: 64rem) { /* lg */
-  .fi-wi {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .fi-grid:not(.fi-grid-direction-col).lg\:fi-grid-cols {
+    grid-template-columns: var(--cols-lg);
   }
 }
 
-.fi-wi-widget {
-  min-width: 0; /* without this a wide table stretches its whole column */
+.fi-grid-col {
+  grid-column: var(--col-span-default);
+  min-width: 0; /* Fila addition: without it a wide table stretches its whole column */
 }
 
-/* Below lg the grid is a single column, so every widget is already full width and the span
-   only matters from lg up. Dashboard.cshtml clamps the declared span into 1..2 — a two-column
-   grid has no other meaningful values — and passes it as --fi-wi-span. */
-@media (min-width: 64rem) {
-  .fi-wi-widget {
-    grid-column: span var(--fi-wi-span, 1) / span var(--fi-wi-span, 1);
-  }
+.fi-sc {
+  font-size: 0.875rem; /* text-sm */
+}
+
+.fi-sc.fi-sc-has-gap {
+  gap: 1.5rem; /* calc(var(--spacing) * 6) */
+}
+
+/* Equal-height cards in a row, whatever their content. */
+.fi-sc > .fi-grid-col > .fi-sc-component {
+  height: 100%;
 }
 
 /* --- stats overview -----------------------------------------------------------------------
    packages/widgets/resources/css/stats-overview-widget.css. */
 
 /* StatsOverviewWidget::getColumns() returns 3, or 4 when 3 would strand a single stat on its
-   own last row. Filament expresses that as ['@xl' => n, '!@lg' => n]; this is the '!@lg'
-   fallback branch — one column until lg, n from there. */
-.fi-wi-stats-overview-stats-ctn {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.5rem; /* gap-6 */
-}
-
-@media (min-width: 64rem) { /* lg */
-  .fi-wi-stats-overview-stats-ctn {
-    grid-template-columns: repeat(var(--fi-wi-stats-columns, 3), minmax(0, 1fr));
-  }
-}
+   own last row. Filament expresses that as ['@xl' => n, '!@lg' => n]; the partial sets --cols-lg
+   from it and the schema grid rules above do the rest — this is the '!@lg' fallback branch, one
+   column until lg and n from there. */
 
 .fi-wi-stats-overview-stat {
   position: relative;
@@ -143,9 +148,13 @@
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border);
 }
 
+/* Filament's stats CSS sets only shrink-0 and the colour; the size comes from its global
+   `.fi-icon { @apply size-5 }`. Fila's global .fi-icon is 1.125rem, a deviation that predates
+   this phase and that changing would move every icon in the app, so size-5 is restated here to
+   keep the widget itself faithful. */
 .fi-wi-stats-overview-stat .fi-icon {
   flex: none; /* shrink-0 */
-  width: 1.25rem;
+  width: 1.25rem; /* size-5 */
   height: 1.25rem;
   color: var(--fi-text-muted); /* text-gray-400 dark:text-gray-500 */
 }
@@ -185,19 +194,107 @@
   color: var(--fi-text-secondary); /* text-gray-500 dark:text-gray-400 */
 }
 
-/* .fi-color on the description tints both the text and its icon — Filament's
-   `&.fi-color { @apply text-(--text); & .fi-icon { @apply text-color-500 } }`. The colour
-   vocabulary is the badge column's, so the two agree on what "success" looks like. */
-.fi-wi-stats-overview-stat-description.fi-color-gray,
-.fi-wi-stats-overview-stat-description.fi-color-gray .fi-icon { color: var(--fi-text-secondary); }
-.fi-wi-stats-overview-stat-description.fi-color-info,
-.fi-wi-stats-overview-stat-description.fi-color-info .fi-icon { color: var(--fi-badge-info-fg); }
-.fi-wi-stats-overview-stat-description.fi-color-success,
-.fi-wi-stats-overview-stat-description.fi-color-success .fi-icon { color: var(--fi-badge-success-fg); }
-.fi-wi-stats-overview-stat-description.fi-color-warning,
-.fi-wi-stats-overview-stat-description.fi-color-warning .fi-icon { color: var(--fi-badge-warning-fg); }
-.fi-wi-stats-overview-stat-description.fi-color-danger,
-.fi-wi-stats-overview-stat-description.fi-color-danger .fi-icon { color: var(--fi-badge-danger-fg); }
+/* .fi-color on the description tints the text and its icon together — Filament's
+   `&.fi-color { @apply text-(--text) dark:text-(--dark-text) }`. A rendered stat shows what
+   those resolve to: `fi-color-success fi-text-color-700 dark:fi-text-color-400`, i.e. the
+   700 shade in light and the 400 in dark.
+
+   Fila's badge foregrounds are 700 light / *300* dark, so the light halves are reused (they
+   are the same values) and the dark halves are stated as the literal 400s. --fi-color-desc is
+   set per colour and read once, so the icon cannot drift from the text. */
+.fi-wi-stats-overview-stat-description.fi-color,
+.fi-wi-stats-overview-stat-description.fi-color .fi-icon {
+  color: var(--fi-color-desc, var(--fi-text-secondary));
+}
+
+.fi-wi-stats-overview-stat-description.fi-color-gray { --fi-color-desc: var(--fi-text-secondary); }
+.fi-wi-stats-overview-stat-description.fi-color-primary { --fi-color-desc: var(--fi-accent); }
+.fi-wi-stats-overview-stat-description.fi-color-info { --fi-color-desc: var(--fi-badge-info-fg); } /* blue-700 */
+.fi-wi-stats-overview-stat-description.fi-color-success { --fi-color-desc: var(--fi-badge-success-fg); } /* green-700 */
+.fi-wi-stats-overview-stat-description.fi-color-warning { --fi-color-desc: var(--fi-badge-warning-fg); } /* amber-700 */
+.fi-wi-stats-overview-stat-description.fi-color-danger { --fi-color-desc: var(--fi-badge-danger-fg); } /* red-700 */
+
+/* dark:fi-text-color-400 — one step lighter than the badge foreground Fila uses at 300. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fi-wi-stats-overview-stat-description.fi-color-info { --fi-color-desc: #60a5fa; }
+  :root:not([data-theme="light"]) .fi-wi-stats-overview-stat-description.fi-color-success { --fi-color-desc: #4ade80; }
+  :root:not([data-theme="light"]) .fi-wi-stats-overview-stat-description.fi-color-warning { --fi-color-desc: #fbbf24; }
+  :root:not([data-theme="light"]) .fi-wi-stats-overview-stat-description.fi-color-danger { --fi-color-desc: #f87171; }
+}
+
+:root[data-theme="dark"] .fi-wi-stats-overview-stat-description.fi-color-info { --fi-color-desc: #60a5fa; }
+:root[data-theme="dark"] .fi-wi-stats-overview-stat-description.fi-color-success { --fi-color-desc: #4ade80; }
+:root[data-theme="dark"] .fi-wi-stats-overview-stat-description.fi-color-warning { --fi-color-desc: #fbbf24; }
+:root[data-theme="dark"] .fi-wi-stats-overview-stat-description.fi-color-danger { --fi-color-desc: #f87171; }
+
+/* --- stat trend sparkline -----------------------------------------------------------------
+   `& .fi-wi-stats-overview-stat-chart { @apply absolute inset-x-0 bottom-0 overflow-hidden
+   rounded-b-xl; & > canvas { @apply h-6 } ... }`. Filament paints a Chart.js line onto that
+   canvas; Fila puts an SVG of the same height in the same box (see Rendering/Sparkline.cs for
+   the geometry, which reproduces that chart's tension: 0.5 smoothing). */
+
+.fi-wi-stats-overview-stat-chart {
+  position: absolute;
+  inset-inline: 0; /* inset-x-0 */
+  bottom: 0;
+  overflow: hidden;
+  border-bottom-left-radius: 0.75rem; /* rounded-b-xl */
+  border-bottom-right-radius: 0.75rem;
+}
+
+.fi-wi-stats-overview-stat-chart-svg {
+  display: block;
+  width: 100%;
+  height: 1.5rem; /* h-6, the canvas's height */
+}
+
+/* Uncoloured: `bg-color: text-gray-100 dark:text-gray-800` (exactly --fi-hover-bg) and
+   `border-color: text-gray-400` — the same gray in both themes, so it is not --fi-text-muted,
+   which flips. */
+.fi-wi-stats-overview-stat-chart-bg-color {
+  fill: var(--fi-hover-bg);
+  stroke: none;
+}
+
+.fi-wi-stats-overview-stat-chart-border-color {
+  fill: none;
+  stroke: #a1a1aa; /* gray-400, both themes */
+  stroke-width: 2; /* borderWidth: 2 */
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Coloured: `bg-color: text-color-50 dark:text-color-400/10`, `border-color: text-color-500
+   dark:text-color-400`. The 50-shades are already Fila's badge backgrounds; the 500/400 line
+   shades are not — Fila's badge foregrounds are 700/300, which would draw the line far darker
+   than Filament's, so the literal Tailwind 500/400 values are used. */
+.fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-accent-soft-bg); }
+.fi-color-primary .fi-wi-stats-overview-stat-chart-border-color { stroke: var(--fi-accent); }
+
+.fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-info-bg); }
+.fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #3b82f6; } /* blue-500 */
+
+.fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-success-bg); }
+.fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #22c55e; } /* green-500 */
+
+.fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-warning-bg); }
+.fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #f59e0b; } /* amber-500 */
+
+.fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-danger-bg); }
+.fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #ef4444; } /* red-500 */
+
+/* dark:text-color-400 — one step lighter, so the line still reads on a dark card. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
+  :root:not([data-theme="light"]) .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
+  :root:not([data-theme="light"]) .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
+  :root:not([data-theme="light"]) .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+}
+
+:root[data-theme="dark"] .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
+:root[data-theme="dark"] .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
+:root[data-theme="dark"] .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
+:root[data-theme="dark"] .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
 
 /* --- chart --------------------------------------------------------------------------------
    packages/widgets/resources/css/chart-widget.css. */
