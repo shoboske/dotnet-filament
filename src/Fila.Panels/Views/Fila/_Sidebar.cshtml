@@ -28,6 +28,16 @@
                 <span>@item.Label</span>
             </a>
         }
+        @foreach (var pageItem in Model.Panel.PageNavigation)
+        {
+            var isActive = pageItem.Slug == Model.ActiveSlug;
+            <a class="fi-sidebar-link@(isActive ? " fi-sidebar-link-active" : "")"
+               href="/@Model.Panel.Path/@pageItem.Slug"
+               aria-current="@(isActive ? "page" : null)">
+                @Html.Raw(IconRegistry.Render(pageItem.NavigationIcon))
+                <span>@pageItem.Label</span>
+            </a>
+        }
     </nav>
 
     @if (Model.Panel.LogoutPath is not null && Context.User.Identity?.IsAuthenticated == true)

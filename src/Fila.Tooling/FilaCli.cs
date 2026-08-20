@@ -1,7 +1,9 @@
 using System.Reflection;
 using Fila.Panels;
+using Fila.Tooling.FileGenerators;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Fila.Tooling;
@@ -31,6 +33,22 @@ public static class FilaCli
 
             case "make:resource":
                 await MakeResourceAsync(app, rest[1..]);
+                break;
+
+            case "make:page":
+                MakePage(app, rest[1..]);
+                break;
+
+            case "make:widget":
+                MakeWidget(app, rest[1..]);
+                break;
+
+            case "make:relation-manager":
+                await MakeRelationManagerAsync(app, rest[1..]);
+                break;
+
+            case "make:action":
+                MakeAction(app, rest[1..]);
                 break;
 
             case "--help" or "-h" or "help":
@@ -71,6 +89,10 @@ public static class FilaCli
             Usage:
               {Invocation} make:panel <Name>
               {Invocation} make:resource <Entity> [--context <Name>] [--force]
+              {Invocation} make:page <Name> [--force]
+              {Invocation} make:widget <Name> [--force]
+              {Invocation} make:relation-manager <Parent> <Related> [--context <Name>] [--force]
+              {Invocation} make:action <Name> [--force]
 
             """);
     }
@@ -172,26 +194,10 @@ public static class FilaCli
 
         using var scope = app.Services.CreateScope();
 
-        var contextType = contextName is not null
-            ? FindTypeByName(app, contextName)
-            : GetPanelDbContextType(scope) ?? FindDbContextType(app);
+        if (ResolveDbContext(app, scope, contextName) is not { } resolved) return;
+        var (contextType, db) = resolved;
 
-        if (contextType is null)
-        {
-            Fail("No DbContext found. Pass --context <Name> or register one via .UseDbContext<T>() in AddFilaPanel.");
-            return;
-        }
-
-        if (scope.ServiceProvider.GetService(contextType) is not DbContext db)
-        {
-            Fail($"Could not resolve '{contextType.Name}' from the service provider. Is it registered in Program.cs?");
-            return;
-        }
-
-        var entityType = db.Model.GetEntityTypes()
-            .FirstOrDefault(t =>
-                string.Equals(t.ClrType.Name, entityName, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(t.ClrType.FullName, entityName, StringComparison.OrdinalIgnoreCase));
+        var entityType = FindEntityType(db, entityName);
 
         if (entityType is null)
         {
@@ -209,7 +215,7 @@ public static class FilaCli
             .FirstOrDefault(p => p.DbContextType == contextType);
         var panelPath = owningPanel?.Path ?? "admin";
 
-        var result = Scaffolder.Scaffold(entityType, rootNamespace, panelPath);
+        var result = ResourceClassGenerator.Generate(entityType, rootNamespace, panelPath);
 
         var dir = Path.Combine(app.Environment.ContentRootPath, "Fila", "Resources");
         Directory.CreateDirectory(dir);
@@ -233,7 +239,232 @@ public static class FilaCli
         Console.WriteLine();
     }
 
+    // ---- make:page ---------------------------------------------------
+
+    private static void MakePage(WebApplication app, string[] args)
+    {
+        var (positional, flags) = ParseArgs(args);
+        if (positional.Count == 0)
+        {
+            Fail($"Usage: {Invocation} make:page <Name>");
+            return;
+        }
+
+        var name = positional[0];
+        var force = flags.Contains("force");
+        var rootNamespace = app.Environment.ApplicationName;
+
+        var result = PageClassGenerator.Generate(name, rootNamespace);
+
+        var classDir = Path.Combine(app.Environment.ContentRootPath, "Fila", "Pages");
+        Directory.CreateDirectory(classDir);
+        var classPath = Path.Combine(classDir, $"{name}Page.cs");
+        var classRelativePath = Path.GetRelativePath(app.Environment.ContentRootPath, classPath);
+
+        var viewPath = Path.Combine(app.Environment.ContentRootPath, result.ViewRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var viewRelativePath = Path.GetRelativePath(app.Environment.ContentRootPath, viewPath);
+
+        if (!force && (File.Exists(classPath) || File.Exists(viewPath)))
+        {
+            Fail($"'{classRelativePath}' or '{viewRelativePath}' already exists. Pass --force to overwrite.");
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(viewPath)!);
+        File.WriteAllText(classPath, result.ClassSource);
+        File.WriteAllText(viewPath, result.ViewSource);
+
+        Console.WriteLine();
+        Console.WriteLine($"  Created  {classRelativePath}");
+        Console.WriteLine($"           {viewRelativePath}");
+        Console.WriteLine();
+        Console.WriteLine("  Register it on a panel:");
+        Console.WriteLine();
+        Console.WriteLine($"      .Pages(PageRegistration.Of<{name}Page>())");
+        Console.WriteLine();
+    }
+
+    // ---- make:widget ---------------------------------------------------
+
+    private static void MakeWidget(WebApplication app, string[] args)
+    {
+        var (positional, flags) = ParseArgs(args);
+        if (positional.Count == 0)
+        {
+            Fail($"Usage: {Invocation} make:widget <Name>");
+            return;
+        }
+
+        var name = positional[0];
+        var force = flags.Contains("force");
+        var rootNamespace = app.Environment.ApplicationName;
+
+        var result = WidgetClassGenerator.Generate(name, rootNamespace);
+
+        var dir = Path.Combine(app.Environment.ContentRootPath, "Fila", "Widgets");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"{name}Widget.cs");
+        var relativePath = Path.GetRelativePath(app.Environment.ContentRootPath, path);
+
+        if (File.Exists(path) && !force)
+        {
+            Fail($"'{relativePath}' already exists. Pass --force to overwrite.");
+            return;
+        }
+
+        File.WriteAllText(path, result.Source);
+
+        Console.WriteLine();
+        Console.WriteLine($"  Created  {relativePath}");
+        Console.WriteLine();
+        Console.WriteLine("  Register it — on a panel:");
+        Console.WriteLine();
+        Console.WriteLine($"      .Widgets(WidgetRegistration.Of<{name}Widget>())");
+        Console.WriteLine();
+        Console.WriteLine("  or on a resource:");
+        Console.WriteLine();
+        Console.WriteLine($"      GetWidgets() => [WidgetRegistration.Of<{name}Widget>()]");
+        Console.WriteLine();
+    }
+
+    // ---- make:relation-manager ---------------------------------------------------
+
+    private static async Task MakeRelationManagerAsync(WebApplication app, string[] args)
+    {
+        var (positional, flags) = ParseArgs(args);
+        if (positional.Count < 2)
+        {
+            Fail($"Usage: {Invocation} make:relation-manager <Parent> <Related> [--context <Name>] [--force]");
+            return;
+        }
+
+        var parentName = positional[0];
+        var relatedName = positional[1];
+        var force = flags.Contains("force");
+        var contextName = GetFlagValue(args, "--context");
+        var rootNamespace = app.Environment.ApplicationName;
+
+        using var scope = app.Services.CreateScope();
+
+        if (ResolveDbContext(app, scope, contextName) is not { } resolved) return;
+        var (contextType, db) = resolved;
+
+        var parentType = FindEntityType(db, parentName);
+        var relatedType = FindEntityType(db, relatedName);
+
+        if (parentType is null || relatedType is null)
+        {
+            var missing = parentType is null ? parentName : relatedName;
+            var available = db.Model.GetEntityTypes().Select(t => t.ClrType.Name).OrderBy(n => n);
+            Console.Error.WriteLine();
+            Console.Error.WriteLine($"  Entity '{missing}' not found in {contextType.Name}.");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine($"  Available: {string.Join(", ", available)}");
+            Console.Error.WriteLine();
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        var result = RelationManagerClassGenerator.Generate(parentType, relatedType, rootNamespace);
+        if (result is null)
+        {
+            Fail($"{relatedType.ClrType.Name} has no foreign key back to {parentType.ClrType.Name} — " +
+                 "a relation manager needs a one-to-many relationship.");
+            return;
+        }
+
+        var dir = Path.Combine(app.Environment.ContentRootPath, "Fila", "RelationManagers");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"{relatedType.ClrType.Name}RelationManager.cs");
+        var relativePath = Path.GetRelativePath(app.Environment.ContentRootPath, path);
+
+        if (File.Exists(path) && !force)
+        {
+            Fail($"'{relativePath}' already exists. Pass --force to overwrite.");
+            return;
+        }
+
+        await File.WriteAllTextAsync(path, result.Source);
+
+        Console.WriteLine();
+        Console.WriteLine($"  Created  {relativePath}");
+        Console.WriteLine($"           {result.ColumnCount} columns from {contextType.Name} → {relatedType.ClrType.Name}");
+        Console.WriteLine();
+        Console.WriteLine($"  Add to {parentType.ClrType.Name}Resource:");
+        Console.WriteLine();
+        Console.WriteLine($"      GetRelations() => [RelationManagerRegistration.Of<{relatedType.ClrType.Name}RelationManager>()]");
+        Console.WriteLine();
+    }
+
+    // ---- make:action ---------------------------------------------------
+
+    private static void MakeAction(WebApplication app, string[] args)
+    {
+        var (positional, flags) = ParseArgs(args);
+        if (positional.Count == 0)
+        {
+            Fail($"Usage: {Invocation} make:action <Name>");
+            return;
+        }
+
+        var name = positional[0];
+        var force = flags.Contains("force");
+        var rootNamespace = app.Environment.ApplicationName;
+
+        var result = ActionClassGenerator.Generate(name, rootNamespace);
+
+        var dir = Path.Combine(app.Environment.ContentRootPath, "Fila", "Actions");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"{name}Action.cs");
+        var relativePath = Path.GetRelativePath(app.Environment.ContentRootPath, path);
+
+        if (File.Exists(path) && !force)
+        {
+            Fail($"'{relativePath}' already exists. Pass --force to overwrite.");
+            return;
+        }
+
+        File.WriteAllText(path, result.Source);
+
+        Console.WriteLine();
+        Console.WriteLine($"  Created  {relativePath}");
+        Console.WriteLine();
+        Console.WriteLine("  Add to a resource's .Actions(...) or .BulkActions(...):");
+        Console.WriteLine();
+        Console.WriteLine($"      {name}Action.Instance");
+        Console.WriteLine();
+    }
+
     // ---- helpers ----------------------------------------------------
+
+    /// <summary>Shared by every make:* command that needs a DbContext + its EF model —
+    /// make:resource and make:relation-manager. Prints its own failure message and returns null
+    /// so a caller can just early-return on a null result.</summary>
+    private static (Type ContextType, DbContext Db)? ResolveDbContext(WebApplication app, IServiceScope scope, string? contextName)
+    {
+        var contextType = contextName is not null
+            ? FindTypeByName(app, contextName)
+            : GetPanelDbContextType(scope) ?? FindDbContextType(app);
+
+        if (contextType is null)
+        {
+            Fail("No DbContext found. Pass --context <Name> or register one via .UseDbContext<T>() in AddFilaPanel.");
+            return null;
+        }
+
+        if (scope.ServiceProvider.GetService(contextType) is not DbContext db)
+        {
+            Fail($"Could not resolve '{contextType.Name}' from the service provider. Is it registered in Program.cs?");
+            return null;
+        }
+
+        return (contextType, db);
+    }
+
+    private static IEntityType? FindEntityType(DbContext db, string name) =>
+        db.Model.GetEntityTypes().FirstOrDefault(t =>
+            string.Equals(t.ClrType.Name, name, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(t.ClrType.FullName, name, StringComparison.OrdinalIgnoreCase));
 
     private static (List<string> Positional, HashSet<string> Flags) ParseArgs(string[] args)
     {

@@ -1,5 +1,6 @@
 using Fila.Actions;
 using Fila.Notifications;
+using Fila.Panels.Pages;
 using Fila.Panels.Rendering;
 using Fila.Panels.RelationManagers;
 using Fila.Panels.Resources;
@@ -130,6 +131,9 @@ public static class FilaExtensions
         // reorders across both groups; ties keep this order.
         panel.DashboardWidgets = [.. panel.Widgets, .. entries.SelectMany(e => e.Widgets)];
 
+        var pageTypes = ResolvePagesAtStartup(endpoints.ServiceProvider, panel, entries.Select(e => e.Slug));
+        panel.PageNavigation = pageTypes.Select(p => new PageNavItem(p.Slug, p.Title, p.NavigationIcon)).ToList();
+
         // The panel root is the Dashboard now, not a redirect into the first resource's list.
         // This is a deliberate behaviour change (issue #8): a Filament panel's root is a page of
         // widgets, and a panel root that means something different depending on how the panel
@@ -183,6 +187,12 @@ public static class FilaExtensions
 
             group.MapPost($"/{entry.Slug}/bulk-actions/{{name}}", (HttpContext ctx, string name, CancellationToken ct) =>
                 HandleBulkActionExecuteAsync(ctx, panel, entry.ResourceType, name, ct));
+        }
+
+        foreach (var page in pageTypes)
+        {
+            group.MapGet($"/{page.Slug}", (HttpContext ctx, CancellationToken ct) =>
+                HandlePageAsync(ctx, panel, page.PageType, ct));
         }
     }
 
@@ -251,6 +261,61 @@ public static class FilaExtensions
         }
 
         return entries;
+    }
+
+    /// <summary>Activates each registered page once at startup to read its Slug/Title/
+    /// NavigationIcon, the same reason ResolveNavigationAtStartup does for resources — these
+    /// are instance members PanelBuilder.Pages(...) only ever saw as a type. The instances
+    /// themselves are discarded once this returns; HandlePageAsync activates a fresh one per
+    /// request out of that request's own scope, the same as a widget or relation manager.</summary>
+    private static List<(Type PageType, string Slug, string Title, string? NavigationIcon)> ResolvePagesAtStartup(
+        IServiceProvider services, Panel panel, IEnumerable<string> resourceSlugs)
+    {
+        var pages = new List<(Type, string, string, string?)>();
+
+        using var scope = services.CreateScope();
+        foreach (var registration in panel.Pages)
+        {
+            var page = (Page)ActivatorUtilities.GetServiceOrCreateInstance(scope.ServiceProvider, registration.PageType);
+            pages.Add((registration.PageType, page.Slug, page.Title, page.NavigationIcon));
+        }
+
+        var collisions = pages
+            .GroupBy(p => p.Item2)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .Concat(pages.Select(p => p.Item2).Intersect(resourceSlugs))
+            .Distinct()
+            .ToList();
+
+        if (collisions.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Multiple pages/resources on panel '{panel.Path}' resolve to the same slug: " +
+                $"{string.Join(", ", collisions)}. Override the Slug property on one of them.");
+        }
+
+        return pages;
+    }
+
+    /// <summary>A custom page's own route — Filament's Pages\Page rendered outside any resource.
+    /// Activates a fresh instance out of the request scope (mirroring how a widget or relation
+    /// manager is activated), then renders whatever view it names with itself as the model.</summary>
+    private static async Task<IResult> HandlePageAsync(HttpContext ctx, Panel panel, Type pageType, CancellationToken ct)
+    {
+        var page = (Page)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, pageType);
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+
+        var model = new FilaPageViewModel
+        {
+            Panel = panel,
+            Page = page,
+            Evaluation = new EvaluationContext { Db = db, User = ctx.User },
+        };
+
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, page.ViewPath, model);
+        return Results.Content(html, "text/html");
     }
 
     /// <summary>The panel's landing page — Filament's Pages\Dashboard. Activates each
