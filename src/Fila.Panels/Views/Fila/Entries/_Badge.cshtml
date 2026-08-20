@@ -1,0 +1,5 @@
+@model EntryRenderModel
+@{
+    var tone = Model.Entry.GetBadgeColor(Model.Record) ?? "neutral";
+}
+<span class="fi-badge fi-badge-@tone">@Model.Entry.FormatDisplay(Model.Record)</span>

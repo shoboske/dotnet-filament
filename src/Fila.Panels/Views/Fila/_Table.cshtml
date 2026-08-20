@@ -114,7 +114,7 @@
                                                 <div class="fi-dropdown-list">
                                                     @foreach (var grouped in group.Actions.Where(a => a.ResolveVisible(rowEvaluation)))
                                                     {
-                                                        @if (grouped.SchemaFactory is not null || grouped.RequiresConfirmationFlag)
+                                                        @if (grouped.Name == "view" || grouped.SchemaFactory is not null || grouped.RequiresConfirmationFlag)
                                                         {
                                                             <button type="button" class="fi-dropdown-list-item"
                                                                     hx-get="@rowActionUrl/@grouped.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
@@ -143,7 +143,7 @@
                                                 @Html.Raw(IconRegistry.Render(action.IconName))
                                             </a>
                                         }
-                                        else if (action.SchemaFactory is not null || action.RequiresConfirmationFlag)
+                                        else if (action.Name == "view" || action.SchemaFactory is not null || action.RequiresConfirmationFlag)
                                         {
                                             <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
                                                     hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">

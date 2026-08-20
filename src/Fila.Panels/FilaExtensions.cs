@@ -496,6 +496,33 @@ public static class FilaExtensions
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
 
+        // The built-in View action mounts an infolist rather than a form — Fila.Actions
+        // doesn't depend on Fila.Infolists (see ViewAction's own doc comment), so it carries no
+        // SchemaFactory of its own; Fila.Panels, which already depends on everything, resolves
+        // the resource's infolist directly whenever it sees this specific built-in by name, the
+        // same way BuildTable() only ever attaches it once BuildInfolist() is non-null.
+        if (action.Name == "view")
+        {
+            var infolist = resource.BuildInfolist();
+            if (infolist is null) return Results.NotFound();
+
+            var evaluation = EvaluationContextFor(ctx, db, entity, EmptyState);
+
+            var model = new FilaActionInfolistViewModel
+            {
+                Panel = panel,
+                Resource = resource,
+                Action = action,
+                Infolist = infolist,
+                Entity = entity,
+                Evaluation = evaluation,
+            };
+
+            var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_ActionInfolist.cshtml", model);
+            ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-open");
+            return Results.Content(html, "text/html");
+        }
+
         if (action.SchemaFactory is not null)
         {
             var form = action.SchemaFactory();

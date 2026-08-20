@@ -1,4 +1,5 @@
 using Fila.Forms;
+using Fila.Infolists;
 using Fila.Support;
 using Fila.Tables;
 using Fila.Widgets;
@@ -20,10 +21,12 @@ public sealed class ComponentViewRegistry
     private const string DefaultFieldView = "input";
     private const string DefaultColumnView = "text";
     private const string DefaultWidgetView = "widget";
+    private const string DefaultEntryView = "text";
 
     private readonly Dictionary<string, string> _fieldPartials = new();
     private readonly Dictionary<string, string> _columnPartials = new();
     private readonly Dictionary<string, string> _widgetPartials = new();
+    private readonly Dictionary<string, string> _entryPartials = new();
 
     public ComponentViewRegistry()
     {
@@ -39,6 +42,9 @@ public sealed class ComponentViewRegistry
         RegisterWidget("stats-overview", "Fila/Widgets/_StatsOverview");
         RegisterWidget("table", "Fila/Widgets/_Table");
         RegisterWidget("chart", "Fila/Widgets/_Chart");
+
+        RegisterEntry(DefaultEntryView, "Fila/Entries/_Text");
+        RegisterEntry("badge", "Fila/Entries/_Badge");
     }
 
     public ComponentViewRegistry RegisterField(string view, string partialPath)
@@ -59,6 +65,12 @@ public sealed class ComponentViewRegistry
         return this;
     }
 
+    public ComponentViewRegistry RegisterEntry(string view, string partialPath)
+    {
+        _entryPartials[view] = partialPath;
+        return this;
+    }
+
     public string PartialForField(string view) =>
         _fieldPartials.TryGetValue(view, out var partial) ? partial : _fieldPartials[DefaultFieldView];
 
@@ -67,15 +79,21 @@ public sealed class ComponentViewRegistry
 
     public string PartialForWidget(string view) =>
         _widgetPartials.TryGetValue(view, out var partial) ? partial : _widgetPartials[DefaultWidgetView];
+
+    public string PartialForEntry(string view) =>
+        _entryPartials.TryGetValue(view, out var partial) ? partial : _entryPartials[DefaultEntryView];
 }
 
 /// <summary>What a field partial needs to render its control — everything the form-rendering
-/// view already computed per field before the dispatch existed. Disabled is true only for
-/// ViewAction's read-only mount.</summary>
+/// view already computed per field before the dispatch existed.</summary>
 public sealed record FieldRenderModel(IFormField Field, EvaluationContext Evaluation, string FieldId, string? RawValue, bool Disabled = false);
 
 /// <summary>What a column partial needs to render one cell.</summary>
 public sealed record ColumnRenderModel(ITableColumn Column, object Row);
+
+/// <summary>What an entry partial needs to render one value — the infolist counterpart to
+/// ColumnRenderModel.</summary>
+public sealed record EntryRenderModel(IEntry Entry, object Record);
 
 /// <summary>What a widget partial needs: the widget itself (for its heading, and for any
 /// setting the partial reads off the concrete type), whatever its LoadAsync returned, and the

@@ -1,0 +1,38 @@
+@model FilaActionInfolistViewModel
+@inject ComponentViewRegistry Registry
+@{
+    Layout = null;
+    var evaluation = Model.Evaluation;
+}
+<div class="fi-modal-header">
+    <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
+    <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
+        @Html.Raw(IconRegistry.Render("x"))
+    </button>
+</div>
+
+<div class="fi-modal-content">
+    @foreach (var entry in Model.Infolist.Entries.Where(e => e.ResolveVisible(evaluation)))
+    {
+        <div class="fi-in-entry">
+            <div class="fi-in-entry-label-col">
+                <div class="fi-in-entry-label-ctn">
+                    <div class="fi-in-entry-label" role="term">@entry.ResolveLabel(evaluation)</div>
+                </div>
+            </div>
+            <div class="fi-in-entry-content-col">
+                <div class="fi-in-entry-content-ctn" role="definition">
+                    <div class="fi-in-entry-content">
+                        <partial name="@Registry.PartialForEntry(entry.View)" model="new EntryRenderModel(entry, Model.Entity)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="fi-modal-footer">
+    <div class="fi-modal-footer-actions">
+        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Close</button>
+    </div>
+</div>

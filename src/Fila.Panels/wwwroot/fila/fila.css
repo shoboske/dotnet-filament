@@ -12,6 +12,7 @@
 @import "fila.actions.css";
 @import "fila.widgets.css";
 @import "fila.relation-managers.css";
+@import "fila.infolists.css";
 
 *,
 *::before,
