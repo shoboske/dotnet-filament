@@ -153,7 +153,8 @@ public abstract class Resource<TEntity> : IResource
         : CreateAction.Make(
             $"Create {ResourceNaming.SingularLabel(Slug)}",
             () => BuildForm()!,
-            ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: true, ctx.Ct));
+            ctx => SaveAsync(ctx.Db, ctx.Record!, isNew: true, ctx.Ct))
+            .Label($"New {ResourceNaming.SingularLabel(Slug)}");
 
     /// <summary>Wires EditAction to this resource. Exposed as protected so a resource that calls
     /// .Actions(...) itself (see samples/Demo's OrderResource) can still include the built-in
