@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Security.Claims;
+using Fila.Panels.Pages;
 using Fila.Panels.Resources;
 using Fila.Support;
 using Fila.Widgets;
@@ -10,6 +11,9 @@ namespace Fila.Panels;
 /// <summary>One entry in the panel's navigation, resolved once at startup alongside route
 /// registration — see FilaExtensions.MapFilaPanel.</summary>
 public sealed record ResourceNavItem(string Slug, string Label, string? NavigationIcon);
+
+/// <summary>A custom page's own navigation entry — the Pages counterpart to ResourceNavItem.</summary>
+public sealed record PageNavItem(string Slug, string Label, string? NavigationIcon);
 
 public sealed class Panel
 {
@@ -27,6 +31,10 @@ public sealed class Panel
     /// <summary>Widgets registered directly on this panel via .Widgets(...) — the dashboard's
     /// own widgets, as opposed to the ones each resource contributes.</summary>
     public List<WidgetRegistration> Widgets { get; } = [];
+
+    /// <summary>Custom pages registered on this panel via .Pages(...) — free-standing screens
+    /// not bound to any resource.</summary>
+    public List<PageRegistration> Pages { get; } = [];
 
     /// <summary>Overrides the default indigo accent for this panel — set via .PrimaryColor(...).
     /// A 7-character hex string ("#rrggbb"), or null to use Fila's default.</summary>
@@ -55,6 +63,12 @@ public sealed class Panel
 
     /// <summary>Populated once by MapFilaPanel; empty before routes are mapped.</summary>
     public IReadOnlyList<ResourceNavItem> Navigation { get; internal set; } = [];
+
+    /// <summary>This panel's custom pages, in registration order. Populated once by
+    /// MapFilaPanel alongside Navigation — a page's Slug/Title/NavigationIcon are instance
+    /// members (they can be overridden per-page), so this is the earliest point they're known.
+    /// Empty before routes are mapped.</summary>
+    public IReadOnlyList<PageNavItem> PageNavigation { get; internal set; } = [];
 
     /// <summary>Everything the dashboard draws: this panel's own Widgets followed by each
     /// resource's GetWidgets(), in navigation order. Resolved once by MapFilaPanel alongside
@@ -154,6 +168,18 @@ public sealed class PanelBuilder
     public PanelBuilder Widgets(params WidgetRegistration[] widgets)
     {
         _panel.Widgets.AddRange(widgets);
+        return this;
+    }
+
+    /// <summary>Registers custom pages on this panel — free-standing screens not bound to any
+    /// resource, the way a Filament panel's ->pages([...]) does. Named rather than instantiated
+    /// for the same reason .Widgets(...) is: a page is activated per request out of the request
+    /// scope, so it can take its own constructor dependencies.
+    ///
+    /// <c>.Pages(PageRegistration.Of&lt;SettingsPage&gt;())</c>.</summary>
+    public PanelBuilder Pages(params PageRegistration[] pages)
+    {
+        _panel.Pages.AddRange(pages);
         return this;
     }
 
