@@ -23,9 +23,12 @@ if (window.htmx) {
   })
 
   // A fresh #fila-table swap always renders its checkboxes unchecked, so any stale count
-  // held by the toolbar's dropdown (outside the swapped region) must reset with it.
-  htmx.on('#fila-table', 'htmx:afterSwap', () => {
-    if (window.Alpine) Alpine.store('bulkSelection').count = 0
+  // held by the toolbar's dropdown (outside the swapped region) must reset with it. Delegated
+  // on document.body rather than htmx.on('#fila-table', ...) — that 3-arg form resolves the
+  // selector immediately via querySelector and throws on any page without a table (Dashboard,
+  // Login, ...), since fila.js loads site-wide, not just on List pages.
+  htmx.on(document.body, 'htmx:afterSwap', (e) => {
+    if (e.target.id === 'fila-table' && window.Alpine) Alpine.store('bulkSelection').count = 0
   })
 }
 

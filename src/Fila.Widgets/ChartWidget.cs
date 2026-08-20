@@ -21,13 +21,13 @@ public sealed record ChartData(
 /// GetData, and the chart kind behind <see cref="Type"/> (Filament's abstract getType(), which
 /// its LineChartWidget/BarChartWidget subclasses exist only to override).
 ///
-/// Drawn as inline SVG by the panel's chart partial. Filament paints onto a &lt;canvas&gt;
-/// with Chart.js; Fila has vendored or hand-rolled its whole frontend so far (fila.css,
-/// IconRegistry's inlined icons) and the issue rules out a CDN script, so the same chart is
-/// server-rendered instead. The trade is that the built-in partial draws "line" and nothing
-/// else — the other types Filament ships (bar, pie, doughnut, radar, ...) are backlog, per the
-/// issue's non-goals. Type is still the seam they arrive through: a consumer can register their
-/// own partial for a view today and a future built-in can branch on it.</summary>
+/// Painted onto a &lt;canvas&gt; by Chart.js, same as Filament — vendored locally rather than
+/// pulled from a CDN, the same way Fila's own frontend (fila.css, IconRegistry's inlined icons)
+/// has no CDN dependency either. See wwwroot/fila/vendor and fila.charts.js. The trade is that
+/// the built-in partial draws "line" and nothing else — the other types Filament ships (bar,
+/// pie, doughnut, radar, ...) are backlog, per the issue's non-goals. Type is still the seam
+/// they arrive through: a consumer can register their own partial for a view today and a future
+/// built-in can branch on it.</summary>
 public abstract class ChartWidget : Widget
 {
     public sealed override string View => "chart";

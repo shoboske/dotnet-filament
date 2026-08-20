@@ -1,4 +1,5 @@
 @model WidgetRenderModel
+@using System.Text.Json
 @using Fila.Widgets
 @{
     Layout = null;
@@ -57,18 +58,14 @@
 
                         @if (stat.ChartValues is { Count: > 1 } chartValues)
                         {
-                            var (linePath, areaPath) = Sparkline.Build(chartValues);
+                            var sparklinePayload = JsonSerializer.Serialize(new { values = chartValues });
                             @* Absolutely positioned across the bottom of the card, exactly where
-                               Filament's <canvas> sits. preserveAspectRatio="none" lets it
-                               stretch to any card width the way the canvas does; the stroke is
-                               kept at 2px by vector-effect rather than being stretched with it. *@
-                            <div class="fi-wi-stats-overview-stat-chart fi-color fi-color-@stat.ChartColorValue">
-                                <svg viewBox="0 0 @Sparkline.Width @Sparkline.Height" preserveAspectRatio="none"
-                                     class="fi-wi-stats-overview-stat-chart-svg" aria-hidden="true">
-                                    <path class="fi-wi-stats-overview-stat-chart-bg-color" d="@areaPath" />
-                                    <path class="fi-wi-stats-overview-stat-chart-border-color" d="@linePath"
-                                          vector-effect="non-scaling-stroke" />
-                                </svg>
+                               Filament's <canvas> sits. *@
+                            <div class="fi-wi-stats-overview-stat-chart fi-color fi-color-@stat.ChartColorValue"
+                                 data-fila-sparkline="@sparklinePayload">
+                                <canvas class="fi-wi-stats-overview-stat-chart-canvas" aria-hidden="true"></canvas>
+                                <span class="fi-wi-stats-overview-stat-chart-bg-color"></span>
+                                <span class="fi-wi-stats-overview-stat-chart-border-color"></span>
                             </div>
                         }
                     </div>
