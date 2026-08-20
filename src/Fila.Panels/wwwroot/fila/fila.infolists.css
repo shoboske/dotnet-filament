@@ -1,0 +1,50 @@
+/* Fila — infolist entries (View action mount). Imported by fila.css the same way
+   fila.actions.css/fila.widgets.css are.
+
+   Class names and values are taken from filamentphp/filament 6.x —
+   packages/infolists/resources/css/components/entry.css and the entry-wrapper markup in
+   packages/infolists/resources/views/components/entry-wrapper.blade.php — with Tailwind's
+   utilities resolved to their literal values the same way the rest of fila.css was calibrated.
+   Only the plain (non-inline-label, non-url/action, non-aligned) shape is ported, matching this
+   phase's entry types: TextEntry has no alignment/url/action setting of its own yet. */
+
+.fi-in-entry {
+  display: grid;
+  row-gap: 0.5rem; /* gap-y-2 */
+}
+
+.fi-in-entry-label-col {
+  display: grid;
+  row-gap: 0.5rem; /* gap-y-2 */
+}
+
+.fi-in-entry-label-ctn {
+  display: flex;
+  align-items: flex-start;
+  column-gap: 0.75rem; /* gap-x-3 */
+}
+
+.fi-in-entry-label {
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+  font-weight: 500; /* font-medium */
+  color: var(--fi-text); /* text-gray-950 dark:text-white */
+}
+
+.fi-in-entry-content-col {
+  display: grid;
+  row-gap: 0.5rem; /* gap-y-2 */
+}
+
+.fi-in-entry-content-ctn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  column-gap: 0.75rem; /* gap-x-3 */
+}
+
+.fi-in-entry-content {
+  display: block;
+  width: 100%;
+  text-align: start;
+}
