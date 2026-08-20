@@ -47,7 +47,7 @@
         <div class="fi-modal-footer-actions">
             @if (!readOnly)
             {
-                <button type="submit" class="fi-btn fi-btn-primary">Save</button>
+                <button type="submit" class="fi-btn fi-btn-primary">@Model.Action.ResolveModalSubmitActionLabel(evaluation)</button>
             }
             <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">@(readOnly ? "Close" : "Cancel")</button>
         </div>

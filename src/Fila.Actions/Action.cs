@@ -62,6 +62,7 @@ public sealed class Action : IRowAction
 
     private Evaluated<string>? ModalHeadingValue;
     private Evaluated<string>? ModalDescriptionValue;
+    private Evaluated<string>? ModalSubmitActionLabelValue;
 
     /// <summary>Builds the form this action mounts, or null for an action with no form (a
     /// confirmation-only action like Delete or Mark shipped). A factory rather than a built
@@ -88,6 +89,12 @@ public sealed class Action : IRowAction
         (ModalHeadingValue ?? LabelValue).Resolve(context) ?? ResolveLabel(context);
 
     public string? ResolveModalDescription(EvaluationContext context) => ModalDescriptionValue?.Resolve(context);
+
+    /// <summary>Filament's modalSubmitActionLabel — "Save" by default, "Create"/"Save changes"
+    /// for CreateAction/EditAction specifically (packages/actions/resources/lang/en/create.php,
+    /// edit.php).</summary>
+    public string ResolveModalSubmitActionLabel(EvaluationContext context) =>
+        ModalSubmitActionLabelValue?.Resolve(context) ?? "Save";
 
     /// <summary>False hides this action for the given record — e.g. a "Mark shipped" row
     /// action hiding itself once the order already has that status.</summary>
@@ -126,6 +133,12 @@ public sealed class Action : IRowAction
     public Action ModalDescription(string description)
     {
         ModalDescriptionValue = description;
+        return this;
+    }
+
+    public Action ModalSubmitActionLabel(string label)
+    {
+        ModalSubmitActionLabelValue = label;
         return this;
     }
 

@@ -13,6 +13,7 @@ public static class EditAction
             .Label("Edit")
             .Icon("pencil")
             .ModalHeading(modalHeading)
+            .ModalSubmitActionLabel("Save changes")
             .Schema(schema)
             .Handle(handle)
             .Notifies("Saved", "success");

@@ -18,6 +18,7 @@ public static class CreateAction
             .Label("New")
             .Icon("plus")
             .ModalHeading(modalHeading)
+            .ModalSubmitActionLabel("Create")
             .NewRecord()
             .Schema(schema)
             .Handle(handle)
