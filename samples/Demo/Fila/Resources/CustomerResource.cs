@@ -1,4 +1,5 @@
 using Fila.Forms;
+using Fila.Infolists;
 using Fila.Panels.RelationManagers;
 using Fila.Panels.Resources;
 using Fila.Tables;
@@ -31,4 +32,11 @@ public sealed class CustomerResource : Resource<Customer>
         .Fields(
             f.Text(c => c.Name).Required(),
             f.Text(c => c.Email).Required());
+
+    // Declaring this is what gets the table's row actions a View action, prepended
+    // automatically by Resource.BuildTable() — nothing above lists it explicitly.
+    protected override Infolist<Customer> Infolist(Infolist<Customer> i) => i
+        .Entries(
+            i.Text(c => c.Name),
+            i.Text(c => c.Email));
 }

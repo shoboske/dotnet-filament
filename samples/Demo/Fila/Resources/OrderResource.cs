@@ -1,4 +1,5 @@
 using Fila.Forms;
+using Fila.Infolists;
 using Fila.Notifications;
 using Fila.Panels.Resources;
 using Fila.Tables;
@@ -49,8 +50,9 @@ public sealed class OrderResource : Resource<Order>
             t.Text(o => o.Customer.Name).Label("Customer"))
         .DefaultSort(o => o.CreatedAt, descending: true)
         .PaginateBy(25)
+        // No BuildViewAction() here — declaring Infolist() below is what gets this resource a
+        // View action, prepended automatically by Resource.BuildTable().
         .Actions(
-            BuildViewAction(),
             BuildEditAction(),
             MarkShippedAction,
             BuildReplicateAction(),
@@ -71,4 +73,12 @@ public sealed class OrderResource : Resource<Order>
             f.Select(o => o.Status).Required(),
             f.Number(o => o.Total).Required(),
             f.Date(o => o.CreatedAt).Required());
+
+    protected override Infolist<Order> Infolist(Infolist<Order> i) => i
+        .Entries(
+            i.Text(o => o.Reference),
+            i.Text(o => o.Customer.Name).Label("Customer"),
+            i.Badge(o => o.Status),
+            i.Money(o => o.Total),
+            i.Date(o => o.CreatedAt));
 }
