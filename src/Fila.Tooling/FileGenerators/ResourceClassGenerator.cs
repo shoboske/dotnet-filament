@@ -1,19 +1,20 @@
 using Fila.Panels.Resources;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Fila.Tooling;
+namespace Fila.Tooling.FileGenerators;
 
-/// <summary>Turns EF Core IModel metadata into resource source text. Emits a plain interpolated
-/// string rather than pulling in Roslyn SyntaxFactory — the output is small and templating is
-/// more readable and easier to change. Scaffolding is a starting point, not a finished screen.</summary>
-public static class Scaffolder
+/// <summary>Turns EF Core IModel metadata into resource source text — backs `make:resource`.
+/// Emits a plain interpolated string rather than pulling in Roslyn SyntaxFactory — the output is
+/// small and templating is more readable and easier to change. Scaffolding is a starting point,
+/// not a finished screen.</summary>
+public static class ResourceClassGenerator
 {
-    private const int MaxColumns = 6;
+    internal const int MaxColumns = 6;
     private static readonly string[] MoneyNames = ["Total", "Price", "Amount", "Cost"];
 
     public sealed record ScaffoldResult(string Source, int ColumnCount, string RouteSlug);
 
-    public static ScaffoldResult Scaffold(IEntityType entityType, string rootNamespace, string panelPath)
+    public static ScaffoldResult Generate(IEntityType entityType, string rootNamespace, string panelPath)
     {
         var clrType = entityType.ClrType;
         var entityName = clrType.Name;
@@ -85,7 +86,9 @@ public static class Scaffolder
         return new ScaffoldResult(source, columns.Count, $"/{panelPath}/{slug}");
     }
 
-    private static bool ShouldSkip(IProperty property)
+    /// <summary>internal, not private: RelationManagerClassGenerator reuses this and
+    /// PlanForProperty below for the same column inference rather than duplicating it.</summary>
+    internal static bool ShouldSkip(IProperty property)
     {
         if (property.IsShadowProperty()) return true;
         if (property.IsPrimaryKey()) return true;
@@ -100,7 +103,7 @@ public static class Scaffolder
         return false;
     }
 
-    private static string? PlanForProperty(IProperty property, string paramName)
+    internal static string? PlanForProperty(IProperty property, string paramName)
     {
         var clrType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
         var access = $"{paramName}.{property.Name}";
