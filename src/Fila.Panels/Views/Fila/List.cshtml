@@ -24,15 +24,16 @@
             </nav>
             <header class="fi-header">
                 <h1 class="fi-header-heading">@resourceLabel</h1>
-                @if (Model.Resource.BuildForm() is not null)
+                @{ var createAction = Model.Resource.BuildCreateAction(); }
+                @if (createAction is not null)
                 {
                     <div class="fi-header-actions-ctn">
                         <button type="button" class="fi-btn fi-btn-primary"
                                 hx-get="@resourceUrl/actions/create"
                                 hx-target="#fila-modal-body" hx-swap="innerHTML"
                                 hx-include="#fila-table-state">
-                            @Html.Raw(IconRegistry.Render("plus"))
-                            New
+                            @Html.Raw(IconRegistry.Render(createAction.IconName))
+                            @createAction.ResolveLabel(Model.Evaluation)
                         </button>
                     </div>
                 }

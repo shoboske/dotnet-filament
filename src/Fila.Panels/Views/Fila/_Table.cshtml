@@ -15,6 +15,20 @@
     // dedicated Edit page instead of the modal every other resource still opens —
     // relation manager tabs need real page space a modal doesn't have.
     var hasRelations = Model.Resource.GetRelations().Count > 0;
+
+    // Filament's toOptimizedLinkHtml() renders every row action's Color() as
+    // "fi-color fi-color-{color} fi-text-color-700 dark:fi-text-color-400" (600/300 for
+    // danger) — except "gray" (ViewAction/RestoreAction's default), which gets no color class
+    // at all and just inherits fi-link's own text-secondary color. See fila.actions.css.
+    string LinkColorClass(string color) => color switch
+    {
+        "primary" => " fi-link-primary",
+        "success" => " fi-link-success",
+        "warning" => " fi-link-warning",
+        "danger" => " fi-link-danger",
+        "info" => " fi-link-info",
+        _ => "",
+    };
 }
 @if (hasBulkActions)
 {
@@ -139,22 +153,25 @@
                                     {
                                         @if (action.Name == "edit" && hasRelations)
                                         {
-                                            <a class="fi-icon-btn" aria-label="@action.ResolveLabel(rowEvaluation)" href="@resourceUrl/@rowId/edit">
+                                            <a class="fi-link fi-size-sm@(LinkColorClass(action.ColorValue))" href="@resourceUrl/@rowId/edit">
                                                 @Html.Raw(IconRegistry.Render(action.IconName))
+                                                <span class="fi-link-label">@action.ResolveLabel(rowEvaluation)</span>
                                             </a>
                                         }
                                         else if (action.Name == "view" || action.SchemaFactory is not null || action.RequiresConfirmationFlag)
                                         {
-                                            <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
+                                            <button type="button" class="fi-link fi-size-sm@(LinkColorClass(action.ColorValue))"
                                                     hx-get="@rowActionUrl/@action.Name" hx-target="#fila-modal-body" hx-swap="innerHTML" hx-include="#fila-table-state">
                                                 @Html.Raw(IconRegistry.Render(action.IconName))
+                                                <span class="fi-link-label">@action.ResolveLabel(rowEvaluation)</span>
                                             </button>
                                         }
                                         else
                                         {
-                                            <button type="button" class="fi-icon-btn@(action.ColorValue == "danger" ? " fi-icon-btn-danger" : "")" aria-label="@action.ResolveLabel(rowEvaluation)"
+                                            <button type="button" class="fi-link fi-size-sm@(LinkColorClass(action.ColorValue))"
                                                     hx-post="@rowActionUrl/@action.Name" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
                                                 @Html.Raw(IconRegistry.Render(action.IconName))
+                                                <span class="fi-link-label">@action.ResolveLabel(rowEvaluation)</span>
                                             </button>
                                         }
                                     }

@@ -10,7 +10,7 @@ public static class RestoreAction
         new Action("restore")
             .Label("Restore")
             .Icon("restore")
-            .Color("success")
+            .Color("gray")
             .ModalHeading(modalHeading)
             .RequiresConfirmation()
             .Handle(handle)
