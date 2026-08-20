@@ -61,6 +61,10 @@ static void PrintUsage() => Console.WriteLine("""
       Usage:
         dotnet fila make:panel <Name>
         dotnet fila make:resource <Entity> [--context <Name>] [--force]
+        dotnet fila make:page <Name> [--force]
+        dotnet fila make:widget <Name> [--force]
+        dotnet fila make:relation-manager <Parent> <Related> [--context <Name>] [--force]
+        dotnet fila make:action <Name> [--force]
 
       Options:
         --project <path>   Target .csproj, when the current directory holds more than one.
