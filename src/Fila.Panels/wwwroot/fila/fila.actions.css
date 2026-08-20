@@ -160,9 +160,14 @@
   color: var(--fi-error-fg);
 }
 
-/* fi-link — packages/support/resources/css/components/link.css. Used today for the bulk
-   selection indicator's "Deselect all" (see fila.css's .fi-ta-selection-indicator). */
+/* fi-link — packages/support/resources/css/components/link.css. Used for the bulk selection
+   indicator's "Deselect all" (a bare label) and, sized .fi-size-sm, for row/header action
+   links (icon + .fi-link-label) — the fi-ac-link-action shape toOptimizedLinkHtml() renders in
+   packages/actions/src/Action.php. */
 .fi-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   border: none;
   background: none;
   padding: 0;
@@ -176,6 +181,30 @@
   text-decoration: underline;
 }
 
+.fi-link .fi-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* No class for "gray" — that's Filament's own default-colored link (ViewAction/RestoreAction's
+   defaultColor('gray')), rendered with none of the fi-color-* classes below and so inheriting
+   fi-link's own color: var(--fi-text-secondary) above. */
+.fi-link-primary {
+  color: var(--fi-link-primary-fg);
+}
+
+.fi-link-success {
+  color: var(--fi-link-success-fg);
+}
+
+.fi-link-warning {
+  color: var(--fi-link-warning-fg);
+}
+
 .fi-link-danger {
-  color: var(--fi-error-fg);
+  color: var(--fi-link-danger-fg);
+}
+
+.fi-link-info {
+  color: var(--fi-link-info-fg);
 }
