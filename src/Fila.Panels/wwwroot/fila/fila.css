@@ -668,6 +668,7 @@ body {
 .fi-ta-sort-btn {
   display: inline-flex;
   align-items: center;
+  width: 100%;
   gap: 0.25rem;
   background: none;
   border: none;
@@ -678,12 +679,21 @@ body {
   cursor: pointer;
 }
 
-.fi-ta-sort-btn:hover {
-  color: var(--fi-text);
+/* Icon always renders (see _Table.cshtml) — muted until sorted, matching
+   packages/tables/resources/css/header-cell.css's :not(.fi-ta-header-cell-sorted) .fi-icon
+   (gray-400/500) vs .fi-ta-header-cell-sorted .fi-icon (gray-950/white). */
+.fi-ta-sort-icon {
+  display: inline-flex;
+  color: var(--fi-text-muted);
 }
 
-.fi-ta-sort-icon {
-  color: var(--fi-accent);
+.fi-ta-sort-btn:hover .fi-ta-sort-icon,
+.fi-ta-sort-btn:focus-visible .fi-ta-sort-icon {
+  color: var(--fi-text-secondary);
+}
+
+.fi-ta-sort-icon-active {
+  color: var(--fi-text);
 }
 
 /* fi-ta-empty-state — calibrated against packages/tables/resources/css/empty-state.css. */

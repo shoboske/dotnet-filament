@@ -49,6 +49,8 @@ public static class IconRegistry
             """<path d="M12 5v14M5 12h14"/>""",
         ["chevron-up"] =
             """<path d="m6 15 6-6 6 6"/>""",
+        ["chevron-down"] =
+            """<path d="m6 9 6 6 6-6"/>""",
         ["chevron-right"] =
             """<path d="m9 6 6 6-6 6"/>""",
         ["logout"] =

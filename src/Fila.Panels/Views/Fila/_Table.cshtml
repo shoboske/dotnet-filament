@@ -59,7 +59,8 @@
                 }
                 @foreach (var column in columns)
                 {
-                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
+                    <th scope="col" class="fi-ta-header-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()"
+                        @(column.IsSortable ? Html.Raw($"aria-sort=\"{(Model.Query.Sort == column.Path ? (Model.Query.Dir == "asc" ? "ascending" : "descending") : "none")}\"") : null)>
                         @if (column.IsSortable)
                         {
                             <button type="button"
@@ -70,10 +71,10 @@
                                     hx-push-url="true"
                                     hx-vals='@Model.Query.SortValsFor(column)'>
                                 <span>@column.ResolveLabel(evaluation)</span>
-                                @if (Model.Query.Sort == column.Path)
-                                {
-                                    <span class="fi-ta-sort-icon" aria-hidden="true">@(Model.Query.Dir == "desc" ? "↓" : "↑")</span>
-                                }
+                                @{ var isSorted = Model.Query.Sort == column.Path; }
+                                <span class="fi-ta-sort-icon@(isSorted ? " fi-ta-sort-icon-active" : "")" aria-hidden="true">
+                                    @Html.Raw(IconRegistry.Render(isSorted && Model.Query.Dir == "asc" ? "chevron-up" : "chevron-down"))
+                                </span>
                             </button>
                         }
                         else
