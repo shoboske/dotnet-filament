@@ -230,58 +230,58 @@
 /* --- stat trend sparkline -----------------------------------------------------------------
    `& .fi-wi-stats-overview-stat-chart { @apply absolute inset-x-0 bottom-0 overflow-hidden
    rounded-b-xl; & > canvas { @apply h-6 } ... }`. Filament paints a Chart.js line onto that
-   canvas; Fila puts an SVG of the same height in the same box (see Rendering/Sparkline.cs for
-   the geometry, which reproduces that chart's tension: 0.5 smoothing). */
+   canvas; so does Fila now (see wwwroot/fila/fila.charts.js and
+   Views/Fila/Widgets/_StatsOverview.cshtml) — still absolutely positioned against the card
+   (.fi-wi-stats-overview-stat, above, is its position: relative), and itself a valid containing
+   block for the canvas the same way, now with an explicit height instead of sizing from the
+   child .fi-wi-stats-overview-stat-chart-svg this replaces. */
 
 .fi-wi-stats-overview-stat-chart {
   position: absolute;
   inset-inline: 0; /* inset-x-0 */
   bottom: 0;
+  height: 1.5rem; /* h-6, the canvas's height */
   overflow: hidden;
   border-bottom-left-radius: 0.75rem; /* rounded-b-xl */
   border-bottom-right-radius: 0.75rem;
 }
 
-.fi-wi-stats-overview-stat-chart-svg {
+.fi-wi-stats-overview-stat-chart-canvas {
   display: block;
   width: 100%;
-  height: 1.5rem; /* h-6, the canvas's height */
+  height: 100%;
 }
 
-/* Uncoloured: `bg-color: text-gray-100 dark:text-gray-800` (exactly --fi-hover-bg) and
-   `border-color: text-gray-400` — the same gray in both themes, so it is not --fi-text-muted,
-   which flips. */
+/* Filament hands Chart.js these two colours through elements it reads computed styles off
+   (fi-wi-stats-overview-stat-chart-{bg,border}-color) — see fila.charts.js. Uncoloured:
+   `bg-color: text-gray-100 dark:text-gray-800` (exactly --fi-hover-bg) and `border-color:
+   text-gray-400` — the same gray in both themes, so it is not --fi-text-muted, which flips. */
 .fi-wi-stats-overview-stat-chart-bg-color {
-  fill: var(--fi-hover-bg);
-  stroke: none;
+  color: var(--fi-hover-bg);
 }
 
 .fi-wi-stats-overview-stat-chart-border-color {
-  fill: none;
-  stroke: #a1a1aa; /* gray-400, both themes */
-  stroke-width: 2; /* borderWidth: 2 */
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: #a1a1aa; /* gray-400, both themes */
 }
 
 /* Coloured: `bg-color: text-color-50 dark:text-color-400/10`, `border-color: text-color-500
    dark:text-color-400`. The 50-shades are already Fila's badge backgrounds; the 500/400 line
    shades are not — Fila's badge foregrounds are 700/300, which would draw the line far darker
    than Filament's, so the literal Tailwind 500/400 values are used. */
-.fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-accent-soft-bg); }
-.fi-color-primary .fi-wi-stats-overview-stat-chart-border-color { stroke: var(--fi-accent); }
+.fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { color: var(--fi-accent-soft-bg); }
+.fi-color-primary .fi-wi-stats-overview-stat-chart-border-color { color: var(--fi-accent); }
 
-.fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-info-bg); }
-.fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #3b82f6; } /* blue-500 */
+.fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { color: var(--fi-badge-info-bg); }
+.fi-color-info .fi-wi-stats-overview-stat-chart-border-color { color: #3b82f6; } /* blue-500 */
 
-.fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-success-bg); }
-.fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #22c55e; } /* green-500 */
+.fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { color: var(--fi-badge-success-bg); }
+.fi-color-success .fi-wi-stats-overview-stat-chart-border-color { color: #22c55e; } /* green-500 */
 
-.fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-warning-bg); }
-.fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #f59e0b; } /* amber-500 */
+.fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { color: var(--fi-badge-warning-bg); }
+.fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { color: #f59e0b; } /* amber-500 */
 
-.fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: var(--fi-badge-danger-bg); }
-.fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #ef4444; } /* red-500 */
+.fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { color: var(--fi-badge-danger-bg); }
+.fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { color: #ef4444; } /* red-500 */
 
 /* In dark the line steps to color-400 and the fill becomes `color-400/10` — a 10% wash, NOT a
    solid shade. Fila's badge backgrounds are solid dark fills (#172554, #052e16, ...), which
@@ -289,30 +289,30 @@
    fills are stated as the 400s at 10%. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
-    & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
-    & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
-    & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+    & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { color: #60a5fa; }
+    & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { color: #4ade80; }
+    & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { color: #fbbf24; }
+    & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { color: #f87171; }
 
-    & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(96 165 250 / 0.1); }
-    & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(74 222 128 / 0.1); }
-    & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(251 191 36 / 0.1); }
-    & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(248 113 113 / 0.1); }
-    & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
+    & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(96 165 250 / 0.1); }
+    & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(74 222 128 / 0.1); }
+    & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(251 191 36 / 0.1); }
+    & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(248 113 113 / 0.1); }
+    & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { color: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
   }
 }
 
 :root[data-theme="dark"] {
-  & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { stroke: #60a5fa; }
-  & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { stroke: #4ade80; }
-  & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { stroke: #fbbf24; }
-  & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { stroke: #f87171; }
+  & .fi-color-info .fi-wi-stats-overview-stat-chart-border-color { color: #60a5fa; }
+  & .fi-color-success .fi-wi-stats-overview-stat-chart-border-color { color: #4ade80; }
+  & .fi-color-warning .fi-wi-stats-overview-stat-chart-border-color { color: #fbbf24; }
+  & .fi-color-danger .fi-wi-stats-overview-stat-chart-border-color { color: #f87171; }
 
-  & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(96 165 250 / 0.1); }
-  & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(74 222 128 / 0.1); }
-  & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(251 191 36 / 0.1); }
-  & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { fill: rgb(248 113 113 / 0.1); }
-  & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { fill: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
+  & .fi-color-info .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(96 165 250 / 0.1); }
+  & .fi-color-success .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(74 222 128 / 0.1); }
+  & .fi-color-warning .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(251 191 36 / 0.1); }
+  & .fi-color-danger .fi-wi-stats-overview-stat-chart-bg-color { color: rgb(248 113 113 / 0.1); }
+  & .fi-color-primary .fi-wi-stats-overview-stat-chart-bg-color { color: color-mix(in srgb, var(--fi-accent) 10%, transparent); }
 }
 
 /* --- chart --------------------------------------------------------------------------------
@@ -320,6 +320,7 @@
 
 .fi-wi-chart-frame {
   margin-inline: auto; /* mx-auto */
+  position: relative; /* Chart.js's responsive canvas sizes itself against this */
   display: flex;
   width: 100%;
   align-items: center;
@@ -350,55 +351,42 @@
   }
 }
 
-.fi-wi-chart-svg {
+.fi-wi-chart-canvas {
   display: block;
   width: 100%;
   height: 100%;
 }
 
 /* Filament hands Chart.js four colours through elements it reads computed styles off
-   (fi-wi-chart-{bg,border,grid,text}-color). Nothing is reading computed styles here, so the
-   same four names are applied directly to the SVG marks they govern. */
+   (fi-wi-chart-{bg,border,grid,text}-color) — see fila.charts.js. */
 .fi-wi-chart-grid-color {
-  stroke: var(--fi-border); /* text-gray-200 dark:text-gray-800 */
-  stroke-width: 1;
+  color: var(--fi-border); /* text-gray-200 dark:text-gray-800 */
 }
 
 .fi-wi-chart-text-color {
-  fill: var(--fi-text-secondary); /* text-gray-500 dark:text-gray-400 */
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+  color: var(--fi-text-secondary); /* text-gray-500 dark:text-gray-400 */
 }
 
 /* Filament's coloured chart: border = primary-500, background = primary-50 (dark:
    primary-400/10). Fila's accent tokens are the panel-overridable equivalents. */
 .fi-wi-chart-border-color {
-  fill: none;
-  stroke: var(--fi-accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: var(--fi-accent);
 }
 
 .fi-wi-chart-bg-color {
-  fill: var(--fi-accent-soft-bg); /* text-color-50 */
-  stroke: none;
+  color: var(--fi-accent-soft-bg); /* text-color-50 */
 }
 
 /* dark:text-color-400/10 — a 10% wash. Fila's --fi-accent-soft-bg is a solid dark shade in
    dark mode, which under the line reads as a filled slab rather than Filament's tint. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .fi-wi-chart-bg-color {
-    fill: color-mix(in srgb, var(--fi-accent) 10%, transparent);
+    color: color-mix(in srgb, var(--fi-accent) 10%, transparent);
   }
 }
 
 :root[data-theme="dark"] .fi-wi-chart-bg-color {
-  fill: color-mix(in srgb, var(--fi-accent) 10%, transparent);
-}
-
-.fi-wi-chart-dot {
-  fill: var(--fi-surface);
+  color: color-mix(in srgb, var(--fi-accent) 10%, transparent);
 }
 
 /* Filament's `.fi-wi-chart .fi-empty-state { @apply p-0 }`. */

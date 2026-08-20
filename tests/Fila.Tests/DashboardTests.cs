@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text.Json;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using Demo.Data;
@@ -109,18 +110,26 @@ public sealed class DashboardTests(DemoAppFactory factory) : IClassFixture<DemoA
         var html = await client.GetStringAsync("/admin");
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
-        var chart = document.QuerySelector(".fi-wi-chart-svg");
-        Assert.NotNull(chart);
+        var frame = document.QuerySelector(".fi-wi-chart-frame[data-fila-chart]");
+        Assert.NotNull(frame);
+        Assert.NotNull(frame!.QuerySelector("canvas"));
+
+        var payload = JsonDocument.Parse(frame.GetAttribute("data-fila-chart")!).RootElement;
 
         // RevenueChartWidget covers 14 days and emits a point for every one of them, including
         // the days with no orders — a chart that skipped those would misstate the trend.
-        Assert.Equal(14, chart!.QuerySelectorAll(".fi-wi-chart-dot").Length);
+        Assert.Equal(14, payload.GetProperty("labels").GetArrayLength());
+        Assert.Equal(14, payload.GetProperty("values").GetArrayLength());
 
-        // Rendered by the server as inline SVG, with no CDN script involved.
+        // Chart.js is vendored locally (wwwroot/fila/vendor/chart.min.js), never fetched from a
+        // CDN — the whole point of switching off the hand-rolled SVG chart.
         var scripts = document.QuerySelectorAll("script[src]")
             .OfType<IHtmlScriptElement>()
-            .Select(script => script.Source ?? "");
-        Assert.DoesNotContain(scripts, source => source.Contains("chart", StringComparison.OrdinalIgnoreCase));
+            .Select(script => script.GetAttribute("src") ?? "")
+            .ToList();
+        Assert.Contains(scripts, src => src.Contains("chart.min.js", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(scripts, src => src.Contains("unpkg.com", StringComparison.OrdinalIgnoreCase) ||
+                                               src.Contains("cdn.jsdelivr.net", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
