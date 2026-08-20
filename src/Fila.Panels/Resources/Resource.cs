@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Fila.Actions;
 using Fila.Forms;
+using Fila.Infolists;
 using Fila.Panels.RelationManagers;
 using Fila.Support;
 using Fila.Tables;
@@ -20,6 +21,7 @@ public interface IResource
 
     ITable BuildTable();
     IForm? BuildForm();
+    IInfolist? BuildInfolist();
 
     Task<PagedRows> ListAsync(DbContext db, ITable table, TableQuery query, CancellationToken ct);
 
@@ -76,6 +78,11 @@ public abstract class Resource<TEntity> : IResource
     /// resource is list-only — no form, no New button, no row actions.</summary>
     protected virtual Form<TEntity>? Form(Form<TEntity> f) => null;
 
+    /// <summary>Override to put a read-only detail view behind the auto-registered View action
+    /// (see BuildViewAction()) — the read-only counterpart to Form(). Returning null (the
+    /// default) means this resource has no infolist and gets no View action.</summary>
+    protected virtual Infolist<TEntity>? Infolist(Infolist<TEntity> i) => null;
+
     /// <summary>Override to put widgets summarising this resource on its panel's dashboard —
     /// see samples/Demo's OrderResource. Named, not instantiated: they are activated out of the
     /// request scope, so a widget can inject whatever it needs. Empty by default, so a resource
@@ -113,7 +120,13 @@ public abstract class Resource<TEntity> : IResource
     /// .Actions(...) — fills in the built-in Edit/Delete row actions (when this resource has a
     /// form) the same way Fila has always given a resource working CRUD for free. A resource
     /// that calls .Actions(...) itself (see samples/Demo's OrderResource) owns the row action
-    /// list entirely, built-ins and custom actions together.</summary>
+    /// list entirely, built-ins and custom actions together.
+    ///
+    /// View is layered on afterwards and unconditionally, regardless of whether .Actions(...)
+    /// was called: a resource with an infolist gets a View action whether it built its own row
+    /// action list or is still using the Edit/Delete default above, mirroring Filament
+    /// auto-adding ViewAction wherever a resource has an infolist. It's a no-op — BuildInfolist()
+    /// returns null — for a resource that declared none.</summary>
     public ITable BuildTable()
     {
         var table = Table(new Table<TEntity>());
@@ -122,10 +135,15 @@ public abstract class Resource<TEntity> : IResource
         if (built.RowActions.Count == 0 && BuildForm() is not null)
             table.Actions(BuildEditAction(), BuildDeleteAction());
 
+        if (BuildInfolist() is not null && !built.RowActions.SelectMany(a => a.Flatten()).Any(a => a.Name == "view"))
+            table.Actions([BuildViewAction(), .. built.RowActions]);
+
         return table;
     }
 
     public IForm? BuildForm() => Form(new Form<TEntity>());
+
+    public IInfolist? BuildInfolist() => Infolist(new Infolist<TEntity>());
 
     /// <summary>Wires CreateAction to this resource — the schema and Handle delegates it needs,
     /// supplied here the way Filament's CreateRecord page supplies handleRecordCreation() to the
@@ -162,8 +180,8 @@ public abstract class Resource<TEntity> : IResource
 
     /// <summary>Un-does a soft delete. Throws at wiring time (not just when Handle runs) if
     /// TEntity isn't soft-deletable — a resource author reaching for this on a plain entity is a
-    /// mistake worth failing loudly and immediately on, the same as BuildEditAction()/
-    /// BuildViewAction() throwing when the resource has no form.</summary>
+    /// mistake worth failing loudly and immediately on, the same as BuildEditAction() throwing
+    /// when the resource has no form, or BuildViewAction() when it has no infolist.</summary>
     protected Action BuildRestoreAction()
     {
         if (!SupportsSoftDelete)
@@ -219,9 +237,15 @@ public abstract class Resource<TEntity> : IResource
         $"Replicate {ResourceNaming.SingularLabel(Slug)}",
         ctx => ReplicateAsync(ctx.Db, ctx.Record!, ctx.Ct));
 
-    protected Action BuildViewAction() => ViewAction.Make(
-        $"View {ResourceNaming.SingularLabel(Slug)}",
-        () => BuildForm() ?? throw new InvalidOperationException("ViewAction requires this resource to define a form."));
+    /// <summary>Throws at wiring time (not just when the action is mounted) if this resource has
+    /// no infolist — same reasoning as BuildEditAction() throwing when there's no form: a
+    /// resource author reaching for View without ever declaring Infolist() is a mistake worth
+    /// failing loudly and immediately on. In practice this rarely runs into anyone calling it
+    /// directly — BuildTable() only calls it once it has already confirmed BuildInfolist() is
+    /// non-null.</summary>
+    protected Action BuildViewAction() => BuildInfolist() is not null
+        ? ViewAction.Make($"View {ResourceNaming.SingularLabel(Slug)}")
+        : throw new InvalidOperationException("ViewAction requires this resource to define an infolist.");
 
     protected BulkAction BuildDeleteBulkAction() => DeleteBulkAction.Make(
         $"Delete selected {ResourceNaming.Humanize(Slug)}",
@@ -249,11 +273,25 @@ public abstract class Resource<TEntity> : IResource
         return await source.PaginateAsync(query.Page, table.PerPage, ct);
     }
 
+    /// <summary>Resolves a record by id through <see cref="Query"/>, not DbSet.FindAsync
+    /// directly — every action mount (Edit, Delete, View, ...) needs the same navigations
+    /// Query() eager-loads for the list page, and until an infolist entry could read a nested
+    /// path like <c>o.Customer.Name</c> nothing resolved a single record ever needed one:
+    /// Edit's own Select field reads the scalar CustomerId instead. FindAsync's identity-map
+    /// shortcut is the one thing this gives up; a fresh read is worth a consistent shape more
+    /// than that shortcut is worth keeping.</summary>
     public async Task<object?> FindAsync(DbContext db, string id, CancellationToken ct)
     {
         var pk = GetPrimaryKeyProperty(db);
         var key = FieldBinding.Parse(pk.ClrType, id);
-        return key is null ? null : await db.Set<TEntity>().FindAsync([key], ct);
+        if (key is null) return null;
+
+        var entity = Expression.Parameter(typeof(TEntity), "e");
+        var property = Expression.Property(entity, pk.PropertyInfo!);
+        var isKey = Expression.Equal(property, Expression.Constant(key, pk.ClrType));
+        var predicate = Expression.Lambda<Func<TEntity, bool>>(isKey, entity);
+
+        return await Query(db.Set<TEntity>()).FirstOrDefaultAsync(predicate, ct);
     }
 
     public object CreateBlank() => Activator.CreateInstance<TEntity>();
