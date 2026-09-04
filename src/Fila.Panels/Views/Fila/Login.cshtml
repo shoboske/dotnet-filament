@@ -9,29 +9,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sign in · @Model.Panel.Brand</title>
     <partial name="Fila/_ThemeScript" />
+    <script src="/_content/Fila/fila/vendor/alpine.min.js" defer></script>
     <link rel="stylesheet" href="/_content/Fila/fila/fila.css" />
     <partial name="Fila/_PrimaryColorOverride" model="Model.Panel" />
 </head>
 <body class="fi-body">
     <div class="fi-login">
         <div class="fi-login-card">
-            <h1 class="fi-login-heading">@Model.Panel.Brand</h1>
+            <header class="fi-login-header">
+                <span class="fi-logo">@Model.Panel.Brand</span>
+                <h1 class="fi-login-heading">Sign in</h1>
+            </header>
 
             @if (Model.Error)
             {
                 <p class="fi-login-error">Invalid username or password.</p>
             }
 
-            <form method="post" action="/@Model.Panel.Path/login">
+            <form method="post" action="/@Model.Panel.Path/login" x-data="{ isPasswordRevealed: false }">
                 <div class="fi-field">
-                    <label class="fi-login-label" for="username">Username</label>
+                    <label class="fi-login-label" for="username">Username<sup class="fi-required-mark">*</sup></label>
                     <input class="fi-input fi-login-input" id="username" name="username" autocomplete="username" required autofocus />
                 </div>
 
                 <div class="fi-field">
-                    <label class="fi-login-label" for="password">Password</label>
-                    <input class="fi-input fi-login-input" id="password" name="password" type="password" autocomplete="current-password" required />
+                    <label class="fi-login-label" for="password">Password<sup class="fi-required-mark">*</sup></label>
+                    <div class="fi-login-input-wrp">
+                        <input class="fi-input fi-login-input" id="password" name="password" autocomplete="current-password" required
+                               x-bind:type="isPasswordRevealed ? 'text' : 'password'" />
+                        <button type="button" class="fi-icon-btn fi-login-input-suffix" title="Show password" aria-label="Show password"
+                                x-show="! isPasswordRevealed" x-on:click="isPasswordRevealed = true">
+                            @Html.Raw(IconRegistry.Render("eye"))
+                        </button>
+                        <button type="button" class="fi-icon-btn fi-login-input-suffix" title="Hide password" aria-label="Hide password"
+                                x-show="isPasswordRevealed" x-cloak x-on:click="isPasswordRevealed = false">
+                            @Html.Raw(IconRegistry.Render("eye-off"))
+                        </button>
+                    </div>
                 </div>
+
+                <label class="fi-login-remember">
+                    <input type="checkbox" class="fi-checkbox" name="remember" value="true" />
+                    <span>Remember me</span>
+                </label>
 
                 <button class="fi-btn fi-btn-primary fi-login-submit" type="submit">Sign in</button>
             </form>

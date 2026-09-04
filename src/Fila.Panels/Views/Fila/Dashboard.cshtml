@@ -8,6 +8,7 @@
    data before this ran (see FilaExtensions.HandleDashboardAsync), so nothing here queries.
    This view knows only how to place widgets in a grid; each one's markup comes from whichever
    partial its View name resolves to. *@
+<partial name="Fila/_Topbar" model="Model.Panel" />
 <div class="fi-shell">
 
     <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, null)" />

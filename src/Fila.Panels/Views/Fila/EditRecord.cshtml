@@ -9,6 +9,7 @@
     var resourceLabel = Model.Panel.Navigation.FirstOrDefault(n => n.Slug == Model.Resource.Slug)?.Label ?? Model.Resource.Slug;
     var hasRelations = Model.Relations.Count > 0;
 }
+<partial name="Fila/_Topbar" model="Model.Panel" />
 <div class="fi-shell">
 
     <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, Model.Resource.Slug)" />

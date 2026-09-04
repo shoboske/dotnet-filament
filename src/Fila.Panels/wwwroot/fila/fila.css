@@ -178,9 +178,50 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* fi-topbar-ctn / fi-topbar — packages/filament/resources/css/components/topbar.css. The
+   brand used to live inside the sidebar (fi-sidebar-brand, now gone); Filament's own brand
+   lives here instead, in a full-width bar above the sidebar/content split, which is why the
+   sidebar below is sized to 100vh minus this bar's own fixed height rather than the full
+   viewport. Filament's topbar also carries a mobile sidebar-collapse toggle and a
+   tenant/user-menu end slot — Fila's sidebar isn't collapsible and its user menu already lives
+   in the sidebar footer (_Sidebar.cshtml), so only the piece actually missing (the brand) is
+   ported. */
+.fi-topbar-ctn {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.fi-topbar {
+  display: flex;
+  align-items: center;
+  height: 4rem; /* min-h-16 */
+  padding: 0 1rem; /* px-4 */
+  background: var(--fi-surface);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px var(--fi-border);
+}
+
+.fi-topbar-start {
+  display: flex;
+  align-items: center;
+}
+
+.fi-logo {
+  font-size: 1.25rem; /* text-xl */
+  line-height: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--fi-text);
+  text-decoration: none;
+}
+
+.fi-topbar-start .fi-logo {
+  margin-left: 0.75rem; /* ms-3 */
+}
+
 .fi-shell {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - 4rem);
 }
 
 .fi-sidebar {
@@ -189,23 +230,13 @@ body {
   border-right: 1px solid var(--fi-border);
   display: flex;
   flex-direction: column;
-  /* Pinned to the viewport instead of flowing with page height — without this, a table
+  /* Pinned just below the topbar instead of flowing with page height — without this, a table
      taller than the viewport made the whole page (sidebar included) scroll together, so the
      sidebar scrolled out of view instead of staying put. */
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: 4rem;
+  height: calc(100vh - 4rem);
   overflow-y: auto;
-}
-
-.fi-sidebar-brand {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--fi-text);
-  height: 4rem; /* fi-sidebar-header: h-16 */
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem; /* fi-sidebar-nav: px-6 — matches nav's own horizontal padding */
 }
 
 .fi-sidebar-nav {
@@ -213,7 +244,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.25rem; /* fi-sidebar-group-items: gap-y-1 */
-  padding: 0 1.5rem 2rem; /* fi-sidebar-nav: px-6 py-8 (top already covered by brand's own height) */
+  padding: 2rem 1.5rem; /* fi-sidebar-nav: px-6 py-8 */
 }
 
 .fi-sidebar-link {
@@ -403,6 +434,19 @@ body {
   gap: 0.5rem; /* fi-fo-field: gap-y-2 */
 }
 
+/* fi-simple-header — the brand renders smaller and above "Sign in", not as the heading itself
+   (packages/filament/resources/css/components/header.css: .fi-simple-header .fi-logo { mb-4 },
+   .fi-simple-header-heading is its own, larger text-2xl element). */
+.fi-login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fi-login-header .fi-logo {
+  margin-bottom: 1rem;
+}
+
 .fi-login-heading {
   font-size: 1.5rem; /* fi-simple-header-heading: text-2xl */
   font-weight: 700; /* font-bold */
@@ -432,6 +476,33 @@ body {
 
 .fi-login-input {
   width: 100%;
+}
+
+/* fi-input-wrp — the reveal-toggle button sits inside the field itself (an "actions" suffix in
+   Filament's own text-input.blade.php), not floating beside it, so the input needs right
+   padding to keep typed text from running under the button. */
+.fi-login-input-wrp {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fi-login-input-wrp .fi-login-input {
+  padding-right: 2.5rem;
+}
+
+.fi-login-input-suffix {
+  position: absolute;
+  right: 0.25rem;
+}
+
+.fi-login-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--fi-text-secondary);
+  cursor: pointer;
 }
 
 .fi-login-submit {

@@ -211,12 +211,16 @@ public static class FilaExtensions
             var form = await ctx.Request.ReadFormAsync(ct);
             var username = form["username"].ToString();
             var password = form["password"].ToString();
+            var remember = form["remember"].ToString() is "true" or "on";
 
             var principal = await panel.Authenticate!(username, password, ct);
             if (principal is null)
                 return Results.Redirect($"/{panel.Path}/login?error=true");
 
-            await ctx.SignInAsync(panel.AuthenticationScheme!, principal);
+            // IsPersistent controls whether the cookie auth handler issues a session cookie
+            // (gone when the browser closes) or a persistent one — "Remember me", Filament's
+            // own Login::authenticate() passes the same flag straight to Auth::attempt().
+            await ctx.SignInAsync(panel.AuthenticationScheme!, principal, new AuthenticationProperties { IsPersistent = remember });
             return Results.Redirect($"/{panel.Path}");
         });
 

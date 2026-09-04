@@ -1,0 +1,17 @@
+@model Panel
+@{
+    Layout = null;
+}
+@* The full-width bar above the sidebar/content split — Filament's Livewire\Topbar
+   (packages/filament/resources/views/livewire/topbar.blade.php), which the brand used to live
+   inside the sidebar for instead. Filament's own topbar also carries a mobile sidebar
+   toggle and a tenant/user-menu end slot; Fila's sidebar isn't collapsible and its user menu
+   already lives in the sidebar footer (_Sidebar.cshtml), so this only ports the piece that's
+   actually missing — the brand. *@
+<div class="fi-topbar-ctn">
+    <nav class="fi-topbar" aria-label="Topbar">
+        <div class="fi-topbar-start">
+            <a class="fi-logo" href="/@Model.Path">@Model.Brand</a>
+        </div>
+    </nav>
+</div>
