@@ -19,12 +19,32 @@ public sealed class OrdersListTests(DemoAppFactory factory) : IClassFixture<Demo
         var document = await new HtmlParser().ParseDocumentAsync(html);
 
         // Seeded by samples/Demo/Data/DemoSeeder.cs: order 1 (i=1) is OrderStatus.Processing.
+        // No .Colors() mapping is set on this column, so it falls back to Filament's own
+        // <x-filament::badge> default color -- "primary", not gray (confirmed against a real
+        // rendered badge's fi-color-primary class).
         var firstRow = document.QuerySelector("table.fi-ta-table tbody tr");
         var badge = firstRow?.QuerySelector(".fi-badge");
 
         Assert.NotNull(badge);
-        Assert.Equal("fi-badge fi-badge-neutral", badge!.ClassName);
+        Assert.Equal("fi-badge fi-badge-primary", badge!.ClassName);
         Assert.Equal("Processing", badge.TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task List_HeaderLabelsAreSentenceCase_NotTitleCase()
+    {
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        // No .Label() is set on the CreatedAt column -- it falls back to ComponentText.Humanize,
+        // which now matches Filament's own HasLabel::getLabel() default (kebab -> replace ->
+        // ucfirst: only the first letter capitalized, not every word).
+        var html = await client.GetStringAsync("/admin/orders");
+        var document = await new HtmlParser().ParseDocumentAsync(html);
+
+        var headers = document.QuerySelectorAll("table.fi-ta-table thead th").Select(h => h.TextContent.Trim()).ToList();
+        Assert.Contains("Created at", headers);
+        Assert.DoesNotContain("Created At", headers);
     }
 
     [Fact]

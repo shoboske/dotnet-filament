@@ -52,6 +52,13 @@ body {
   --fi-input-bg: #ffffff;
   --fi-input-border: #d4d4d8; /* zinc-300 */
 
+  /* Filament's <x-filament::badge> defaults its own color prop to "primary" — a
+     TextColumn::badge() with no ->color() call at all renders primary, not gray, confirmed
+     against a real rendered badge's fi-color-primary class. Overridden dynamically by
+     _PrimaryColorOverride.cshtml whenever a panel sets its own PrimaryColor; these are the
+     fallback for a panel that never does. */
+  --fi-badge-primary-bg: #eef2ff; /* indigo-50 */
+  --fi-badge-primary-fg: #4338ca; /* indigo-700 */
   --fi-badge-neutral-bg: #f4f4f5;
   --fi-badge-neutral-fg: #3f3f46;
   --fi-badge-info-bg: #eff6ff;
@@ -105,6 +112,8 @@ body {
     --fi-input-bg: #18181b;
     --fi-input-border: #3f3f46; /* zinc-700 */
 
+    --fi-badge-primary-bg: #312e81; /* indigo-900 */
+    --fi-badge-primary-fg: #818cf8; /* indigo-400 */
     --fi-badge-neutral-bg: #27272a;
     --fi-badge-neutral-fg: #d4d4d8;
     --fi-badge-info-bg: #172554;
@@ -149,6 +158,8 @@ body {
   --fi-input-bg: #18181b;
   --fi-input-border: #3f3f46;
 
+  --fi-badge-primary-bg: #312e81;
+  --fi-badge-primary-fg: #818cf8;
   --fi-badge-neutral-bg: #27272a;
   --fi-badge-neutral-fg: #d4d4d8;
   --fi-badge-info-bg: #172554;
@@ -824,6 +835,11 @@ body {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.fi-badge-primary {
+  background: var(--fi-badge-primary-bg);
+  color: var(--fi-badge-primary-fg);
 }
 
 .fi-badge-neutral {

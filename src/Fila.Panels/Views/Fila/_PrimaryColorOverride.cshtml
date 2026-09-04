@@ -7,18 +7,32 @@
     var hover = ColorMath.Darken(accent, 0.15);
     var softLight = ColorMath.Mix(accent, "#ffffff", 0.9);
     var softDark = ColorMath.Mix(accent, "#18181b", 0.7);
+    // A badge's "primary" variant (Filament's own <x-filament::badge> default color, per its
+    // own @@props(['color' => 'primary']) — a TextColumn::badge() with no ->color() call at all
+    // renders primary, not gray, confirmed against a real rendered badge's fi-color-primary
+    // class) tracks the panel's own accent, the same way --fi-accent-soft-bg already does —
+    // just with a darker/lighter foreground on top instead of --fi-accent itself, so the text
+    // stays readable on the soft tint.
+    var badgeFgLight = ColorMath.Darken(accent, 0.35);
+    var badgeFgDark = ColorMath.Mix(accent, "#ffffff", 0.35);
     <style>
         :root {
             --fi-accent: @accent;
             --fi-accent-hover: @hover;
             --fi-accent-soft-bg: @softLight;
+            --fi-badge-primary-bg: @softLight;
+            --fi-badge-primary-fg: @badgeFgLight;
         }
         :root[data-theme="dark"] {
             --fi-accent-soft-bg: @softDark;
+            --fi-badge-primary-bg: @softDark;
+            --fi-badge-primary-fg: @badgeFgDark;
         }
         @@media (prefers-color-scheme: dark) {
             :root:not([data-theme="light"]) {
                 --fi-accent-soft-bg: @softDark;
+                --fi-badge-primary-bg: @softDark;
+                --fi-badge-primary-fg: @badgeFgDark;
             }
         }
     </style>
