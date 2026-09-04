@@ -6,6 +6,7 @@
     var columns = Model.Table.Columns.Where(c => c.ResolveVisible(evaluation)).ToList();
     var stateId = $"fila-relation-state-{Model.RelationManager.Slug}";
     var targetId = $"fila-relation-table-{Model.RelationManager.Slug}";
+    var paginationModel = new PaginationNavModel(Model.Paged, Model.TableUrl, $"#{targetId}", $"#{stateId}", PushUrl: false);
 }
 <div class="fi-ta-table-wrapper">
     <table class="fi-ta-table">
@@ -68,28 +69,4 @@
     </table>
 </div>
 
-<div class="fi-ta-pagination" role="navigation" aria-label="Pagination">
-    <span class="fi-ta-pagination-summary">
-        Page @Model.Paged.Page of @Model.Paged.LastPage (@Model.Paged.Total total)
-    </span>
-    <div class="fi-ta-pagination-controls">
-        <button type="button"
-                class="fi-btn fi-btn-outlined"
-                disabled="@(Model.Paged.Page <= 1 ? "disabled" : null)"
-                hx-get="@Model.TableUrl"
-                hx-target="#@targetId"
-                hx-include="#@stateId"
-                hx-vals='{"page": "@(Model.Paged.Page - 1)"}'>
-            Previous
-        </button>
-        <button type="button"
-                class="fi-btn fi-btn-outlined"
-                disabled="@(Model.Paged.Page >= Model.Paged.LastPage ? "disabled" : null)"
-                hx-get="@Model.TableUrl"
-                hx-target="#@targetId"
-                hx-include="#@stateId"
-                hx-vals='{"page": "@(Model.Paged.Page + 1)"}'>
-            Next
-        </button>
-    </div>
-</div>
+<partial name="Fila/_PaginationNav" model="paginationModel" />

@@ -1,0 +1,65 @@
+@model PaginationNavModel
+@{
+    Layout = null;
+    var paged = Model.Paged;
+    // filament::components/pagination.overview: "{1} Showing 1 result|[2,*] Showing :first to
+    // :last of :total results" — trans_choice falls back to the [2,*] form for a count outside
+    // every explicit range, which is what a Total of 0 hits.
+    var overview = paged.Total == 1
+        ? "Showing 1 result"
+        : $"Showing {paged.FirstItem} to {paged.LastItem} of {paged.Total} results";
+    var items = PaginationWindow.Build(paged.Page, paged.LastPage);
+    var pushUrlAttr = Model.PushUrl ? "true" : null;
+}
+<nav class="fi-pagination" aria-label="Pagination navigation">
+    <span class="fi-pagination-overview">@overview</span>
+
+    @if (items.Count > 0)
+    {
+        <ol class="fi-pagination-items">
+            @if (paged.Page > 1)
+            {
+                <li class="fi-pagination-item" rel="prev">
+                    <button aria-label="Previous" type="button" class="fi-pagination-item-btn"
+                            hx-get="@Model.Url" hx-target="@Model.HxTarget" hx-include="@Model.HxInclude"
+                            hx-push-url="@pushUrlAttr" hx-vals='{"page": "@(paged.Page - 1)"}'>
+                        @Html.Raw(IconRegistry.Render("chevron-left"))
+                    </button>
+                </li>
+            }
+            @foreach (var item in items)
+            {
+                @if (item.IsEllipsis)
+                {
+                    <li class="fi-pagination-item fi-disabled">
+                        <button type="button" class="fi-pagination-item-btn" disabled aria-hidden="true">
+                            <span class="fi-pagination-item-label">…</span>
+                        </button>
+                    </li>
+                }
+                else
+                {
+                    var isActive = item.Page == paged.Page;
+                    <li class="fi-pagination-item@(isActive ? " fi-active" : "")">
+                        <button aria-label="Go to page @item.Page" type="button" class="fi-pagination-item-btn"
+                                aria-current="@(isActive ? "page" : null)"
+                                hx-get="@Model.Url" hx-target="@Model.HxTarget" hx-include="@Model.HxInclude"
+                                hx-push-url="@pushUrlAttr" hx-vals='{"page": "@item.Page"}'>
+                            <span class="fi-pagination-item-label">@item.Page</span>
+                        </button>
+                    </li>
+                }
+            }
+            @if (paged.Page < paged.LastPage)
+            {
+                <li class="fi-pagination-item" rel="next">
+                    <button aria-label="Next" type="button" class="fi-pagination-item-btn"
+                            hx-get="@Model.Url" hx-target="@Model.HxTarget" hx-include="@Model.HxInclude"
+                            hx-push-url="@pushUrlAttr" hx-vals='{"page": "@(paged.Page + 1)"}'>
+                        @Html.Raw(IconRegistry.Render("chevron-right"))
+                    </button>
+                </li>
+            }
+        </ol>
+    }
+</nav>
