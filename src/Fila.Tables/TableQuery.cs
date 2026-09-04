@@ -77,4 +77,12 @@ public sealed class PagedRows
     public required int Total { get; init; }
 
     public int LastPage => Total == 0 ? 1 : (int)Math.Ceiling(Total / (double)PerPage);
+
+    /// <summary>1-based index of this page's first row, for the "Showing X to Y of Z results"
+    /// overview — Filament's $paginator->firstItem(), which is null (rendered as 0) when
+    /// Total is 0.</summary>
+    public int FirstItem => Total == 0 ? 0 : ((Page - 1) * PerPage) + 1;
+
+    /// <summary>1-based index of this page's last row — Filament's $paginator->lastItem().</summary>
+    public int LastItem => Total == 0 ? 0 : Math.Min(Page * PerPage, Total);
 }

@@ -53,6 +53,8 @@ public static class IconRegistry
             """<path d="m6 9 6 6 6-6"/>""",
         ["chevron-right"] =
             """<path d="m9 6 6 6-6 6"/>""",
+        ["chevron-left"] =
+            """<path d="m15 6-6 6 6 6"/>""",
         ["logout"] =
             """<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>""",
         ["inbox"] =
