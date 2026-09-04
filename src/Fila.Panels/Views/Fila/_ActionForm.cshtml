@@ -4,8 +4,12 @@
     Layout = null;
     var evaluation = Model.Evaluation;
     var readOnly = Model.Action.ReadOnlyFlag;
+    // A header action's record doesn't exist until Handle runs — Model.Id is null exactly when
+    // Model.Entity is a freshly Resource.CreateBlank()'d instance, every property still at its
+    // CLR default. See FieldBinding.IsUnsetClrDefault for why that matters here.
+    var isCreate = Model.Id is null;
 }
-<div class="fi-modal-header">
+<div class="fi-modal-header" x-init="$el.closest('.fi-modal-window')?.classList.add('fi-modal-window-wide')">
     <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
     <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
         @Html.Raw(IconRegistry.Render("x"))
@@ -14,33 +18,45 @@
 
 <form hx-post="@Model.ActionUrl" hx-target="#fila-table" hx-swap="innerHTML" hx-include="#fila-table-state">
     <div class="fi-modal-content">
-        @foreach (var field in Model.Form.Fields.Where(f => f.ResolveVisible(evaluation)))
-        {
-            var label = field.ResolveLabel(evaluation);
-            var rawValue = FieldBinding.Format(field.GetValue(Model.Entity));
-            var error = Model.ErrorFor(field.Path);
-            var fieldId = $"fila-field-{field.Path}";
+        @* Every Create/Edit action form gets a 2-column grid unless the resource opted out —
+           Filament's ListRecords/EditRecord wrap the resource's own form schema with
+           ->columns(2) for exactly the Create/Edit actions, the same page-level default this
+           reproduces (packages/filament/src/Resources/Pages/{ListRecords,EditRecord}.php).
+           Fila has no per-form column override yet, so this is unconditional for now. *@
+        <div class="fi-grid lg:fi-grid-cols fi-sc fi-sc-has-gap"
+             style="--cols-default: repeat(1, minmax(0, 1fr)); --cols-lg: repeat(2, minmax(0, 1fr))">
+            @foreach (var field in Model.Form.Fields.Where(f => f.ResolveVisible(evaluation)))
+            {
+                var label = field.ResolveLabel(evaluation);
+                var value = field.GetValue(Model.Entity);
+                if (isCreate && FieldBinding.IsUnsetClrDefault(value)) value = null;
+                var rawValue = FieldBinding.Format(value);
+                var error = Model.ErrorFor(field.Path);
+                var fieldId = $"fila-field-{field.Path}";
 
-            <div class="fi-field">
-                @if (field.View != "checkbox")
-                {
-                    <label class="fi-login-label" for="@fieldId">
-                        @label
-                        @if (field.ResolveRequired(evaluation))
+                <div class="fi-grid-col" style="--col-span-default: span 1 / span 1">
+                    <div class="fi-sc-component fi-field">
+                        @if (field.View != "checkbox")
                         {
-                            <sup class="fi-required-mark">*</sup>
+                            <label class="fi-login-label" for="@fieldId">
+                                @label
+                                @if (field.ResolveRequired(evaluation))
+                                {
+                                    <sup class="fi-required-mark">*</sup>
+                                }
+                            </label>
                         }
-                    </label>
-                }
 
-                <partial name="@Registry.PartialForField(field.View)" model="new FieldRenderModel(field, evaluation, fieldId, rawValue, readOnly)" />
+                        <partial name="@Registry.PartialForField(field.View)" model="new FieldRenderModel(field, evaluation, fieldId, rawValue, readOnly)" />
 
-                @if (error is not null)
-                {
-                    <p class="fi-login-error">@error</p>
-                }
-            </div>
-        }
+                        @if (error is not null)
+                        {
+                            <p class="fi-login-error">@error</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 
     <div class="fi-modal-footer">

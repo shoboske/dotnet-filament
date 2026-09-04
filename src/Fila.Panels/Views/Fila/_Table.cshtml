@@ -124,7 +124,7 @@
                                 var fieldId = $"fila-filter-{filter.Name}";
                                 <div class="fi-field">
                                     <label class="fi-login-label" for="@fieldId">@filter.ResolveLabel(evaluation)</label>
-                                    <select class="fi-input" id="@fieldId" name="@fieldName">
+                                    <select class="fi-select-input" id="@fieldId" name="@fieldName">
                                         <option value="" selected="@(string.IsNullOrEmpty(currentValue) ? "selected" : null)">
                                             @filter.ResolvePlaceholder(evaluation)
                                         </option>
