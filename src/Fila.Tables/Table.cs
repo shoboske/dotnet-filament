@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Fila.Actions;
 using Fila.Support;
+using Fila.Tables.Filters;
 
 namespace Fila.Tables;
 
@@ -24,6 +25,11 @@ public interface ITable
 
     /// <summary>Bulk actions — run once against every row a table's checkboxes select.</summary>
     IReadOnlyList<BulkAction> BulkActions { get; }
+
+    /// <summary>Filters shown behind the toolbar's funnel-icon trigger — Filament's
+    /// Table::getFilters(). Empty until .Filters(...) is called; unlike RowActions/BulkActions
+    /// there is no built-in default to fall back to.</summary>
+    IReadOnlyList<ITableFilter> Filters { get; }
 }
 
 public sealed class Table<T> : ITable
@@ -34,6 +40,7 @@ public sealed class Table<T> : ITable
     private int _perPage = 10;
     private IReadOnlyList<IRowAction> _actions = Array.Empty<IRowAction>();
     private IReadOnlyList<BulkAction> _bulkActions = Array.Empty<BulkAction>();
+    private IReadOnlyList<ITableFilter> _filters = Array.Empty<ITableFilter>();
 
     public Type EntityType => typeof(T);
 
@@ -43,6 +50,7 @@ public sealed class Table<T> : ITable
     int ITable.PerPage => _perPage;
     IReadOnlyList<IRowAction> ITable.RowActions => _actions;
     IReadOnlyList<BulkAction> ITable.BulkActions => _bulkActions;
+    IReadOnlyList<ITableFilter> ITable.Filters => _filters;
 
     /// <summary>Takes the base type, so a column type declared outside Fila drops into the
     /// same call: .Columns(new RatingColumn&lt;Product&gt;(p =&gt; p.Stars).Sortable()).</summary>
@@ -64,6 +72,12 @@ public sealed class Table<T> : ITable
     public Table<T> BulkActions(params BulkAction[] actions)
     {
         _bulkActions = actions;
+        return this;
+    }
+
+    public Table<T> Filters(params TableFilter<T>[] filters)
+    {
+        _filters = filters;
         return this;
     }
 

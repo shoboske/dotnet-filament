@@ -6,9 +6,9 @@ namespace Fila.Tests;
 
 /// <summary>End-to-end coverage for RestoreAction on CustomerResource, which implements
 /// Fila.Support.ISoftDeletable (see samples/Demo/Data/Customer.cs) — Delete becomes a soft
-/// delete, and Restore undoes it. There's no UI yet for browsing already-deleted rows (#20), so
-/// this hits the delete/restore routes directly by id, the same way the acceptance criteria for
-/// this phase call for exercising a custom action end to end.</summary>
+/// delete, and Restore undoes it. Hits the delete/restore routes directly by id rather than
+/// through the table's TrashedFilter (see CustomersTrashedFilterTests) — this is about the
+/// actions themselves, not how a deleted row gets found.</summary>
 public sealed class RestoreActionTests(DemoAppFactory factory) : IClassFixture<DemoAppFactory>
 {
     [Fact]

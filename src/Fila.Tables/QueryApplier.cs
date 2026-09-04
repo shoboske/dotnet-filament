@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Fila.Tables.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fila.Tables;
@@ -45,6 +46,20 @@ public static class QueryApplier
 
         var lambda = Expression.Lambda<Func<T, bool>>(predicate!, parameter);
         return source.Where(lambda);
+    }
+
+    /// <summary>Runs every filter in <paramref name="table"/> against the query's current
+    /// filter_&lt;name&gt; value, in registration order — Filament applies its filters the same
+    /// way, one Builder callback each, rather than merging them into a single predicate.</summary>
+    public static IQueryable<T> ApplyFilters<T>(this IQueryable<T> source, ITable table, TableQuery query)
+    {
+        foreach (var filter in table.Filters)
+        {
+            if (filter is not TableFilter<T> typed) continue;
+            source = typed.Apply(source, query.FilterValue(filter.Name));
+        }
+
+        return source;
     }
 
     /// <summary>Builds ORDER BY from the validated query, falling back to the table's default
