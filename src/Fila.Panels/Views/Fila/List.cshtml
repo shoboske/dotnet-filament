@@ -5,6 +5,7 @@
     var resourceUrl = $"/{Model.Panel.Path}/{Model.Resource.Slug}";
     var resourceLabel = Model.Panel.Navigation.FirstOrDefault(n => n.Slug == Model.Resource.Slug)?.Label ?? Model.Resource.Slug;
 }
+<partial name="Fila/_Topbar" model="Model.Panel" />
 <div x-data="filaTable" class="fi-shell" data-fila-endpoint="/@Model.Panel.Path/@Model.Resource.Slug">
 
     <partial name="Fila/_Sidebar" model="new FilaSidebarModel(Model.Panel, Model.Resource.Slug)" />

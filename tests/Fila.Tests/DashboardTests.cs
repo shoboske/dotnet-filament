@@ -133,6 +133,24 @@ public sealed class DashboardTests(DemoAppFactory factory) : IClassFixture<DemoA
     }
 
     [Fact]
+    public async Task Dashboard_RendersATopbarWithTheBrandLinkedToThePanelRoot()
+    {
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        var html = await client.GetStringAsync("/admin");
+        var document = await new HtmlParser().ParseDocumentAsync(html);
+
+        var logo = document.QuerySelector(".fi-topbar .fi-logo") as IHtmlAnchorElement;
+        Assert.NotNull(logo);
+        Assert.Equal("Demo Admin", logo!.TextContent.Trim());
+        Assert.Equal("/admin", logo.GetAttribute("href"));
+
+        // The brand used to live inside the sidebar itself -- it shouldn't render twice.
+        Assert.Null(document.QuerySelector(".fi-sidebar .fi-logo"));
+    }
+
+    [Fact]
     public async Task BothPanels_RenderTheirOwnDashboard()
     {
         using var adminClient = factory.CreateClient();

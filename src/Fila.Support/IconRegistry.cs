@@ -67,6 +67,8 @@ public static class IconRegistry
             """<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>""",
         ["eye"] =
             """<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/>""",
+        ["eye-off"] =
+            """<path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6 0 9.5 7 9.5 7a15.6 15.6 0 0 1-3.4 4.3M6.3 6.3C4 7.9 2.5 10 2.5 10s3.5 7 9.5 7a9.7 9.7 0 0 0 3.6-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>""",
         ["dots-vertical"] =
             """<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>""",
         ["restore"] =

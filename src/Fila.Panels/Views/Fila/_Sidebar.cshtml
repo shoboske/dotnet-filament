@@ -3,11 +3,11 @@
     Layout = null;
 }
 @* Extracted verbatim out of List.cshtml when the Dashboard page arrived (issue #8) and needed
-   the same chrome. Every panel page renders this: brand, the Dashboard link, the resource nav,
-   and the user menu with its theme switcher and sign-out. ActiveSlug decides which nav link is
-   current — null means the Dashboard itself. *@
+   the same chrome. Every panel page renders this: the Dashboard link, the resource nav, and the
+   user menu with its theme switcher and sign-out. ActiveSlug decides which nav link is current
+   — null means the Dashboard itself. The brand itself lives in the topbar now (_Topbar.cshtml),
+   not here — matching Filament's own Livewire\Topbar, which is where the brand actually renders. *@
 <aside class="fi-sidebar">
-    <div class="fi-sidebar-brand">@Model.Panel.Brand</div>
     <nav class="fi-sidebar-nav" aria-label="Resources">
         @{
             var dashboardActive = Model.ActiveSlug is null;
