@@ -1,5 +1,8 @@
 @model ColumnRenderModel
 @{
-    var tone = Model.Column.GetBadgeColor(Model.Row) ?? "neutral";
+    // Filament's own <x-filament::badge> defaults its color prop to "primary", not gray —
+    // TextColumn::make(...)->badge() with no ->color()/enum color mapping at all still renders
+    // primary, confirmed against a real rendered badge's fi-color-primary class.
+    var tone = Model.Column.GetBadgeColor(Model.Row) ?? "primary";
 }
 <span class="fi-badge fi-badge-@tone">@Model.Column.FormatDisplay(Model.Row)</span>

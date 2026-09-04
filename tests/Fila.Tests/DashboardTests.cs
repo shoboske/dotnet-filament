@@ -151,6 +151,21 @@ public sealed class DashboardTests(DemoAppFactory factory) : IClassFixture<DemoA
     }
 
     [Fact]
+    public async Task PrimaryColorOverride_AlsoDerivesTheBadgePrimaryTokens()
+    {
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        // _PrimaryColorOverride.cshtml derives --fi-badge-primary-bg/-fg from the panel's own
+        // accent the same way it already derived --fi-accent-soft-bg -- a badge's default color
+        // (Filament's own <x-filament::badge> color prop default) should track the panel's
+        // brand, not a fixed hex unrelated to it.
+        var html = await client.GetStringAsync("/admin");
+        Assert.Contains("--fi-badge-primary-bg:", html);
+        Assert.Contains("--fi-badge-primary-fg:", html);
+    }
+
+    [Fact]
     public async Task BothPanels_RenderTheirOwnDashboard()
     {
         using var adminClient = factory.CreateClient();
