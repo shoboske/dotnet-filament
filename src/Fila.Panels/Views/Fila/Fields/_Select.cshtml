@@ -1,8 +1,13 @@
 @model FieldRenderModel
 @{
     var options = (Model.Field as ISelectField)?.ResolveOptions(Model.Evaluation) ?? [];
+    // Filament's own default placeholder (filament-forms::components.select.placeholder) —
+    // shown and selected whenever RawValue doesn't match one of the real options below, which
+    // is always true for a genuinely-unset value since "" never equals a real option's value.
+    var isBlank = string.IsNullOrEmpty(Model.RawValue);
 }
-<select class="fi-input" id="@Model.FieldId" name="@Model.Field.Path" disabled="@(Model.Disabled ? "disabled" : null)">
+<select class="fi-select-input" id="@Model.FieldId" name="@Model.Field.Path" disabled="@(Model.Disabled ? "disabled" : null)">
+    <option value="" selected="@(isBlank ? "selected" : null)">Select an option</option>
     @foreach (var option in options)
     {
         <option value="@option.Value" selected="@(option.Value == Model.RawValue ? "selected" : null)">@option.Label</option>

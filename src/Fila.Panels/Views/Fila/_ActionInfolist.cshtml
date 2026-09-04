@@ -4,7 +4,7 @@
     Layout = null;
     var evaluation = Model.Evaluation;
 }
-<div class="fi-modal-header">
+<div class="fi-modal-header" x-init="$el.closest('.fi-modal-window')?.classList.remove('fi-modal-window-wide')">
     <h2 class="fi-modal-heading">@Model.Action.ResolveModalHeading(evaluation)</h2>
     <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
         @Html.Raw(IconRegistry.Render("x"))

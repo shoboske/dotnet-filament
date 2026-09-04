@@ -4,7 +4,7 @@
     var evaluation = Model.Evaluation;
     var confirmBtnClass = Model.Action.ColorValue == "danger" ? "fi-btn-danger" : "fi-btn-primary";
 }
-<div class="fi-modal-header fi-align-center">
+<div class="fi-modal-header fi-align-center" x-init="$el.closest('.fi-modal-window')?.classList.remove('fi-modal-window-wide')">
     <button type="button" class="fi-modal-close-btn" @@click="modalOpen = false" aria-label="Close">
         @Html.Raw(IconRegistry.Render("x"))
     </button>

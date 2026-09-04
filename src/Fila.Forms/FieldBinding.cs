@@ -44,4 +44,22 @@ public static class FieldBinding
         IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString() ?? "",
     };
+
+    /// <summary>True when <paramref name="value"/> is a boxed numeric or enum value sitting at
+    /// its CLR default (0, the enum's zero member, ...) — the signal that a freshly-`new()`'d
+    /// entity's property was never actually set to anything, as opposed to a real value someone
+    /// chose or an existing record actually has. A create form uses this to render such a field
+    /// blank instead of showing the default as if it were data (Filament's Total field starts
+    /// empty, not "0"; its Select starts on the placeholder, not the first/zero enum member).
+    ///
+    /// bool/string/DateTime/DateTimeOffset/Guid are excluded: an unchecked checkbox and ""
+    /// already render exactly as they should, and DateTime/DateTimeOffset get the same
+    /// treatment already, unconditionally, in Format above.</summary>
+    public static bool IsUnsetClrDefault(object? value) => value switch
+    {
+        null or bool or string or DateTime or DateTimeOffset or Guid => false,
+        _ when value.GetType() is { IsEnum: true } or { IsValueType: true } =>
+            value.Equals(Activator.CreateInstance(value.GetType())),
+        _ => false,
+    };
 }
