@@ -64,6 +64,7 @@
 }
 
 .fi-icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -74,6 +75,27 @@
   background: none;
   color: var(--fi-text-muted);
   cursor: pointer;
+}
+
+/* fi-icon-btn-badge-ctn — packages/support/resources/css/components/icon-button.css. Overlays
+   the filter trigger's active-filter count on its top-right corner; unlike a table column's
+   .fi-badge (fila.css) it carries no pill background of its own in the real compiled theme,
+   just the color-700/400 text Table\Concerns\HasFilters::getFiltersTriggerAction() badges
+   with (fi-color-primary by default). */
+.fi-icon-btn-badge-ctn {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  pointer-events: none;
+}
+
+.fi-icon-btn-badge-ctn .fi-badge {
+  padding: 0;
+  background: none;
+  color: var(--fi-accent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .fi-icon-btn .fi-icon {
@@ -110,6 +132,49 @@
   background: var(--fi-surface);
   border: 1px solid var(--fi-border);
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* fi-ta-filters-dropdown — the table toolbar's filter trigger is its row's rightmost item, so
+   (unlike every other .fi-dropdown-panel, which opens left-aligned under its trigger) its panel
+   opens right-aligned to stay on-screen — Filament's placement="bottom-end". Width::ExtraSmall
+   (Filament's default filtersFormWidth) is Tailwind's max-w-xs, 20rem. */
+.fi-ta-filters-dropdown {
+  left: auto;
+  right: 0;
+  width: 20rem;
+  max-width: 20rem;
+}
+
+/* fi-ta-filters — packages/tables/resources/views/components/filters.blade.php. */
+.fi-ta-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.fi-ta-filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fi-ta-filters-heading {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fi-text);
+}
+
+.fi-ta-filters-actions-ctn {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fi-ta-filters-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .fi-dropdown-list {

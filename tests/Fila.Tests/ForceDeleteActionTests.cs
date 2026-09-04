@@ -5,7 +5,7 @@ namespace Fila.Tests;
 
 /// <summary>End-to-end coverage for ForceDeleteAction on CustomerResource — permanently removes
 /// an already soft-deleted record. See RestoreActionTests' doc comment for why this hits routes
-/// directly by id rather than through a "show trashed" list (#20).</summary>
+/// directly by id rather than through the table's TrashedFilter.</summary>
 public sealed class ForceDeleteActionTests(DemoAppFactory factory) : IClassFixture<DemoAppFactory>
 {
     [Fact]

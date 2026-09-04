@@ -3,6 +3,7 @@ using Fila.Infolists;
 using Fila.Panels.RelationManagers;
 using Fila.Panels.Resources;
 using Fila.Tables;
+using Fila.Tables.Filters;
 using Demo.Data;
 using Demo.Fila.RelationManagers;
 
@@ -23,8 +24,10 @@ public sealed class CustomerResource : Resource<Customer>
         .PaginateBy(25)
         // Customer implements ISoftDeletable (see Demo/Data/Customer.cs) — Delete becomes a
         // soft delete, and Restore/ForceDelete become available alongside it. Both only render
-        // for an already-deleted row, which the default list query excludes (see #20 for the
-        // still-missing "show trashed" UI to reach one through the table itself).
+        // for an already-deleted row, which the default list query excludes; TrashedFilter is
+        // what reaches one through the table itself — matches FilamentReference's
+        // CustomersTable::configure(), the only filter it registers.
+        .Filters(new TrashedFilter<Customer>())
         .Actions(BuildEditAction(), BuildDeleteAction(), BuildRestoreAction(), BuildForceDeleteAction())
         .BulkActions(BuildRestoreBulkAction(), BuildForceDeleteBulkAction());
 

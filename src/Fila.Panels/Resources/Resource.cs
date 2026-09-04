@@ -5,6 +5,7 @@ using Fila.Infolists;
 using Fila.Panels.RelationManagers;
 using Fila.Support;
 using Fila.Tables;
+using Fila.Tables.Filters;
 using Fila.Widgets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -268,7 +269,15 @@ public abstract class Resource<TEntity> : IResource
     public async Task<PagedRows> ListAsync(DbContext db, ITable table, TableQuery query, CancellationToken ct)
     {
         var source = Query(db.Set<TEntity>());
-        if (NotDeletedPredicate is not null) source = source.Where(NotDeletedPredicate);
+
+        // A TrashedFilter takes over deciding what counts as "deleted" entirely (Filament's own
+        // TrashedFilter removes the global not-deleted scope for exactly this reason — see its
+        // remarks) — so the automatic exclusion below only applies when the table has no such
+        // filter to hand that decision to.
+        if (NotDeletedPredicate is not null && !table.Filters.Any(f => f is ITrashedFilter))
+            source = source.Where(NotDeletedPredicate);
+
+        source = source.ApplyFilters(table, query);
         source = source.ApplySearch(table, query.Search);
         source = source.ApplySort(table, query);
         return await source.PaginateAsync(query.Page, table.PerPage, ct);
