@@ -54,7 +54,11 @@
                        no responsive variable alongside it. *@
                     var span = widget.Widget.ColumnSpan >= 2 ? "1 / -1" : "span 1 / span 1";
                     <div class="fi-grid-col" style="--col-span-default: @span">
-                        <div class="fi-sc-component">
+                        @* The id is this widget's own reload target — a TableWidget's
+                           Previous/Next pair hx-gets Model.ReloadUrl and swaps this div's
+                           content, the same "wrapper owns the id, the partial owns what fills
+                           it" split _RelationManagerTable.cshtml uses. *@
+                        <div class="fi-sc-component" id="fila-widget-@widget.Index">
                             <partial name="@Registry.PartialForWidget(widget.Widget.View)" model="widget" />
                         </div>
                     </div>

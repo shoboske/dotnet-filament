@@ -102,6 +102,53 @@ public sealed class DashboardTests(DemoAppFactory factory) : IClassFixture<DemoA
     }
 
     [Fact]
+    public async Task RecentOrdersWidget_PaginatesTheSameWayFilamentsTableWidgetDoes()
+    {
+        // TableWidget::makeTable() forces PaginationMode::Simple -- Laravel's own
+        // simplePaginate(), which never runs the COUNT query a numbered page list or "Showing
+        // X of Y" overview needs. Its rendered form (confirmed against a live
+        // RecentOrdersWidget with the same 42-orders/5-per-page shape as DemoSeeder's) is just
+        // a Previous/Next pair, Previous absent on the first page and Next absent on the last.
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        var page1 = await new HtmlParser().ParseDocumentAsync(await client.GetStringAsync("/admin"));
+        var card = page1.QuerySelectorAll(".fi-wi-table")
+            .Single(widget => widget.QuerySelector(".fi-section-header-heading")?.TextContent.Trim() == "Recent orders");
+
+        Assert.Null(card.QuerySelector(".fi-pagination-previous-btn"));
+        var nextButton = card.QuerySelector(".fi-pagination-next-btn");
+        Assert.NotNull(nextButton);
+
+        // The widget's own reload route -- hx-get on the Next button -- rather than a
+        // hardcoded index, so a change to widget registration order can't silently make this
+        // test pass against the wrong widget.
+        var reloadUrl = nextButton!.GetAttribute("hx-get");
+        Assert.NotNull(reloadUrl);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+        var allByNewest = await db.Orders.OrderByDescending(o => o.CreatedAt).Select(o => o.Reference).ToListAsync();
+        Assert.Equal(42, allByNewest.Count); // DemoSeeder's own count -- see Dashboard_StatsMatchTheSeededRows.
+
+        var page2Html = await client.GetStringAsync($"{reloadUrl}?page=2");
+        var page2 = await new HtmlParser().ParseDocumentAsync(page2Html);
+        var page2Rows = page2.QuerySelectorAll("tbody tr").Select(row => row.Children[1].TextContent.Trim()).ToList();
+        Assert.Equal(allByNewest.Skip(5).Take(5), page2Rows);
+        Assert.NotNull(page2.QuerySelector(".fi-pagination-previous-btn"));
+        Assert.NotNull(page2.QuerySelector(".fi-pagination-next-btn"));
+
+        // Page 9 is the last (42 rows at 5/page: pages 1-8 full, page 9 holds the remaining 2)
+        // -- Next must disappear there instead of offering an empty page 10.
+        var lastPageHtml = await client.GetStringAsync($"{reloadUrl}?page=9");
+        var lastPage = await new HtmlParser().ParseDocumentAsync(lastPageHtml);
+        var lastPageRows = lastPage.QuerySelectorAll("tbody tr").Select(row => row.Children[1].TextContent.Trim()).ToList();
+        Assert.Equal(allByNewest.Skip(40).Take(5), lastPageRows);
+        Assert.NotNull(lastPage.QuerySelector(".fi-pagination-previous-btn"));
+        Assert.Null(lastPage.QuerySelector(".fi-pagination-next-btn"));
+    }
+
+    [Fact]
     public async Task Dashboard_ChartPlotsOnePointPerDayOfItsWindow()
     {
         using var client = factory.CreateClient();
