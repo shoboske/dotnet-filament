@@ -1,5 +1,8 @@
 @model EntryRenderModel
 @{
-    var tone = Model.Entry.GetBadgeColor(Model.Record) ?? "neutral";
+    // Same default as Columns/_Badge.cshtml (see #38): Filament's <x-filament::badge> defaults
+    // its color prop to "primary", not gray, and an infolist TextEntry::make(...)->badge() with
+    // no ->color() mapping is no different from a table column in that respect.
+    var tone = Model.Entry.GetBadgeColor(Model.Record) ?? "primary";
 }
 <span class="fi-badge fi-badge-@tone">@Model.Entry.FormatDisplay(Model.Record)</span>
