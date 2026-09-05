@@ -32,6 +32,32 @@
         "info" => " fi-link-info",
         _ => "",
     };
+
+    // Every row action, groups flattened — what the record-click resolution below searches.
+    var flatRowActions = rowActions.SelectMany(item => item.Flatten()).ToList();
+
+    // Filament's ListRecords::table() is what makes a row clickable: it walks ['view', 'edit']
+    // in that order and takes the first action that exists and is visible for the record.
+    // An action with no URL becomes recordAction (clicking the row opens its modal); one that
+    // *has* a URL becomes recordUrl (the row is a link), and the blade prefers recordUrl when
+    // both resolve. Fila's only URL-bearing row action is Edit on a resource with relation
+    // managers — every other built-in opens a modal — so that same preference falls out here.
+    (string? Url, string? Action) ResolveRecordClick(EvaluationContext rowEvaluation, string rowId)
+    {
+        string? action = null;
+
+        foreach (var name in (string[])["view", "edit"])
+        {
+            var candidate = flatRowActions.FirstOrDefault(a => a.Name == name);
+            if (candidate is null || !candidate.ResolveVisible(rowEvaluation)) continue;
+
+            if (name == "edit" && hasRelations) return ($"{resourceUrl}/{rowId}/edit", null);
+
+            action ??= name;
+        }
+
+        return (null, action);
+    }
 }
 <div class="fi-ta-toolbar">
     <div class="fi-ta-toolbar-actions">
@@ -251,7 +277,9 @@
                 var row = Model.Paged.Rows[i];
                 var rowEvaluation = evaluation.ForRecord(row);
                 var rowId = Model.Resource.GetId(Model.Db, row);
-                <tr wire-key="@(Model.Resource.Slug)-@i">
+                var rowActionUrl = $"{resourceUrl}/{rowId}/actions";
+                var (recordUrl, recordAction) = ResolveRecordClick(rowEvaluation, rowId);
+                <tr class="fi-ta-row@(recordUrl is not null || recordAction is not null ? " fi-clickable" : "")" wire-key="@(Model.Resource.Slug)-@i">
                     @if (hasBulkActions)
                     {
                         <td class="fi-ta-cell fi-ta-checkbox-cell">
@@ -261,13 +289,36 @@
                     }
                     @foreach (var column in columns)
                     {
+                        @* Filament wraps every data cell's content in a full-width .fi-ta-col —
+                           an <a> for a recordUrl row, a <button> for a recordAction row, a plain
+                           <div> when neither resolves — so the clickable area is the whole cell
+                           rather than just the text inside it. The selection and actions cells
+                           are deliberately left unwrapped, exactly as upstream leaves them. *@
                         <td class="fi-ta-cell fi-ta-align-@column.Alignment.ToString().ToLowerInvariant()">
-                            <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                            @if (recordUrl is not null)
+                            {
+                                <a class="fi-ta-col" href="@recordUrl">
+                                    <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                                </a>
+                            }
+                            else if (recordAction is not null)
+                            {
+                                <button type="button" class="fi-ta-col"
+                                        hx-get="@rowActionUrl/@recordAction" hx-target="#fila-modal-body"
+                                        hx-swap="innerHTML" hx-include="#fila-table-state">
+                                    <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="fi-ta-col">
+                                    <partial name="@Registry.PartialForColumn(column.View)" model="new ColumnRenderModel(column, row)" />
+                                </div>
+                            }
                         </td>
                     }
                     @if (hasRowActions)
                     {
-                        var rowActionUrl = $"{resourceUrl}/{rowId}/actions";
                         <td class="fi-ta-cell fi-ta-align-end">
                             <div class="fi-ta-actions">
                                 @foreach (var item in rowActions)

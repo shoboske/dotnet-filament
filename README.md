@@ -26,11 +26,24 @@ incidental.
 | Orders — create | ![Filament create order modal](docs/screenshots/reference/orders-create.png) | ![Fila create order modal](docs/screenshots/demo/orders-create.png) |
 | Orders — view | ![Filament view order modal](docs/screenshots/reference/orders-view.png) | ![Fila view order modal](docs/screenshots/demo/orders-view.png) |
 
-A few differences are visible on sight and tracked in
-[issue #27](https://github.com/shoboske/dotnet-filament/issues/27): no top bar or numbered
-pagination yet, form fields render single-column instead of Filament's responsive grid, the
-`<select>`/numeric fields don't start blank, and status/row-action colors don't fully match. The
-dashboard chart and stat sparklines do match — both render through a locally-vendored Chart.js,
+The gaps that used to be visible here — no top bar, no numbered pagination, single-column forms,
+`<select>`/numeric fields that didn't start blank, gray status badges, hand-drawn icons, inert
+rows — were worked through in #29–#42 and are checked off in
+[issue #27](https://github.com/shoboske/dotnet-filament/issues/27), which tracks this audit
+screen by screen.
+
+What's left in these shots is deliberate divergence rather than drift, and #27 records why:
+
+- **Badge text.** Fila humanizes the enum (`Processing`) where the reference prints its raw
+  backing value (`processing`).
+- **Customers.** Demo's `CustomerResource` declares an Infolist, so it gains a View action the
+  reference doesn't have; and it registers a relation manager, so its Edit opens a dedicated
+  `/customers/{id}/edit` page (which hosts that manager) instead of the reference's modal. That
+  second one also changes what clicking a row does: Filament prefers a record *URL* over a record
+  *action*, so Demo's customer rows link to the edit page while its order rows — no relation
+  manager, no URL — open the View modal, exactly as the same rule produces in reference.
+
+The dashboard chart and stat sparklines match: both render through a locally-vendored Chart.js,
 not a hand-rolled substitute.
 
 ### Regenerating these screenshots

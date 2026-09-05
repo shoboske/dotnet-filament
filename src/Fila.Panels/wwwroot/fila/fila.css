@@ -715,8 +715,51 @@ body {
   white-space: nowrap;
 }
 
+/* fi-ta-col — the wrapper Filament puts inside every *data* cell (cell.css: `flex w-full`,
+   with .fi-ta-cell itself at `p-0`). It exists so a clickable row's <a>/<button> covers the
+   whole cell, padding included, instead of just the text. Fila keeps its padding on
+   .fi-ta-cell for the cells that have no wrapper — the selection checkbox and the row-action
+   cell, which upstream leaves unwrapped too — and hands it to .fi-ta-col for the rest.
+   display:block rather than upstream's flex: Fila's column partials emit inline content, so
+   the cell's own text-align (fi-ta-align-*) is what has to reach it, and a block child
+   inherits that where a flex container would need a matching justify-content rule per
+   alignment. */
+.fi-ta-cell:has(> .fi-ta-col) {
+  padding: 0;
+}
+
+.fi-ta-col {
+  display: block;
+  width: 100%;
+  padding: 1rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  background: none;
+  border: none;
+}
+
+a.fi-ta-col {
+  text-decoration: none;
+}
+
+button.fi-ta-col,
+a.fi-ta-col {
+  cursor: pointer;
+}
+
+/* row.css: `&.fi-clickable { @apply hover:bg-gray-50 dark:hover:bg-white/5 }` — the only
+   affordance upstream gives a clickable row (the cursor comes from the cell's own button). */
+.fi-ta-row.fi-clickable:hover {
+  background: var(--fi-hover-bg);
+}
+
 .fi-ta-header-cell:first-child,
 .fi-ta-cell:first-child {
+  padding-inline-start: 1rem;
+}
+
+.fi-ta-cell:first-child > .fi-ta-col {
   padding-inline-start: 1rem;
 }
 
@@ -725,7 +768,19 @@ body {
   padding-inline-end: 1rem;
 }
 
+.fi-ta-cell:last-child > .fi-ta-col {
+  padding-inline-end: 1rem;
+}
+
 @media (min-width: 640px) {
+  .fi-ta-cell:first-child > .fi-ta-col {
+    padding-inline-start: 1.5rem;
+  }
+
+  .fi-ta-cell:last-child > .fi-ta-col {
+    padding-inline-end: 1.5rem;
+  }
+
   .fi-ta-header-cell:first-child,
   .fi-ta-cell:first-child {
     padding-inline-start: 1.5rem; /* sm:first-of-type:ps-6 */
