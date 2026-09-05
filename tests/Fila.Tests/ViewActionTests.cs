@@ -48,6 +48,35 @@ public sealed class ViewActionTests(DemoAppFactory factory) : IClassFixture<Demo
     }
 
     [Fact]
+    public async Task Mount_RendersOrdersEntriesInFilamentsRealFieldOrder_InAWideTwoColumnModal()
+    {
+        // CanOpenModal::getModalWidth() falls through to Width::FourExtraLarge for any action
+        // that isn't a confirmation -- View included -- the same wide modal Create/Edit forms
+        // get. Confirmed against a live FilamentReference View-order modal: a real
+        // fi-grid lg:fi-grid-cols (not one stacked column) holding, in this exact order,
+        // created_at, reference, status, total, customer.name -- OrderInfolist::configure()'s
+        // own field order, not OrderResource.cs's previous Reference-first order.
+        using var client = factory.CreateClient();
+        await TestAuth.LoginAsync(client);
+
+        var html = await client.GetStringAsync("/admin/orders/1/actions/view");
+        var document = await new HtmlParser().ParseDocumentAsync(html);
+
+        Assert.Contains("classList.add('fi-modal-window-wide')", html);
+        Assert.DoesNotContain("classList.remove('fi-modal-window-wide')", html);
+
+        var labels = document.QuerySelectorAll(".fi-in-entry-label").Select(el => el.TextContent.Trim()).ToList();
+        Assert.Equal(["Created at", "Reference", "Status", "Total", "Customer"], labels);
+
+        Assert.Equal(labels.Count, document.QuerySelectorAll(".fi-grid-col").Count);
+
+        // Entries/_Badge.cshtml had the same gray-default bug Columns/_Badge.cshtml had before
+        // #38 -- an infolist badge with no explicit color mapping is still "primary" in real
+        // Filament, not gray.
+        Assert.Equal("fi-badge fi-badge-primary", document.QuerySelector(".fi-badge")!.ClassName);
+    }
+
+    [Fact]
     public async Task ViewAction_IsNotDeclaredExplicitlyOnCustomerResource_ButAppearsBecauseItHasAnInfolist()
     {
         using var client = factory.CreateClient();
