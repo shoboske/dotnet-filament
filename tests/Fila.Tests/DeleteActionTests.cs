@@ -21,6 +21,12 @@ public sealed class DeleteActionTests(DemoAppFactory factory) : IClassFixture<De
 
         Assert.NotNull(document.QuerySelector(".fi-modal-heading"));
         Assert.NotNull(document.QuerySelector("button.fi-btn-danger"));
+
+        // CanOpenModal::getModalFooterActions() reverses [submit, cancel] to [cancel, submit]
+        // for a Center-aligned confirmation modal -- confirmed against a live rendered Delete
+        // confirmation, which shows Cancel left, Delete right.
+        var buttons = document.QuerySelectorAll(".fi-modal-footer-actions button").Select(b => b.TextContent.Trim()).ToList();
+        Assert.Equal(["Cancel", "Delete"], buttons);
     }
 
     [Fact]

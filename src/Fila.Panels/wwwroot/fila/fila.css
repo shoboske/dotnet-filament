@@ -1113,9 +1113,16 @@ body {
   margin-top: 1.5rem;
 }
 
+/* Filament's own CSS never reverses this row (support/resources/css/components/modal.css:
+   .fi-align-start/.fi-align-left get plain flex, .fi-align-end/.fi-align-right get
+   flex-row-reverse, and .fi-align-center is a non-reversing grid at desktop widths) — a
+   button's on-screen position comes entirely from the order CanOpenModal::getModalFooterActions()
+   builds the array in (submit, ...extra, cancel; reversed to cancel, ...extra, submit only for
+   Center alignment, i.e. confirmation actions). Confirmed live: a Save-changes/Cancel edit
+   footer renders Save changes left, Cancel right (DOM order, unreversed); a Delete confirmation
+   renders Cancel left, Delete right (_ActionConfirm.cshtml's own DOM order, also unreversed). */
 .fi-modal-footer-actions {
   display: flex;
-  flex-direction: row-reverse;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;

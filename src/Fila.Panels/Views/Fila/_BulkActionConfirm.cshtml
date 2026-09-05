@@ -19,11 +19,13 @@
 
 <div class="fi-modal-footer">
     <div class="fi-modal-footer-actions fi-align-center">
+        @* Same DOM-order fix as _ActionConfirm.cshtml -- Cancel first, Confirm second, matching
+           a Center-aligned modal's real (reversed) action order. *@
+        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
         <button type="button" class="fi-btn @confirmBtnClass"
                 hx-post="@Model.ActionUrl" hx-target="#fila-table" hx-swap="innerHTML"
                 hx-include="[name='ids']:checked,#fila-table-state">
             @Model.Action.ResolveModalSubmitLabel(evaluation)
         </button>
-        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
     </div>
 </div>

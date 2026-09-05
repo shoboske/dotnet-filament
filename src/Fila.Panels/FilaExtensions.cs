@@ -764,6 +764,52 @@ public static class FilaExtensions
             await action.HandleCallback(actionContext);
         }
 
+        // CreateAction's own submit-button-name trick (see _ActionForm.cshtml): "another" only
+        // rides along when that specific button is what triggered the submit. ReadFormAsync is
+        // cached on the request the first time it's read, so re-reading it here (rather than
+        // threading the earlier read out of the block above) costs nothing extra.
+        var createAnother = action.SupportsCreateAnotherFlag &&
+            string.Equals((await ctx.Request.ReadFormAsync(ct))["another"].ToString(), "true", StringComparison.Ordinal);
+
+        if (createAnother)
+        {
+            // Filament's own CreateAction still sends the success notification on this branch
+            // (sendSuccessNotification() runs before the form-reset code) — only fila-modal-close
+            // is skipped, since the modal itself never closes here.
+            if (action.Notification is { } createAnotherNotification)
+                ctx.RequestServices.GetRequiredKeyedService<IFilaNotificationStore>(panel.Path).Send(createAnotherNotification);
+
+            // Filament's own "another" branch (CreateAction::setUp()'s action closure): record
+            // anonymized, form reset to a fresh blank state — but the modal itself never closes.
+            // Reproduced as one htmx response carrying two swaps: the table (this response's own
+            // hx-target, so the just-created row shows up immediately) plus an out-of-band swap
+            // resetting the modal to a blank create form.
+            var blankEntity = resource.CreateBlank();
+            var freshForm = action.SchemaFactory!();
+            var freshEvaluation = EvaluationContextFor(ctx, db, blankEntity, StateOf(freshForm, blankEntity));
+
+            var modalModel = new FilaActionFormViewModel
+            {
+                Panel = panel,
+                Resource = resource,
+                Action = action,
+                Form = freshForm,
+                Entity = blankEntity,
+                Db = db,
+                Evaluation = freshEvaluation,
+                Id = null,
+                Errors = [],
+            };
+
+            var modalRenderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+            var modalHtml = await modalRenderer.RenderAsync(ctx, "~/Views/Fila/_ActionForm.cshtml", modalModel);
+            var tableHtml = await RenderTableHtmlAsync(ctx, panel, resource, db, table, ct);
+
+            return Results.Content(
+                tableHtml + $"""<div hx-swap-oob="innerHTML:#fila-modal-body">{modalHtml}</div>""",
+                "text/html");
+        }
+
         // Both signals ride one HX-Trigger header; IHxTriggerDataReader is what lets them
         // coexist without either clobbering the other.
         ctx.RequestServices.GetRequiredService<IHxTriggerDataReader>().Add("fila-modal-close");
@@ -896,7 +942,13 @@ public static class FilaExtensions
         return state;
     }
 
-    private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct)
+    private static async Task<IResult> RenderTableAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct) =>
+        Results.Content(await RenderTableHtmlAsync(ctx, panel, resource, db, table, ct), "text/html");
+
+    /// <summary>The raw markup RenderTableAsync wraps in an IResult — pulled out so the
+    /// "create another" branch above can splice it together with an out-of-band modal swap in
+    /// one response, instead of the table's own IResult.</summary>
+    private static async Task<string> RenderTableHtmlAsync(HttpContext ctx, Panel panel, IResource resource, DbContext db, ITable? table, CancellationToken ct)
     {
         // hx-include on a confirm-only action normally carries #fila-table-state along as a
         // form body, but doesn't strictly need it — falling back to defaults here rather than
@@ -920,7 +972,6 @@ public static class FilaExtensions
         };
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
-        var html = await renderer.RenderAsync(ctx, "~/Views/Fila/_Table.cshtml", model);
-        return Results.Content(html, "text/html");
+        return await renderer.RenderAsync(ctx, "~/Views/Fila/_Table.cshtml", model);
     }
 }
