@@ -60,6 +60,12 @@ public sealed class Action : IRowAction
 
     public bool RequiresConfirmationFlag { get; private set; }
 
+    /// <summary>Filament's CreateAction::$canCreateAnother — an extra modal footer button that
+    /// re-runs Handle and resets the form instead of closing the modal. False for every action
+    /// except CreateAction (packages/actions/src/CreateAction.php defaults it true; nothing
+    /// else in Filament's Action class carries the concept at all).</summary>
+    public bool SupportsCreateAnotherFlag { get; private set; }
+
     private Evaluated<string>? ModalHeadingValue;
     private Evaluated<string>? ModalDescriptionValue;
     private Evaluated<string>? ModalSubmitActionLabelValue;
@@ -121,6 +127,15 @@ public sealed class Action : IRowAction
     public Action RequiresConfirmation(bool value = true)
     {
         RequiresConfirmationFlag = value;
+        return this;
+    }
+
+    /// <summary>Mirrors Filament's CreateAction::createAnother() — the escape hatch a resource
+    /// author uses to turn the extra "Create &amp; create another" button off
+    /// (<c>.CreateAnother(false)</c>), the same way <c>disableCreateAnother()</c> does upstream.</summary>
+    public Action CreateAnother(bool value = true)
+    {
+        SupportsCreateAnotherFlag = value;
         return this;
     }
 

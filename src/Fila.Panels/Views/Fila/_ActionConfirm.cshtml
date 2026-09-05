@@ -19,11 +19,14 @@
 
 <div class="fi-modal-footer">
     <div class="fi-modal-footer-actions fi-align-center">
+        @* CanOpenModal::getModalFooterActions() reverses [submit, cancel] to [cancel, submit]
+           for a Center-aligned (confirmation) modal's footer — confirmed against a live Delete
+           confirmation rendering Cancel left, Delete right. *@
+        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
         <button type="button" class="fi-btn @confirmBtnClass"
                 hx-post="@Model.ActionUrl" hx-target="#fila-table" hx-swap="innerHTML"
                 hx-include="#fila-table-state">
             @Model.Action.ResolveLabel(evaluation)
         </button>
-        <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">Cancel</button>
     </div>
 </div>

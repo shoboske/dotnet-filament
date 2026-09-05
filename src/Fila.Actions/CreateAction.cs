@@ -22,5 +22,6 @@ public static class CreateAction
             .NewRecord()
             .Schema(schema)
             .Handle(handle)
-            .Notifies("Created", "success");
+            .Notifies("Created", "success")
+            .CreateAnother();
 }

@@ -65,6 +65,15 @@
             {
                 <button type="submit" class="fi-btn fi-btn-primary">@Model.Action.ResolveModalSubmitActionLabel(evaluation)</button>
             }
+            @if (!readOnly && Model.Action.SupportsCreateAnotherFlag)
+            {
+                @* Filament's own submit-button-name trick (makeModalSubmitAction('createAnother',
+                   arguments: ['another' => true])): the button's own name/value pair rides along
+                   with the rest of the form only when THIS button is what triggered the submit —
+                   native <form> behaviour htmx's own serializer respects, so no extra JS is
+                   needed to tell the two submit paths apart server-side. *@
+                <button type="submit" name="another" value="true" class="fi-btn fi-btn-outlined">Create &amp; create another</button>
+            }
             <button type="button" class="fi-btn fi-btn-outlined" @@click="modalOpen = false">@(readOnly ? "Close" : "Cancel")</button>
         </div>
     </div>
