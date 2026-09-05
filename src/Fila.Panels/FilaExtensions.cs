@@ -143,6 +143,11 @@ public static class FilaExtensions
         group.MapGet("/", (HttpContext ctx, CancellationToken ct) =>
             HandleDashboardAsync(ctx, panel, ct));
 
+        // A widget re-requests itself here to turn its own page — currently only a TableWidget's
+        // Previous/Next pair does — without reloading every other widget on the dashboard.
+        group.MapGet("/widgets/{index:int}", (HttpContext ctx, int index, CancellationToken ct) =>
+            HandleWidgetAsync(ctx, panel, index, ct));
+
         foreach (var entry in entries)
         {
             group.MapGet($"/{entry.Slug}", (HttpContext ctx, CancellationToken ct) =>
@@ -347,8 +352,8 @@ public static class FilaExtensions
         var evaluation = new EvaluationContext { Db = db, User = ctx.User };
 
         var loaded = new List<WidgetRenderModel>(widgets.Count);
-        foreach (var widget in widgets)
-            loaded.Add(new WidgetRenderModel(widget, await widget.LoadAsync(widgetContext), evaluation));
+        for (var i = 0; i < widgets.Count; i++)
+            loaded.Add(new WidgetRenderModel(widgets[i], await widgets[i].LoadAsync(widgetContext), evaluation, i, $"/{panel.Path}/widgets/{i}"));
 
         var model = new FilaDashboardViewModel
         {
@@ -359,6 +364,36 @@ public static class FilaExtensions
 
         var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
         var html = await renderer.RenderAsync(ctx, "~/Views/Fila/Dashboard.cshtml", model);
+        return Results.Content(html, "text/html");
+    }
+
+    /// <summary>A single widget's own reload route — Previous/Next on a TableWidget re-requests
+    /// just this, via hx-get/hx-target on the wrapper Dashboard.cshtml gives it, rather than the
+    /// whole dashboard. Widgets are re-activated and re-ordered exactly as HandleDashboardAsync
+    /// does (Widget.Sort is a fixed per-type value, so this reproduces the same ordering and the
+    /// same index the initial render used) so <paramref name="index"/> keeps meaning the same
+    /// widget across both routes.</summary>
+    private static async Task<IResult> HandleWidgetAsync(HttpContext ctx, Panel panel, int index, CancellationToken ct)
+    {
+        var widgets = panel.DashboardWidgets
+            .Select(registration => (Widget)ActivatorUtilities.GetServiceOrCreateInstance(ctx.RequestServices, registration.WidgetType))
+            .OrderBy(widget => widget.Sort)
+            .ToList();
+
+        if (index < 0 || index >= widgets.Count) return Results.NotFound();
+
+        var db = (DbContext)ctx.RequestServices.GetRequiredService(panel.DbContextType!);
+        var page = int.TryParse(ctx.Request.Query["page"], out var parsedPage) && parsedPage > 0 ? parsedPage : 1;
+        var widgetContext = new WidgetContext { Db = db, User = ctx.User, Ct = ct, Page = page };
+
+        var widget = widgets[index];
+        var data = await widget.LoadAsync(widgetContext);
+        var evaluation = new EvaluationContext { Db = db, User = ctx.User };
+        var model = new WidgetRenderModel(widget, data, evaluation, index, $"/{panel.Path}/widgets/{index}");
+
+        var registry = ctx.RequestServices.GetRequiredService<ComponentViewRegistry>();
+        var renderer = ctx.RequestServices.GetRequiredService<ViewRenderer>();
+        var html = await renderer.RenderAsync(ctx, registry.PartialForWidget(widget.View), model);
         return Results.Content(html, "text/html");
     }
 

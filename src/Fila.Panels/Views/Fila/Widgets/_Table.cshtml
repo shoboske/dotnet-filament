@@ -7,6 +7,7 @@
     var evaluation = Model.Evaluation;
     var columns = data.Table.Columns.Where(c => c.ResolveVisible(evaluation)).ToList();
     var hasHeader = Model.Widget.Heading is not null;
+    var targetId = $"fila-widget-{Model.Index}";
 }
 @* Filament's table-widget.blade.php is just <x-filament-widgets::widget class="fi-wi-table">
    around the widget's table, and that table brings its own container. Fila's equivalent
@@ -14,9 +15,10 @@
    rather than nesting a section card inside a table card.
 
    The same per-column partial dispatch the resource list page uses, minus everything
-   interactive: a dashboard table has no sortable headers, no row or bulk actions, no
-   pagination and no search. Which rows it shows is settled by the widget's own DefaultSort and
-   PaginateBy. *@
+   interactive: a dashboard table has no sortable headers, no row or bulk actions and no
+   search. Pagination *is* real (Filament's TableWidget forces PaginationMode::Simple) — see
+   the fi-pagination.fi-simple block below. Which rows a page shows is settled by the widget's
+   own DefaultSort and PaginateBy (the page size). *@
 <div class="fi-wi-table">
     <div class="fi-ta-card@(hasHeader ? " fi-section-has-header" : "")">
         <partial name="Fila/Widgets/_Section" model="Model.Widget" />
@@ -64,6 +66,34 @@
                     </tbody>
                 </table>
             </div>
+
+            @if (data.HasPreviousPage || data.HasNextPage)
+            {
+                @* Laravel's simplePaginate() never runs the COUNT query a numbered pagination
+                   overview or page list needs, so Filament's own x-filament::pagination renders
+                   just this Previous/Next pair for it (confirmed against a real rendered
+                   RecentOrdersWidget: page 1 of 42 orders at 5/page shows only "Next", with the
+                   real fi-pagination-next-btn class and no fi-color-gray modifier — a plain
+                   .fi-btn is Filament's own gray). *@
+                <nav class="fi-pagination fi-simple" aria-label="Pagination navigation">
+                    @if (data.HasPreviousPage)
+                    {
+                        <button type="button" class="fi-btn fi-btn-outlined fi-pagination-previous-btn"
+                                rel="prev" hx-get="@Model.ReloadUrl" hx-target="#@targetId"
+                                hx-vals='{"page": "@(data.Page - 1)"}'>
+                            Previous
+                        </button>
+                    }
+                    @if (data.HasNextPage)
+                    {
+                        <button type="button" class="fi-btn fi-btn-outlined fi-pagination-next-btn"
+                                rel="next" hx-get="@Model.ReloadUrl" hx-target="#@targetId"
+                                hx-vals='{"page": "@(data.Page + 1)"}'>
+                            Next
+                        </button>
+                    }
+                </nav>
+            }
         </div>
     </div>
 </div>

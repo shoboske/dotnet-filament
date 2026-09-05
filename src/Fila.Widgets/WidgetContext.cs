@@ -20,5 +20,11 @@ public sealed class WidgetContext
     /// Null on a panel with no authentication configured.</summary>
     public ClaimsPrincipal? User { get; init; }
 
+    /// <summary>1-based page for a TableWidget's own pagination (Filament's
+    /// PaginationMode::Simple — see TableWidget.php's makeTable()). Every other widget kind
+    /// ignores it. Defaults to 1: the dashboard's own initial render never asks for a page,
+    /// only a widget's own reload route (FilaExtensions.HandleWidgetAsync) does.</summary>
+    public int Page { get; init; } = 1;
+
     public CancellationToken Ct { get; init; }
 }

@@ -889,6 +889,20 @@ body {
   }
 }
 
+/* A table widget's simple pagination (PaginationMode::Simple) renders only whichever of
+   Previous/Next actually exists — never both padded out with an empty placeholder — so
+   .fi-pagination's own justify-content: space-between would left-align a lone Next button.
+   Filament's real CSS instead grid-places Previous in column 1 (justify-self-start) and Next in
+   column 3 (justify-self-end) regardless of whether the other exists; pushing Next with
+   margin-left: auto reproduces that in the flex layout Fila already uses here. */
+.fi-pagination.fi-simple {
+  justify-content: flex-start;
+}
+
+.fi-pagination.fi-simple .fi-pagination-next-btn {
+  margin-left: auto;
+}
+
 .fi-pagination-overview {
   font-size: 0.875rem;
   font-weight: 500;

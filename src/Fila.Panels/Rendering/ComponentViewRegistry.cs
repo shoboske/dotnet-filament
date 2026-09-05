@@ -100,5 +100,10 @@ public sealed record EntryRenderModel(IEntry Entry, object Record);
 /// page's evaluation context. The first two are only meaningful together — a widget type and
 /// its partial agree on the shape of Data between themselves, which is what lets the dashboard
 /// stay ignorant of both. Evaluation is what a table widget resolves its column labels
-/// against, the same way the resource list view does.</summary>
-public sealed record WidgetRenderModel(Widget Widget, object Data, EvaluationContext Evaluation);
+/// against, the same way the resource list view does.
+///
+/// ReloadUrl is this widget's own route (FilaExtensions.HandleWidgetAsync,
+/// "/{panel}/widgets/{Index}") — only a TableWidget's Previous/Next buttons use it today, but
+/// it's computed for every widget the same way so a future interactive widget kind does not
+/// need the dashboard itself to change.</summary>
+public sealed record WidgetRenderModel(Widget Widget, object Data, EvaluationContext Evaluation, int Index, string ReloadUrl);
