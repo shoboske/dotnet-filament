@@ -1,0 +1,129 @@
+name: Release
+
+# Publishing is driven by GitHub Releases: cut a release tagged `v0.2.0` (or `0.2.0`) and this
+# packs every Fila package at that version and pushes it to nuget.org. Azure Pipelines still
+# owns PR validation — this workflow duplicates its build and test steps only so a release is
+# never cut from a revision that does not compile or pass.
+on:
+  release:
+    types: [published]
+
+  # A hand-run escape hatch: re-publishing after a push half-failed, or a pack-only dry run
+  # that produces the .nupkg files as a workflow artifact without touching nuget.org.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to pack, without a leading v (e.g. 0.2.0 or 0.2.0-beta.1).'
+        required: true
+        type: string
+      publish:
+        description: 'Push to nuget.org. Leave unchecked for a pack-only dry run.'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# One release at a time: two overlapping runs would race to push the same version, and the
+# loser's packages would fail or be silently skipped.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve the package version
+        # Read through the environment rather than interpolating directly into the script: a tag
+        # name is attacker-influenced text, and `${{ }}` inside a run block is textual
+        # substitution.
+        env:
+          RAW_VERSION: ${{ github.event.release.tag_name || inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${RAW_VERSION#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$'; then
+            echo "::error::'$RAW_VERSION' is not a version this workflow can publish. Tag releases as 0.2.0 or v0.2.0, optionally with a prerelease suffix (0.2.0-beta.1)."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Packing Fila $version"
+
+      - name: Create the local package source
+        run: mkdir -p artifacts/nuget-local
+        # nuget.config lists artifacts/nuget-local (gitignored) as a package source. NuGet fails
+        # every restore with NU1301 if a configured source does not exist at all — even for
+        # projects that never pull a package from it — which a fresh checkout hits. Nothing in
+        # this workflow reads from it; it just has to be there.
+
+      - name: Restore
+        run: dotnet restore Fila.slnx
+
+      - name: Build
+        run: >-
+          dotnet build Fila.slnx --configuration Release --no-restore
+          -p:Version=${{ env.VERSION }} -p:ContinuousIntegrationBuild=true
+        # Version has to be a command-line property: Directory.Build.props assigns it, and a
+        # project-level assignment beats an environment variable. The same two properties are
+        # repeated below so --no-build sees an identical global-property set and reuses this
+        # build instead of quietly redoing it at 0.1.0.
+
+      - name: Test
+        run: >-
+          dotnet test tests/Fila.Tests/Fila.Tests.csproj --configuration Release --no-build --logger trx
+          -p:Version=${{ env.VERSION }} -p:ContinuousIntegrationBuild=true
+
+      - name: Pack
+        run: >-
+          dotnet pack Fila.slnx --configuration Release --no-build --output artifacts/packages
+          -p:Version=${{ env.VERSION }} -p:ContinuousIntegrationBuild=true
+        # Packs whatever opted in with <IsPackable>true</IsPackable> — the src/ projects. Tests
+        # and samples inherit the repo-wide false in Directory.Build.props and are skipped.
+
+      - name: Smoke the packed fila tool
+        run: |
+          set -euo pipefail
+          dotnet tool install Fila.Tools --version "$VERSION" \
+            --add-source artifacts/packages --tool-path artifacts/tool-smoke
+          artifacts/tool-smoke/fila --version
+          artifacts/tool-smoke/fila --help
+        # Installs the real .nupkg the way a user would, before it is published rather than
+        # after. --tool-path instead of samples/Demo's tool manifest, which pins an exact
+        # version and would have to be edited for every release just to run this check.
+        # --version and --help are answered by the dispatcher itself, so this stays seconds.
+
+      - name: Upload the packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ env.VERSION }}
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          if-no-files-found: error
+
+      - name: Push to nuget.org
+        if: ${{ github.event_name == 'release' || inputs.publish }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_API_KEY:-}" ]; then
+            echo "::error::The NUGET_API_KEY repository secret is not set. Create an API key on nuget.org scoped to the Fila* package IDs and add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          dotnet nuget push "artifacts/packages/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate
+        # push picks up each .snupkg sitting next to its .nupkg on its own, so symbols go up in
+        # the same call. --skip-duplicate makes a re-run after a partial failure resume rather
+        # than abort on the packages that already landed.

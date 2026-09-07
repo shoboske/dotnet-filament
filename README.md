@@ -62,3 +62,29 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5199 \
 Then drive both with Playwright (`PLAYWRIGHT_BROWSERS_PATH` pointed at a local Chromium — see
 `CLAUDE.md`) at a 1440×900 viewport, logging in as `test@example.com` / `password` on the PHP app
 and `admin` / `admin` on the .NET one.
+
+## Releasing to NuGet
+
+`.github/workflows/release.yml` publishes every `src/` package — `Fila`, the ten packages it
+umbrellas, `Fila.Testing`, and the `Fila.Tools` CLI — to nuget.org. It runs when a GitHub
+Release is **published**, and takes the package version from that release's tag (`v0.2.0` and
+`0.2.0` both mean `0.2.0`; a prerelease suffix like `v0.2.0-beta.1` is passed through as-is).
+
+Before the first release, add a nuget.org API key scoped to the `Fila*` package IDs as the
+`NUGET_API_KEY` repository secret (Settings → Secrets and variables → Actions). The workflow
+fails with a clear message rather than a push error if it is missing.
+
+To cut a release:
+
+1. Bump `<Version>` in `Directory.Build.props` and the pinned `fila.tools` version in
+   `samples/Demo/.config/dotnet-tools.json` — they are what local builds and `dotnet tool
+   restore` use, and they should agree with what was last published.
+2. Publish a GitHub Release tagged with that version.
+
+The workflow builds the solution, runs the tests, packs at the tag's version, installs the
+packed `Fila.Tools` and runs `fila --version` against it, uploads all the `.nupkg`/`.snupkg`
+files as a workflow artifact, and only then pushes to nuget.org.
+
+`workflow_dispatch` runs the same thing on demand for a given version — with **publish**
+unchecked it stops after the artifact upload, which is the way to inspect the packages without
+releasing anything.

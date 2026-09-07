@@ -6,7 +6,8 @@
        picks those up without touching its .csproj again. -->
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Description>The umbrella package for Fila, an admin-panel framework for ASP.NET Core built in the shape of Laravel Filament. Carries no code of its own: it references every Fila package, so an app takes one dependency and gets panels, resources, tables, forms, infolists, actions, notifications and widgets.</Description>
   </PropertyGroup>
 
   <ItemGroup>

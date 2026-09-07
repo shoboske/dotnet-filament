@@ -3,7 +3,8 @@
   <PropertyGroup>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <RazorCompileOnBuild>true</RazorCompileOnBuild>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Description>Fila's panel package: the Razor UI, routing, resources, pages, relation managers and dashboard that together make an ASP.NET Core app an admin panel, in the shape of Laravel Filament's panels.</Description>
     <StaticWebAssetBasePath>_content/Fila</StaticWebAssetBasePath>
   </PropertyGroup>
 
