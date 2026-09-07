@@ -9,7 +9,7 @@ name: Release
 # short-lived key at push time from this run's own GitHub identity. Two things have to line up
 # outside this file for that to work —
 #   * the trusted publishing policy on nuget.org, which nuget.org matches this run against, and
-#   * the NUGET_USER repository variable, holding the nuget.org username that created it.
+#   * the NUGET_USER repository secret, holding the nuget.org username that created it.
 # Neither the release nor the workflow_dispatch trigger can run from a fork, so a fork never
 # reaches the OIDC token in the first place.
 on:
@@ -47,6 +47,11 @@ jobs:
     # a publishing key — without it the action fails outright rather than falling back to
     # anything. Declared per-job rather than at the workflow level so a future job in this file
     # doesn't silently inherit the ability to assume this repository's publishing identity.
+    #
+    # contents: read has to be repeated here even though the workflow-level block already grants
+    # it: a job-level permissions block replaces the default outright rather than merging into
+    # it, so every scope left unlisted becomes none — and checkout would start failing. (NuGet's
+    # own documented sample lists id-token alone, which is why this is worth spelling out.)
     permissions:
       contents: read
       id-token: write
@@ -131,24 +136,25 @@ jobs:
       - name: Check the publishing identity is configured
         if: ${{ github.event_name == 'release' || inputs.publish }}
         env:
-          NUGET_USER: ${{ vars.NUGET_USER }}
+          NUGET_USER: ${{ secrets.NUGET_USER }}
         run: |
           set -euo pipefail
           if [ -z "${NUGET_USER:-}" ]; then
-            echo "::error::The NUGET_USER repository variable is not set. Set it under Settings > Secrets and variables > Actions > Variables to the nuget.org username that *created* the trusted publishing policy (for an organization-owned package that is still the individual's username, not the organization's)."
+            echo "::error::The NUGET_USER repository secret is not set. Add it under Settings > Secrets and variables > Actions, holding the nuget.org username (the profile name, NOT the account's email address) that *created* the trusted publishing policy — for an organization-owned package that is still the individual's username, not the organization's."
             exit 1
           fi
-          echo "Publishing to nuget.org as $NUGET_USER via trusted publishing."
-        # A missing input would otherwise surface as NuGet/login's generic "Input required and
-        # not supplied: user" in the middle of a release — this says which setting to add and
-        # which of the two plausible usernames it wants.
+        # A missing value would otherwise surface as NuGet/login's generic "Input required and
+        # not supplied: user" in the middle of a release. The two ways to get this wrong are
+        # naming the email instead of the profile, and naming the policy's owner instead of its
+        # creator — the token exchange rejects both, so the message calls out each. Nothing is
+        # echoed back: as a secret it would only print masked anyway.
 
       - name: Exchange the GitHub OIDC token for a publishing key
         id: nuget-login
         if: ${{ github.event_name == 'release' || inputs.publish }}
         uses: NuGet/login@v1
         with:
-          user: ${{ vars.NUGET_USER }}
+          user: ${{ secrets.NUGET_USER }}
         # Trusted publishing (https://learn.microsoft.com/nuget/nuget-org/trusted-publishing):
         # the action posts this run's OIDC token to nuget.org's token endpoint and gets back a
         # short-lived API key, so no long-lived secret has to live in the repository at all.
