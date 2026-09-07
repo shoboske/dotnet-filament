@@ -90,6 +90,10 @@ The workflow builds the solution, runs the tests, packs at the tag's version, in
 packed `Fila.Tools` and runs `fila --version` against it, uploads all the `.nupkg`/`.snupkg`
 files as a workflow artifact, and only then pushes to nuget.org.
 
+Each package's nuget.org page comes from the `README.md` next to its `.csproj` — `PackageIcon`
+and `PackageReadmeFile` are set once in `Directory.Build.props`, and a new packable project that
+forgets its README fails the pack with NU5039 rather than publishing a blank page.
+
 `workflow_dispatch` runs the same thing on demand for a given version — with **publish**
 unchecked it stops after the artifact upload, which is the way to inspect the packages without
 releasing anything.

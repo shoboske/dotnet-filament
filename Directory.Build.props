@@ -32,6 +32,13 @@
          assets/render-icon.py. Re-run that after editing the SVG. -->
     <PackageIcon>icon.png</PackageIcon>
 
+    <!-- Each packable project keeps its own README.md next to its .csproj — it is that
+         package's nuget.org page, so it describes that package rather than the repo. Named
+         here for every project; the item below only picks it up where the file exists, which
+         leaves a packable project that forgot one failing loudly at pack time (NU5039) instead
+         of publishing a blank page. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
     <!-- The repo ships the plain GPLv3 text and says nothing about "or any later version", so
          the package carries the file itself rather than this build picking between the
          GPL-3.0-only and GPL-3.0-or-later SPDX expressions on the project's behalf. -->
@@ -51,5 +58,6 @@
          repo's LICENSE goes in as-is. Inert for the projects that stay non-packable. -->
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
     <None Include="$(MSBuildThisFileDirectory)assets\icon.png" Pack="true" PackagePath="" Visible="false" />
+    <None Include="README.md" Pack="true" PackagePath="" Visible="false" Condition="Exists('$(MSBuildProjectDirectory)/README.md')" />
   </ItemGroup>
 </Project>
