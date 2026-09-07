@@ -4,6 +4,14 @@ name: Release
 # packs every Fila package at that version and pushes it to nuget.org. Azure Pipelines still
 # owns PR validation — this workflow duplicates its build and test steps only so a release is
 # never cut from a revision that does not compile or pass.
+#
+# Authentication is nuget.org trusted publishing (OIDC), not a stored API key: the job mints a
+# short-lived key at push time from this run's own GitHub identity. Two things have to line up
+# outside this file for that to work —
+#   * the trusted publishing policy on nuget.org, which nuget.org matches this run against, and
+#   * the NUGET_USER repository variable, holding the nuget.org username that created it.
+# Neither the release nor the workflow_dispatch trigger can run from a fork, so a fork never
+# reaches the OIDC token in the first place.
 on:
   release:
     types: [published]
@@ -34,6 +42,14 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+
+    # id-token: write is what lets the runner mint the GitHub OIDC token NuGet/login trades for
+    # a publishing key — without it the action fails outright rather than falling back to
+    # anything. Declared per-job rather than at the workflow level so a future job in this file
+    # doesn't silently inherit the ability to assume this repository's publishing identity.
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -110,20 +126,50 @@ jobs:
             artifacts/packages/*.snupkg
           if-no-files-found: error
 
+      # Everything from here down only runs for an actual publish, so a pack-only dry run never
+      # mints a key it isn't going to spend.
+      - name: Check the publishing identity is configured
+        if: ${{ github.event_name == 'release' || inputs.publish }}
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_USER:-}" ]; then
+            echo "::error::The NUGET_USER repository variable is not set. Set it under Settings > Secrets and variables > Actions > Variables to the nuget.org username that *created* the trusted publishing policy (for an organization-owned package that is still the individual's username, not the organization's)."
+            exit 1
+          fi
+          echo "Publishing to nuget.org as $NUGET_USER via trusted publishing."
+        # A missing input would otherwise surface as NuGet/login's generic "Input required and
+        # not supplied: user" in the middle of a release — this says which setting to add and
+        # which of the two plausible usernames it wants.
+
+      - name: Exchange the GitHub OIDC token for a publishing key
+        id: nuget-login
+        if: ${{ github.event_name == 'release' || inputs.publish }}
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+        # Trusted publishing (https://learn.microsoft.com/nuget/nuget-org/trusted-publishing):
+        # the action posts this run's OIDC token to nuget.org's token endpoint and gets back a
+        # short-lived API key, so no long-lived secret has to live in the repository at all.
+        # nuget.org decides whether to issue one by matching the token's claims against the
+        # policy configured there. Deliberately placed *after* the build/test/pack steps rather
+        # than at the top of the job: the key is short-lived, and there is no reason to start
+        # its clock before there is something to push. The action masks the key it returns
+        # (core.setSecret), so it stays redacted in the log.
+
       - name: Push to nuget.org
         if: ${{ github.event_name == 'release' || inputs.publish }}
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${NUGET_API_KEY:-}" ]; then
-            echo "::error::The NUGET_API_KEY repository secret is not set. Create an API key on nuget.org scoped to the Fila* package IDs and add it under Settings > Secrets and variables > Actions."
-            exit 1
-          fi
           dotnet nuget push "artifacts/packages/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
             --api-key "$NUGET_API_KEY" \
             --skip-duplicate
         # push picks up each .snupkg sitting next to its .nupkg on its own, so symbols go up in
         # the same call. --skip-duplicate makes a re-run after a partial failure resume rather
-        # than abort on the packages that already landed.
+        # than abort on the packages that already landed. The key arrives through the
+        # environment rather than an inline ${{ }} so it is never substituted into the script
+        # text the runner logs.
