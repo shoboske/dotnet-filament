@@ -79,8 +79,16 @@ public static class FilaCli
             ? invocation
             : "dotnet run -- fila";
 
+    /// <summary>The version to print for --version. Deliberately the informational version and
+    /// not the assembly version: AssemblyVersion keeps only the three numbers, so on a
+    /// prerelease it would report a bare "0.0.1" while the package the user installed is
+    /// 0.0.1-alpha. Source Link appends "+&lt;commit sha&gt;" to the informational version, which is
+    /// noise on a version line, so it is trimmed.</summary>
     private static string Version =>
-        typeof(FilaCli).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        typeof(FilaCli).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion.Split('+')[0]
+        ?? typeof(FilaCli).Assembly.GetName().Version?.ToString(3)
+        ?? "0.0.0";
 
     private static void PrintUsage()
     {

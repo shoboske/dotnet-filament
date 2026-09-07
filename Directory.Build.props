@@ -13,7 +13,7 @@
          The release workflow overrides it from the release tag (`-p:Version=...`), so this
          value is the one local builds and the tool manifest in samples/Demo agree on — bump
          both together. -->
-    <Version>0.1.0</Version>
+    <Version>0.0.1-alpha</Version>
   </PropertyGroup>
 
   <!-- Packaging. Non-packable is the repo-wide default so tests and samples can never reach
@@ -27,6 +27,10 @@
     <RepositoryUrl>https://github.com/shoboske/dotnet-filament</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>filament;admin-panel;aspnetcore;razor;htmx;crud;scaffolding</PackageTags>
+
+    <!-- NuGet takes a raster icon only, so this is assets/logo.svg rasterized by
+         assets/render-icon.py. Re-run that after editing the SVG. -->
+    <PackageIcon>icon.png</PackageIcon>
 
     <!-- The repo ships the plain GPLv3 text and says nothing about "or any later version", so
          the package carries the file itself rather than this build picking between the
@@ -46,5 +50,6 @@
          against the path inside the package, and accepts a file with no extension, so the
          repo's LICENSE goes in as-is. Inert for the projects that stay non-packable. -->
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)assets\icon.png" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>

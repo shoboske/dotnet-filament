@@ -75,7 +75,7 @@ jobs:
         # Version has to be a command-line property: Directory.Build.props assigns it, and a
         # project-level assignment beats an environment variable. The same two properties are
         # repeated below so --no-build sees an identical global-property set and reuses this
-        # build instead of quietly redoing it at 0.1.0.
+        # build instead of quietly redoing it at the default version in Directory.Build.props.
 
       - name: Test
         run: >-

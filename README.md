@@ -1,6 +1,10 @@
+<img src="assets/logo.svg" alt="" width="72" align="left" hspace="12" vspace="4">
+
 # dotnet-filament
 
 A dotnet package inspired by Laravel Filament.
+
+<br clear="left">
 
 Fila ports Filament's panel/table/form/action/widget conventions to .NET: Razor views instead of
 Blade, htmx instead of Livewire, the same `fi-*` class names and design tokens. `samples/Demo` is
@@ -78,7 +82,8 @@ To cut a release:
 
 1. Bump `<Version>` in `Directory.Build.props` and the pinned `fila.tools` version in
    `samples/Demo/.config/dotnet-tools.json` — they are what local builds and `dotnet tool
-   restore` use, and they should agree with what was last published.
+   restore` use, and they should agree with what was last published. They are currently
+   `0.0.1-alpha`.
 2. Publish a GitHub Release tagged with that version.
 
 The workflow builds the solution, runs the tests, packs at the tag's version, installs the
@@ -88,3 +93,18 @@ files as a workflow artifact, and only then pushes to nuget.org.
 `workflow_dispatch` runs the same thing on demand for a given version — with **publish**
 unchecked it stops after the artifact upload, which is the way to inspect the packages without
 releasing anything.
+
+## The logo
+
+`assets/logo.svg` is the source of the mark: an "F" whose arms are table rows, on the indigo a
+Fila panel renders with before anyone calls `.PrimaryColor(...)`. NuGet only accepts a raster
+icon, so every package ships `assets/icon.png` — a 128x128 rasterization of that SVG, wired up
+by `<PackageIcon>` in `Directory.Build.props`. Regenerate it after any edit to the SVG:
+
+```bash
+python3 assets/render-icon.py   # needs Chromium; set CHROME=/path/to/chrome if it isn't on PATH
+```
+
+The panel UI is deliberately left alone: it renders to match `samples/FilamentReference` screen
+for screen, and a brand mark in the topbar or on the login page would be a difference the
+comparison above can't account for.
