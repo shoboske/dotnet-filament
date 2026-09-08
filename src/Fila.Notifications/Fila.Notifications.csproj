@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Description>Fila's notifications: flash notifications raised by an action and delivered to the browser over htmx's HX-Trigger header. Ported from Filament's notifications package.</Description>
   </PropertyGroup>
 
   <ItemGroup>

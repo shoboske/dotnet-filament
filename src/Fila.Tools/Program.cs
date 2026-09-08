@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 
 // `dotnet fila <command> [args...]` — a thin dispatcher, the same shape as `dotnet ef`.
 // It does not load the target project's assembly itself (that would mean re-implementing
@@ -20,7 +21,7 @@ if (args.Length == 0 || args[0] is "--help" or "-h" or "help")
 
 if (args[0] is "--version")
 {
-    Console.WriteLine(typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
+    Console.WriteLine(Version());
     return 0;
 }
 
@@ -52,6 +53,19 @@ using var process = Process.Start(startInfo)
 
 await process.WaitForExitAsync();
 return process.ExitCode;
+
+// The informational version, not the assembly version: AssemblyVersion keeps only the three
+// numbers, so on a prerelease this would print a bare "0.0.1" while the package the user
+// installed is 0.0.1-alpha. Source Link appends "+<commit sha>" to it, which is noise here.
+// Kept in step with the same switch in Fila.Tooling's FilaCli, for the same reason PrintUsage is.
+static string Version()
+{
+    var assembly = typeof(Program).Assembly;
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+               ?.InformationalVersion.Split('+')[0]
+           ?? assembly.GetName().Version?.ToString(3)
+           ?? "0.0.0";
+}
 
 // Deliberately a copy of the command list FilaCli prints, not a shared constant: the two
 // differ in the invocation they tell the user to type, and reaching the real one costs a

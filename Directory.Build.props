@@ -8,7 +8,56 @@
     <!-- One source for the whole repo. Fila.Tools pins the published tool package's version,
          but the CLI's version switch is answered by FilaCli in Fila.Tooling, which reported its
          own assembly version: defaulting to 1.0.0 and disagreeing with the package the user
-         actually installed. Setting it here keeps every assembly on the same number. -->
-    <Version>0.1.0</Version>
+         actually installed. Setting it here keeps every assembly on the same number.
+
+         The release workflow overrides it from the release tag (`-p:Version=...`), so this
+         value is the one local builds and the tool manifest in samples/Demo agree on — bump
+         both together. -->
+    <Version>0.0.1-alpha</Version>
   </PropertyGroup>
+
+  <!-- Packaging. Non-packable is the repo-wide default so tests and samples can never reach
+       nuget.org by accident; the projects under src/ opt back in one by one, each with its own
+       <Description>. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <Authors>shoboske</Authors>
+    <Product>Fila</Product>
+    <PackageProjectUrl>https://github.com/shoboske/dotnet-filament</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/shoboske/dotnet-filament</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>filament;admin-panel;aspnetcore;razor;htmx;crud;scaffolding</PackageTags>
+
+    <!-- NuGet takes a raster icon only, so this is assets/logo.svg rasterized by
+         assets/render-icon.py. Re-run that after editing the SVG. -->
+    <PackageIcon>icon.png</PackageIcon>
+
+    <!-- Each packable project keeps its own README.md next to its .csproj — it is that
+         package's nuget.org page, so it describes that package rather than the repo. Named
+         here for every project; the item below only picks it up where the file exists, which
+         leaves a packable project that forgot one failing loudly at pack time (NU5039) instead
+         of publishing a blank page. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- The repo ships the plain GPLv3 text and says nothing about "or any later version", so
+         the package carries the file itself rather than this build picking between the
+         GPL-3.0-only and GPL-3.0-or-later SPDX expressions on the project's behalf. -->
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+    <!-- Source Link ships in the SDK for GitHub-hosted repos; these are the switches that make
+         it emit a usable debugging story alongside the .nupkg. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Packed at the package root under its own name. NuGet resolves PackageLicenseFile
+         against the path inside the package, and accepts a file with no extension, so the
+         repo's LICENSE goes in as-is. Inert for the projects that stay non-packable. -->
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)assets\icon.png" Pack="true" PackagePath="" Visible="false" />
+    <None Include="README.md" Pack="true" PackagePath="" Visible="false" Condition="Exists('$(MSBuildProjectDirectory)/README.md')" />
+  </ItemGroup>
 </Project>

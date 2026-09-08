@@ -62,6 +62,18 @@
   `fila.actions.css` is. `.fi-section` belongs to Filament's *support* package; it sits in
   fila.widgets.css only until a second Fila package needs it.
 
+## Packaging
+- `Directory.Build.props` sets `IsPackable=false` for the whole repo; each `src/*` project opts
+  back in with `<IsPackable>true</IsPackable>` and its own `<Description>`. A new `src/` project
+  that forgets both is silently left out of every release.
+- `PackageLicenseFile` points at the extensionless `LICENSE`, packed from the root by a `None`
+  item in `Directory.Build.props`. NuGet accepts a no-extension license file but will *not*
+  rename one on the way in — `PackagePath="LICENSE.txt"` fails every pack with NU5030.
+- `.github/workflows/release.yml` passes `-p:Version=` on the command line. An environment
+  variable does not work: `Directory.Build.props` assigns `<Version>`, and a project-level
+  assignment beats the environment. The same `-p:` set has to be repeated on every `--no-build`
+  step, or MSBuild rebuilds at the default version instead of reusing the build.
+
 ## Editing
 - `FilaCli.cs` and `Scaffolder.cs` hold code-generation templates as string literals.
   Sweeping renames rewrite them too — they still compile and tests still pass, but the

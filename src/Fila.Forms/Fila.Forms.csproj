@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Description>Fila's form builder: TextInput, Textarea, Select, Checkbox and DatePicker fields bound to an EF Core entity's properties. Ported from Filament's forms package.</Description>
   </PropertyGroup>
 
   <ItemGroup>
